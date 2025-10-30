@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2457,138 +2456,16 @@
             data.nextIds.inv = data.inventory.length > 0 ? Math.max(...data.inventory.map(i => i.id)) + 1 : 1;
         }
 
+        // Auto-update report date range on load
+        function updateReportDates() {
+            const today = new Date().toISOString().split('T')[0];
+            const lastMonth = new Date();
+            lastMonth.setMonth(lastMonth.getMonth() - 1);
+            document.getElementById('report-start').value = lastMonth.toISOString().split('T')[0];
             document.getElementById('report-end').value = today;
         }
 
-        // Word Import (Text to Work Orders)
-        window.importWord = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const arrayBuffer = uint8ArrayFromBase64(e.target.result.split(',')[1]).buffer;
-                    const result = await mammoth.extractRawText({ arrayBuffer });
-                    const text = result.value;
-                    const workOrders = parseTextToWorkOrders(text);
-                    workOrders.forEach(wo => {
-                        data.workOrders.push({
-                            id: data.nextIds.wo++,
-                            department: wo.department || 'general',
-                            assetName: wo.asset || 'N/A',
-                            description: wo.description,
-                            priority: wo.priority || 'Medium',
-                            status: 'Open',
-                            assignedTo: '',
-                            createdBy: currentUser.username,
-                            dateCreated: new Date().toISOString(),
-                            assetId: 0
-                        });
-                    });
-                    saveData();
-                    renderWorkOrders();
-                    showNotification(`${workOrders.length} work orders imported from Word.`);
-                } catch (err) {
-                    showNotification('Word import failed: ' + err.message, true);
-                }
-                event.target.value = '';
-            };
-            reader.readAsDataURL(file);
-        };
-
-        // PDF Import (Text to Work Orders)
-        window.importPdf = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const pdfData = new Uint8Array(e.target.result.split(',')[1]).split('').map(c => c.charCodeAt(0));
-                    const pdf = await pdfjsLib.getDocument(pdfData).promise;
-                    let text = '';
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        text += textContent.items.map(item => item.str).join(' ') + '\n';
-                    }
-                    const workOrders = parseTextToWorkOrders(text);
-                    workOrders.forEach(wo => {
-                        data.workOrders.push({
-                            id: data.nextIds.wo++,
-                            department: wo.department || 'general',
-                            assetName: wo.asset || 'N/A',
-                            description: wo.description,
-                            priority: wo.priority || 'Medium',
-                            status: 'Open',
-                            assignedTo: '',
-                            createdBy: currentUser.username,
-                            dateCreated: new Date().toISOString(),
-                            assetId: 0
-                        });
-                    });
-                    saveData();
-                    renderWorkOrders();
-                    showNotification(`${workOrders.length} work orders imported from PDF.`);
-                } catch (err) {
-                    showNotification('PDF import failed: ' + err.message, true);
-                }
-                event.target.value = '';
-            };
-            reader.readAsDataURL(file);
-        };
-
-        // Helper: Parse text to Work Orders (simple rule-based)
-        function parseTextToWorkOrders(text) {
-            const lines = text.toLowerCase().split('\n');
-            const workOrders = [];
-            let currentWo = { department: '', asset: '', description: '' };
-            lines.forEach(line => {
-                // Detect department
-                assetKeywords.departments.forEach(dept => {
-                    if (line.includes(dept)) currentWo.department = dept;
-                });
-                // Detect asset
-                assetKeywords.assetPatterns.forEach(pattern => {
-                    const match = line.match(pattern);
-                    if (match) currentWo.asset = match[1].trim();
-                });
-                // Detect description (any line with keywords like 'issue', 'problem', 'repair')
-                if (line.includes('issue') || line.includes('problem') || line.includes('repair') || line.includes('maintenance')) {
-                    currentWo.description += line.trim() + ' ';
-                }
-                // Detect priority
-                if (line.includes('high') || line.includes('urgent')) currentWo.priority = 'High';
-                else if (line.includes('medium')) currentWo.priority = 'Medium';
-                else if (line.includes('low')) currentWo.priority = 'Low';
-                // If line ends with period or number, assume end of WO
-                if (line.trim().endsWith('.') || /^\d+$/.test(line.trim())) {
-                    if (currentWo.description.trim()) {
-                        workOrders.push({ ...currentWo });
-                        currentWo = { department: '', asset: '', description: '' };
-                    }
-                }
-            });
-            // Add last if pending
-            if (currentWo.description.trim()) workOrders.push(currentWo);
-            return workOrders;
-        }
-
-        // Fix initApp gsConfig typo
-        // Corrected: localStorage.getItem('gs_config')
-        // (Apply this fix in the full code)
-        // In initApp(), the line should be:
-        // const gsConfig = localStorage.getItem('gs_config');
-
-        // Event listeners for department changes in PM (if added)
-        // For now, assuming no separate PM dept select; handled in populateAssetSelects
-
-        // Final initialization calls
-        // All set in showSection and initApp
-
-        // Initialize EmailJS (even if not configured)
-        emailjs.init(EMAILJS_USER_ID);
-
-        // Call updateReportDates on maintenance-report section load (already in showSection)
+        console.log('BCC CMMS Enhanced Edition with AI & Enhanced Viewer Loaded Successfully!');
     </script>
 </body>
 </html>
