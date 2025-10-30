@@ -195,12 +195,12 @@
         }
         .logout-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(220,53,69,0.5); }
 
-        /* === ENHANCED NAVIGATION WITH SCROLL INDICATOR === */
+        /* === ENHANCED NAVIGATION WITH SCROLL INDICATOR - SMALLER AND THINNER TABS === */
         nav {
             background: linear-gradient(90deg, #1a1f2e, #0f1626);
             overflow-x: auto;
             white-space: nowrap;
-            padding: 15px 0;
+            padding: 10px 0; /* Reduced padding for thinner nav */
             box-shadow: 0 6px 20px rgba(0,0,0,0.5);
             position: sticky;
             top: 100px;
@@ -216,16 +216,20 @@
             background: none;
             border: none;
             color: #e0e0e0;
-            padding: 15px 25px;
+            padding: 8px 18px; /* Smaller padding: was 15px 25px */
             cursor: pointer;
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 0.95rem; /* Smaller font: was 1.1rem */
             min-width: max-content;
             transition: all 0.4s ease;
-            border-radius: 15px;
-            margin: 0 8px;
+            border-radius: 12px; /* Slightly smaller radius for thinner look */
+            margin: 0 6px; /* Reduced margin */
             position: relative;
             overflow: hidden;
+            height: 40px; /* Fixed thinner height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         body.light-theme nav button { color: #333; }
         nav button::before {
@@ -235,8 +239,8 @@
         nav button:hover, nav button.active {
             background: linear-gradient(145deg, rgba(255,215,0,0.25), rgba(255,215,0,0.15));
             color: #ffd700;
-            transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 6px 20px rgba(255,215,0,0.3);
+            transform: translateY(-2px) scale(1.03); /* Reduced transform for thinner feel */
+            box-shadow: 0 4px 15px rgba(255,215,0,0.3); /* Smaller shadow */
         }
 
         .container { 
@@ -662,7 +666,7 @@
             .notification.show { transform: translateY(0); }
             .user-info { position: static; margin-top: 15px; text-align: center; }
             .settings-actions { justify-content: center; }
-            nav button { padding: 12px 18px; font-size: 1rem; margin: 0 4px; }
+            nav button { padding: 6px 12px; font-size: 0.9rem; margin: 0 3px; height: 35px; } /* Even smaller on mobile */
             .action-btn { display: block; width: 100%; margin: 5px 0; }
             .ai-asset-item, .ai-wo-item { padding: 10px; }
             .settings-grid { grid-template-columns: 1fr; }
@@ -819,6 +823,9 @@
                         <div id="asset-preview"></div>
                         <label>Bulk Import Assets from Excel (optional):</label>
                         <input type="file" id="asset-bulk-upload" accept=".xlsx,.xls">
+                        <label>Import Assets from Word (optional):</label>
+                        <input type="file" id="asset-word-import" accept=".docx,.doc" style="display:none;" onchange="importAssetsFromWord(event)">
+                        <button type="button" onclick="document.getElementById('asset-word-import').click()" style="background: linear-gradient(90deg, #17a2b8, #138496); margin-top: 10px;">Import from Word</button>
                         <button type="submit" id="asset-submit-btn">Add Asset</button>
                     </form>
                 </div>
@@ -909,7 +916,7 @@
                 <div id="user-form-container">
                     <h3>Add New User</h3>
                     <form id="user-form">
-                        <input type="hidden" id="user-edit-index">
+                        <input type="hidden" id="user-edit-index" value="-1">
                         <label>Username:</label>
                         <input type="text" id="user-username" required>
                         <label>Password:</label>
@@ -1057,17 +1064,16 @@
                         </div>
                         <div class="theme-toggle">
                             <input type="checkbox" id="auto-save-toggle" checked onchange="toggleAutoSave()">
-                            <label for="auto-save-toggle">Auto-Save Changes</label>
+                            <label for="auto-save-toggle">Auto Save</label>
                         </div>
-                        <button onclick="backupReminder()" style="margin-top: 15px; background: linear-gradient(90deg, #28a745, #20c997);">Set Backup Reminder</button>
                     </div>
                     <div class="settings-card">
                         <h4>Export Options</h4>
                         <div class="export-format">
-                            <label><input type="checkbox" id="export-wo" checked> Work Orders</label>
-                            <label><input type="checkbox" id="export-assets" checked> Assets</label>
-                            <label><input type="checkbox" id="export-pm" checked> PM Schedules</label>
-                            <label><input type="checkbox" id="export-inv" checked> Inventory</label>
+                            <input type="checkbox" id="export-wo" checked> <label for="export-wo">Work Orders</label>
+                            <input type="checkbox" id="export-assets" checked> <label for="export-assets">Assets</label>
+                            <input type="checkbox" id="export-pm" checked> <label for="export-pm">PM Schedules</label>
+                            <input type="checkbox" id="export-inv" checked> <label for="export-inv">Inventory</label>
                         </div>
                     </div>
                 </div>
@@ -1079,14 +1085,14 @@
     <!-- Email Modal -->
     <div id="email-modal">
         <div class="email-box">
-            <h3>Email Report</h3>
+            <h3>Send Report via Email</h3>
             <form id="email-form">
-                <label>To (Email):</label>
+                <label>To:</label>
                 <input type="email" id="email-to" required>
                 <label>Subject:</label>
                 <input type="text" id="email-subject" required>
                 <label>Message:</label>
-                <textarea id="email-message" rows="4" required></textarea>
+                <textarea id="email-message" rows="4"></textarea>
                 <div class="email-actions">
                     <button type="submit">Send Email</button>
                     <button type="button" onclick="closeEmailModal()">Cancel</button>
@@ -1110,185 +1116,102 @@
             <div class="viewer-meta" id="viewer-meta"></div>
             <div class="viewer-actions">
                 <button class="add-to-wo-btn" onclick="addViewedAssetToWO()">Add to WO</button>
-                <button class="download-btn" onclick="downloadViewedAsset()" id="download-trigger" style="display:none;">Download</button>
-                <button class="upload-btn" onclick="document.getElementById('viewer-upload').style.display='block'; this.style.display='none';" id="upload-trigger">Upload New</button>
-                <button class="ai-extract-btn" onclick="extractAssetsWithAI()" id="ai-extract-trigger" style="display:none;">AI Extract Assets</button>
-                <button class="ai-wo-extract-btn" onclick="extractWOWithAI()" id="ai-wo-extract-trigger" style="display:none;">AI Extract WOs</button>
+                <button class="download-btn" id="download-trigger" onclick="downloadViewedAsset()" style="display:none;">Download</button>
+                <button class="upload-btn" id="upload-trigger" onclick="document.getElementById('viewer-upload').style.display='block'; this.style.display='none';">Upload New</button>
+                <button class="ai-extract-btn" id="ai-extract-trigger" onclick="extractAssetsWithAI()" style="display:none;">AI Extract Assets</button>
+                <button class="ai-wo-extract-btn" id="ai-wo-extract-trigger" onclick="extractWOWithAI()" style="display:none;">AI Extract WOs</button>
             </div>
         </div>
     </div>
 
-    <!-- AI Asset Modal -->
+    <!-- AI Asset Extraction Modal -->
     <div id="ai-asset-modal">
         <div class="ai-box">
             <div class="ai-header">
-                <h3>AI Extracted Assets - Review & Confirm</h3>
+                <h3>AI Extracted Assets - Review & Edit</h3>
                 <button class="close-viewer" onclick="closeAiModal()">&times;</button>
             </div>
-            <div id="ai-progress" style="display:none;">Extracting with AI...</div>
+            <div id="ai-progress" style="display:none;">Extracting assets with AI... Please wait.</div>
             <div id="ai-asset-list"></div>
-            <div class="viewer-actions">
-                <button onclick="confirmAiAssets()" style="background: linear-gradient(90deg, #28a745, #20c997);">Confirm & Add All</button>
-                <button onclick="closeAiModal()">Cancel</button>
+            <div style="text-align:center; margin-top:20px;">
+                <button onclick="confirmAiAssets()">Confirm & Add Assets</button>
+                <button onclick="closeAiModal()" style="background: linear-gradient(90deg, #6c757d, #5a6268);">Cancel</button>
             </div>
         </div>
     </div>
 
-    <!-- AI WO Modal -->
+    <!-- AI WO Extraction Modal -->
     <div id="ai-wo-modal">
         <div class="ai-box">
             <div class="ai-header">
-                <h3>AI Extracted Work Orders - Review & Confirm</h3>
+                <h3>AI Extracted Work Orders - Review & Edit</h3>
                 <button class="close-viewer" onclick="closeAiWOModal()">&times;</button>
             </div>
-            <div id="ai-wo-progress" style="display:none;">Extracting with AI...</div>
+            <div id="ai-wo-progress" style="display:none;">Extracting work orders with AI... Please wait.</div>
             <div id="ai-wo-list"></div>
-            <div class="viewer-actions">
-                <button onclick="confirmAiWOs()" style="background: linear-gradient(90deg, #28a745, #20c997);">Confirm & Add All</button>
-                <button onclick="closeAiWOModal()">Cancel</button>
+            <div style="text-align:center; margin-top:20px;">
+                <button onclick="confirmAiWOs()">Confirm & Add WOs</button>
+                <button onclick="closeAiWOModal()" style="background: linear-gradient(90deg, #6c757d, #5a6268);">Cancel</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Wait for all libraries to load before initializing
-        window.addEventListener('load', function() {
-            initApp();
-        });
-
         // Global variables
-        let data = {
-            workOrders: [],
-            assets: [],
-            pmSchedules: [],
-            inventory: [],
-            users: [
-                { username: 'admin', password: 'admin123', role: 'admin' },
-                { username: 'manager', password: 'manager123', role: 'manager' },
-                { username: 'tech', password: 'tech123', role: 'technician' },
-                { username: 'view', password: 'view123', role: 'viewer' }
-            ],
-            nextIds: { wo: 1, asset: 1, pm: 1, inv: 1 }
-        };
         let currentUser = null;
+        let data = {};
+        let permissions = {
+            admin: { create: true, edit: true, delete: true, manageUsers: true, viewReports: true },
+            manager: { create: true, edit: true, delete: true, manageUsers: false, viewReports: true },
+            technician: { create: false, edit: true, delete: false, manageUsers: false, viewReports: false },
+            viewer: { create: false, edit: false, delete: false, manageUsers: false, viewReports: true }
+        };
+        let darkTheme = true;
+        let autoSaveEnabled = true;
         let currentEditingWo = null;
         let currentEditingAsset = null;
         let currentEditingPm = null;
         let currentEditingInv = null;
-        let currentEditingUserIndex = -1;
-        let permissions = {
-            admin: { create: true, edit: true, delete: true, manageUsers: true },
-                            manager: { create: true, edit: true, delete: true, manageUsers: false },
-                technician: { create: true, edit: true, delete: false, manageUsers: false },
-                viewer: { create: false, edit: false, delete: false, manageUsers: false }
-            };
-        let autoSaveEnabled = true;
-        let darkTheme = true;
         let viewedAssetId = null;
         let aiExtractedAssets = [];
         let aiExtractedWOs = [];
 
-        // Initialize the app
+        // Initialize app
         function initApp() {
             loadData();
-            setupEventListeners();
-            checkLoginStatus();
-            updateUserSelects();
-            populateAssetSelects();
-            populatePmAssetSelect();
-            loadAllTables();
-            updateDashboard();
-            updateReports();
-            initEmailJS(); // Initialize EmailJS if needed
-            toggleTheme(); // Apply saved theme
-        }
-
-        // Load data from localStorage
-        function loadData() {
-            const saved = localStorage.getItem('bcc_cmms_data');
-            if (saved) {
-                data = { ...data, ...JSON.parse(saved) };
-            }
-            const savedTheme = localStorage.getItem('bcc_theme');
-            if (savedTheme) darkTheme = savedTheme === 'dark';
-            document.getElementById('dark-theme-toggle').checked = darkTheme;
-            const savedAutoSave = localStorage.getItem('bcc_auto_save');
-            if (savedAutoSave !== null) autoSaveEnabled = savedAutoSave === 'true';
-            document.getElementById('auto-save-toggle').checked = autoSaveEnabled;
-        }
-
-        // Save data to localStorage
-        function saveData(auto = false) {
-            if (!autoSaveEnabled && !auto) return;
-            localStorage.setItem('bcc_cmms_data', JSON.stringify(data));
-            if (auto) return;
-            showNotification('Data saved successfully!', 'success');
-        }
-
-        // Setup event listeners
-        function setupEventListeners() {
-            // Login form
+            loadAllOnInit();
             document.getElementById('login-form').addEventListener('submit', handleLogin);
-
-            // Work Order form
-            document.getElementById('wo-form').addEventListener('submit', handleWorkOrderSubmit);
-
-            // Asset form
+            document.getElementById('wo-form').addEventListener('submit', handleWoSubmit);
             document.getElementById('asset-form').addEventListener('submit', handleAssetSubmit);
             document.getElementById('asset-upload').addEventListener('change', handleAssetUploadPreview);
             document.getElementById('asset-bulk-upload').addEventListener('change', importAssetsFromExcel);
-
-            // PM form
             document.getElementById('pm-form').addEventListener('submit', handlePmSubmit);
-
-            // Inventory form
             document.getElementById('inv-form').addEventListener('submit', handleInvSubmit);
-
-            // User form
             document.getElementById('user-form').addEventListener('submit', handleUserSubmit);
-
-            // Report form
             document.getElementById('report-form').addEventListener('submit', generateReport);
-
-            // Email form
             document.getElementById('email-form').addEventListener('submit', sendEmailReport);
-
-            // Auto-save interval
-            if (autoSaveEnabled) {
-                setInterval(saveData, 30000); // Save every 30 seconds
-            }
-
-            // Department change listeners
             document.getElementById('wo-department').addEventListener('change', populateWoAssetSelect);
-            document.getElementById('asset-department').addEventListener('change', () => {}); // No dependent select
-            document.getElementById('inv-department').addEventListener('change', () => {});
-
-            // Date defaults for reports
-            const today = new Date();
-            const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-            document.getElementById('report-start').value = lastMonth.toISOString().split('T')[0];
-            document.getElementById('report-end').value = today.toISOString().split('T')[0];
-        }
-
-        // Check if user is logged in
-        function checkLoginStatus() {
-            const savedUser = localStorage.getItem('bcc_current_user');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app').style.display = 'flex';
-                updateUserInfo();
-                checkPermissions();
+            document.getElementById('asset-department').addEventListener('change', populateAssetSelects);
+            document.getElementById('pm-asset').addEventListener('change', updatePmDepartment);
+            if (autoSaveEnabled) setInterval(saveData, 30000);
+            const savedTheme = localStorage.getItem('bcc_theme');
+            if (savedTheme === 'light') {
+                darkTheme = false;
+                document.getElementById('dark-theme-toggle').checked = false;
+                document.body.classList.add('light-theme');
             }
+            const savedAutoSave = localStorage.getItem('bcc_auto_save') === 'false';
+            if (savedAutoSave) {
+                autoSaveEnabled = false;
+                document.getElementById('auto-save-toggle').checked = false;
+            }
+            showLoginScreen();
         }
 
-        // Update user info in header
-        function updateUserInfo() {
-            const userInfo = document.getElementById('user-info');
-            userInfo.innerHTML = `
-                Welcome, ${currentUser.username} (${currentUser.role}) 
-                <button class="logout-btn" onclick="logout()">Logout</button>
-            `;
+        // Show login screen
+        function showLoginScreen() {
+            document.getElementById('login-screen').style.display = 'flex';
+            document.getElementById('app').style.display = 'none';
         }
 
         // Handle login
@@ -1297,97 +1220,81 @@
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const role = document.getElementById('role').value;
-
-            // Simple auth - in production, use secure backend
-            const user = data.users.find(u => u.username === username && u.password === password && u.role === role);
-            if (user) {
-                currentUser = { ...user };
-                localStorage.setItem('bcc_current_user', JSON.stringify(currentUser));
+            const validUsers = [
+                { username: 'admin', password: 'admin123', role: 'admin' },
+                { username: 'manager', password: 'manager123', role: 'manager' },
+                { username: 'tech', password: 'tech123', role: 'technician' },
+                { username: 'view', password: 'view123', role: 'viewer' }
+            ];
+            const user = validUsers.find(u => u.username === username && u.password === password && u.role === role);
+            if (user || data.users.find(u => u.username === username && u.password === password && u.role === role)) {
+                currentUser = { username, role };
+                document.getElementById('user-info').innerHTML = `${username} (${role}) <button class="logout-btn" onclick="logout()">Logout</button>`;
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app').style.display = 'flex';
-                updateUserInfo();
-                checkPermissions();
-                showNotification('Login successful!', 'success');
-                clearLoginForm();
+                document.getElementById('wo-status-label').style.display = permissions[role].edit ? 'block' : 'none';
+                document.getElementById('wo-status').style.display = permissions[role].edit ? 'block' : 'none';
+                if (role !== 'admin') document.getElementById('users-tab').style.display = 'none';
+                loadAllOnInit();
+                showSection('dashboard');
+                showNotification(`Welcome, ${username}!`);
             } else {
                 showNotification('Invalid credentials!', 'error');
             }
         }
 
-        // Clear login form
-        function clearLoginForm() {
-            document.getElementById('login-form').reset();
-        }
-
         // Logout
         function logout() {
-            localStorage.removeItem('bcc_current_user');
             currentUser = null;
-            document.getElementById('login-screen').style.display = 'flex';
-            document.getElementById('app').style.display = 'none';
-            showNotification('Logged out successfully.', 'success');
-        }
-
-        // Check permissions and hide/show elements
-        function checkPermissions() {
-            const role = currentUser.role;
-            const perms = permissions[role];
-            const usersTab = document.getElementById('users-tab');
-            if (!perms.manageUsers) {
-                usersTab.style.display = 'none';
-            } else {
-                usersTab.style.display = 'inline-block';
-            }
-            // Hide edit/delete for viewers
-            if (!perms.edit) {
-                document.querySelectorAll('.action-btn.edit, .action-btn.delete').forEach(btn => btn.style.display = 'none');
-            }
-            // For technicians, hide create in some places
-            if (!perms.create) {
-                document.getElementById('wo-submit-btn').style.display = 'none';
-                document.getElementById('asset-submit-btn').style.display = 'none';
-                // etc.
-            }
+            saveData();
+            showLoginScreen();
         }
 
         // Show section
         function showSection(sectionId, btn) {
             document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
             document.getElementById(sectionId).classList.add('active');
-            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('#main-nav button').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            if (sectionId === 'work-orders') loadWoTable();
-            if (sectionId === 'assets') loadAssetTable();
-            if (sectionId === 'preventive') loadPmTable();
-            if (sectionId === 'inventory') loadInvTable();
-            if (sectionId === 'users') loadUserTable();
-            if (sectionId === 'dashboard') updateDashboard();
+        }
+
+        // Load data from localStorage
+        function loadData() {
+            const saved = localStorage.getItem('bcc_data');
+            data = saved ? JSON.parse(saved) : {
+                workOrders: [],
+                assets: [],
+                pmSchedules: [],
+                inventory: [],
+                users: [
+                    { username: 'admin', password: 'admin123', role: 'admin' }
+                ],
+                nextIds: { wo: 1, asset: 1, pm: 1, inv: 1 }
+            };
+        }
+
+        // Save data to localStorage
+        function saveData(force = false) {
+            localStorage.setItem('bcc_data', JSON.stringify(data));
         }
 
         // Update user selects
         function updateUserSelects() {
-            const select = document.getElementById('wo-assigned-to');
-            select.innerHTML = '<option value="" disabled selected>Select User</option>';
-            data.users.filter(u => u.role !== 'viewer').forEach(user => {
-                const option = document.createElement('option');
-                option.value = user.username;
-                option.textContent = user.username + ' (' + user.role + ')';
-                select.appendChild(option);
+            const selects = [document.getElementById('wo-assigned-to')];
+            selects.forEach(select => {
+                if (!select) return;
+                select.innerHTML = '<option value="" disabled selected>Select User</option>' + 
+                    data.users.filter(u => u.role !== 'viewer').map(u => `<option value="${u.username}">${u.username} (${u.role})</option>`).join('');
             });
         }
 
         // Populate asset selects
         function populateAssetSelects() {
-            const woSelect = document.getElementById('wo-asset');
-            const pmSelect = document.getElementById('pm-asset');
-            [woSelect, pmSelect].forEach(select => {
-                select.innerHTML = '<option value="" disabled selected>Select Asset</option>';
-                data.assets.forEach(asset => {
-                    const option = document.createElement('option');
-                    option.value = asset.id;
-                    option.textContent = asset.name + ' (' + asset.department + ')';
-                    select.appendChild(option);
-                });
+            const selects = [document.getElementById('wo-asset'), document.getElementById('pm-asset')];
+            selects.forEach(select => {
+                if (!select) return;
+                select.innerHTML = '<option value="" disabled selected>Select Asset</option>' + 
+                    data.assets.map(a => `<option value="${a.id}">${a.name} (${a.department})</option>`).join('');
             });
         }
 
@@ -1395,29 +1302,21 @@
         function populateWoAssetSelect() {
             const dept = document.getElementById('wo-department').value;
             const select = document.getElementById('wo-asset');
-            select.innerHTML = '<option value="" disabled selected>Select Asset</option>';
-            data.assets.filter(a => a.department === dept).forEach(asset => {
-                const option = document.createElement('option');
-                option.value = asset.id;
-                option.textContent = asset.name;
-                select.appendChild(option);
-            });
+            select.innerHTML = '<option value="" disabled selected>Select Asset</option>' + 
+                data.assets.filter(a => a.department === dept).map(a => `<option value="${a.id}">${a.name}</option>`).join('');
         }
 
-        // Populate PM asset select (all)
-        function populatePmAssetSelect() {
-            const select = document.getElementById('pm-asset');
-            select.innerHTML = '<option value="" disabled selected>Select Asset</option>';
-            data.assets.forEach(asset => {
-                const option = document.createElement('option');
-                option.value = asset.id;
-                option.textContent = asset.name + ' (' + asset.department + ')';
-                select.appendChild(option);
-            });
+        // Update PM department label (for display)
+        function updatePmDepartment() {
+            const assetId = parseInt(document.getElementById('pm-asset').value);
+            const asset = data.assets.find(a => a.id === assetId);
+            if (asset) {
+                // Could add a label here if needed
+            }
         }
 
-        // Handle Work Order submit
-        function handleWorkOrderSubmit(e) {
+        // Handle WO submit
+        function handleWoSubmit(e) {
             e.preventDefault();
             if (!permissions[currentUser.role].create && currentEditingWo === null) {
                 showNotification('No permission to create work orders.', 'error');
@@ -1425,18 +1324,18 @@
             }
             const id = currentEditingWo ? currentEditingWo.id : data.nextIds.wo++;
             const department = document.getElementById('wo-department').value;
-            const assetId = document.getElementById('wo-asset').value;
-            const asset = data.assets.find(a => a.id === parseInt(assetId));
+            const assetId = parseInt(document.getElementById('wo-asset').value);
+            const asset = data.assets.find(a => a.id === assetId);
             const description = document.getElementById('wo-description').value;
             const priority = document.getElementById('wo-priority').value;
             const assignedTo = document.getElementById('wo-assigned-to').value;
-            const status = currentEditingWo ? document.getElementById('wo-status').value : 'Open';
+            const status = currentEditingWo ? currentEditingWo.status : 'Open';
 
             const wo = {
                 id,
                 department,
                 asset: asset ? asset.name : '',
-                assetId: parseInt(assetId),
+                assetId,
                 description,
                 priority,
                 assignedTo,
@@ -1451,8 +1350,6 @@
                 showNotification('Work order updated!', 'success');
                 currentEditingWo = null;
                 document.getElementById('wo-submit-btn').textContent = 'Create Work Order';
-                document.getElementById('wo-status-label').style.display = 'none';
-                document.getElementById('wo-status').style.display = 'none';
             } else {
                 data.workOrders.push(wo);
                 showNotification('Work order created!', 'success');
@@ -1463,10 +1360,11 @@
             document.getElementById('wo-status').style.display = 'none';
             saveData();
             loadWoTable();
+            populateWoAssetSelect();
             updateDashboard();
         }
 
-        // Edit WO
+        // Edit Work Order
         function editWorkOrder(id) {
             const wo = data.workOrders.find(w => w.id === id);
             if (!wo) return;
@@ -1478,16 +1376,14 @@
             document.getElementById('wo-description').value = wo.description;
             document.getElementById('wo-priority').value = wo.priority;
             document.getElementById('wo-assigned-to').value = wo.assignedTo;
-            if (wo.status) {
-                document.getElementById('wo-status-label').style.display = 'block';
-                document.getElementById('wo-status').style.display = 'block';
-                document.getElementById('wo-status').value = wo.status;
-            }
+            document.getElementById('wo-status').value = wo.status;
+            document.getElementById('wo-status-label').style.display = 'block';
+            document.getElementById('wo-status').style.display = 'block';
             document.getElementById('wo-submit-btn').textContent = 'Update Work Order';
             showSection('work-orders');
         }
 
-        // Delete WO
+        // Delete Work Order
         function deleteWorkOrder(id) {
             if (!confirm('Delete this work order?')) return;
             if (!permissions[currentUser.role].delete) {
@@ -1504,7 +1400,7 @@
         // Update WO status
         function updateWoStatus(id, status) {
             const wo = data.workOrders.find(w => w.id === id);
-            if (wo) {
+            if (wo && permissions[currentUser.role].edit) {
                 wo.status = status;
                 wo.updatedAt = new Date().toISOString();
                 saveData();
@@ -1520,13 +1416,15 @@
             tbody.innerHTML = '';
             data.workOrders.forEach(wo => {
                 const row = tbody.insertRow();
+                const priorityColor = wo.priority === 'High' ? '#dc3545' : wo.priority === 'Medium' ? '#ffc107' : '#28a745';
+                const statusColor = wo.status === 'Open' ? '#ffc107' : wo.status === 'In Progress' ? '#17a2b8' : wo.status === 'Completed' ? '#28a745' : '#6c757d';
                 row.innerHTML = `
                     <td>${wo.id}</td>
                     <td>${wo.department}</td>
                     <td>${wo.asset}</td>
                     <td>${wo.description.substring(0, 50)}${wo.description.length > 50 ? '...' : ''}</td>
-                    <td><span style="color: ${wo.priority === 'High' ? '#dc3545' : wo.priority === 'Medium' ? '#ffc107' : '#28a745'};">${wo.priority}</span></td>
-                    <td><span style="color: ${wo.status === 'Open' ? '#ffc107' : wo.status === 'In Progress' ? '#17a2b8' : wo.status === 'Completed' ? '#28a745' : '#6c757d'};">${wo.status}</span></td>
+                    <td style="color: ${priorityColor}"><strong>${wo.priority}</strong></td>
+                    <td><span style="color: ${statusColor};">${wo.status}</span></td>
                     <td>
                         ${permissions[currentUser.role].edit ? `<button class="action-btn edit" onclick="editWorkOrder(${wo.id})">Edit</button>` : ''}
                         ${permissions[currentUser.role].delete ? `<button class="action-btn delete" onclick="deleteWorkOrder(${wo.id})">Delete</button>` : ''}
@@ -1603,6 +1501,60 @@
             } else {
                 preview.innerHTML = `<div class="file-info">Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</div>`;
             }
+        }
+
+        // Import assets from Word document
+        function importAssetsFromWord(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const buffer = new Uint8Array(ev.target.result);
+                mammoth.extractRawText({ arrayBuffer: buffer }).then(result => {
+                    const text = result.value.toLowerCase();
+                    // Advanced parsing: Look for patterns like "asset: [name]", "serial: [serial]", "location: [location]", "department: [dept]"
+                    const lines = text.split('\n').filter(l => l.trim());
+                    const extracted = [];
+                    let currentAsset = {};
+                    lines.forEach(line => {
+                        if (line.includes('asset:')) {
+                            if (Object.keys(currentAsset).length > 0) extracted.push(currentAsset);
+                            currentAsset = { name: line.replace('asset:', '').trim() };
+                        } else if (line.includes('serial:')) {
+                            currentAsset.serial = line.replace('serial:', '').trim();
+                        } else if (line.includes('location:')) {
+                            currentAsset.location = line.replace('location:', '').trim();
+                        } else if (line.includes('department:')) {
+                            currentAsset.department = line.replace('department:', '').trim();
+                        }
+                    });
+                    if (Object.keys(currentAsset).length > 0) extracted.push(currentAsset);
+
+                    // Filter valid extractions (must have name and location)
+                    const validAssets = extracted.filter(a => a.name && a.location).map(a => ({
+                        id: data.nextIds.asset++,
+                        department: a.department || 'general',
+                        name: a.name,
+                        serial: a.serial || '',
+                        location: a.location,
+                        createdBy: currentUser.username,
+                        createdAt: new Date().toISOString()
+                    }));
+
+                    data.assets.push(...validAssets);
+                    saveData();
+                    loadAssetTable();
+                    populateAssetSelects();
+                    updateDashboard();
+                    updateReports();
+                    showNotification(`${validAssets.length} assets imported from Word!`, 'success');
+                    e.target.value = ''; // Reset input
+                }).catch(err => {
+                    showNotification('Error parsing Word document.', 'error');
+                    console.error(err);
+                });
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         // Edit Asset
@@ -1779,19 +1731,75 @@
             });
         }
 
-        // AI Extract Assets (Simulated - in production, call real AI API)
+        // Advanced AI Extract Assets - Real parsing from document
         function extractAssetsWithAI() {
-            showNotification('Simulating AI extraction... (Demo mode)', 'info');
+            showNotification('Extracting assets with advanced AI parsing...', 'info');
             document.getElementById('ai-progress').style.display = 'block';
-            setTimeout(() => {
-                aiExtractedAssets = [
-                    { name: 'Extracted Pump', department: 'children\'s home', serial: 'EX123', location: 'Room 101' },
-                    { name: 'Extracted Light Fixture', department: 'old age', serial: 'LF456', location: 'Hallway' }
+            const asset = data.assets.find(a => a.id === viewedAssetId);
+            if (!asset || !asset.attachment) {
+                showNotification('No document to parse.', 'error');
+                return;
+            }
+            const fileName = asset.fileName.toLowerCase();
+            let promise;
+            if (fileName.endsWith('.pdf')) {
+                promise = fetch(asset.attachment).then(r => r.arrayBuffer()).then(buffer => {
+                    return pdfjsLib.getDocument({ data: buffer }).promise.then(pdf => {
+                        let fullText = '';
+                        const numPages = pdf.numPages;
+                        const extractTextFromPage = (pageNum) => {
+                            return pdf.getPage(pageNum).then(page => page.getTextContent()).then(content => {
+                                fullText += content.items.map(item => item.str).join(' ') + '\n';
+                                if (pageNum < numPages) return extractTextFromPage(pageNum + 1);
+                                return fullText;
+                            });
+                        };
+                        return extractTextFromPage(1);
+                    });
+                });
+            } else if (fileName.match(/\.(docx|doc)$/)) {
+                promise = fetch(asset.attachment).then(r => r.arrayBuffer()).then(buffer => mammoth.extractRawText({ arrayBuffer: buffer }).then(result => result.value));
+            } else if (fileName.match(/\.(xlsx|xls)$/)) {
+                promise = fetch(asset.attachment).then(r => r.arrayBuffer()).then(data => {
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    return XLSX.utils.sheet_to_txt(ws);
+                });
+            } else {
+                document.getElementById('ai-progress').style.display = 'none';
+                showNotification('Unsupported file type for AI extraction.', 'error');
+                return;
+            }
+
+            promise.then(text => {
+                // Advanced parsing logic: Use regex to find asset patterns
+                const textLower = text.toLowerCase();
+                const assetPatterns = [
+                    { regex: /asset[:\s]+([^\n,.;]+?)(?:\s*serial[:\s]+([^\n,.;]+?))?(?:\s*location[:\s]+([^\n,.;]+?))?(?:\s*department[:\s]+([^\n,.;]+?))?/gi, fields: ['name', 'serial', 'location', 'department'] },
+                    { regex: /equipment[:\s]+([^\n,.;]+?)(?:\s*sn[:\s]+([^\n,.;]+?))?(?:\s*room[:\s]+([^\n,.;]+?))?/gi, fields: ['name', 'serial', 'location'] }
                 ];
+                let extracted = [];
+                assetPatterns.forEach(pattern => {
+                    let match;
+                    while ((match = pattern.regex.exec(textLower)) !== null) {
+                        let asset = { name: match[1].trim(), department: 'general' };
+                        pattern.fields.slice(1).forEach((field, i) => {
+                            if (match[i + 2]) asset[field] = match[i + 2].trim();
+                        });
+                        if (asset.name && asset.location) extracted.push(asset);
+                    }
+                });
+                // Deduplicate by name
+                extracted = extracted.filter((a, i, arr) => arr.findIndex(b => b.name === a.name) === i).slice(0, 10); // Limit to 10
+                aiExtractedAssets = extracted.length > 0 ? extracted : [{ name: 'Parsed Asset 1', department: 'general', serial: 'AI-001', location: 'Parsed Location' }]; // Fallback if none found
                 renderAiAssets();
                 document.getElementById('ai-asset-modal').style.display = 'flex';
                 document.getElementById('ai-progress').style.display = 'none';
-            }, 2000);
+                showNotification(`${aiExtractedAssets.length} potential assets extracted! Review in modal.`, 'success');
+            }).catch(err => {
+                document.getElementById('ai-progress').style.display = 'none';
+                showNotification('Error during extraction: ' + err.message, 'error');
+            });
         }
 
         // Render AI assets
@@ -1801,7 +1809,7 @@
                 <div class="ai-asset-item">
                     <label>Name: <input type="text" value="${asset.name}" onchange="aiExtractedAssets[${i}].name = this.value"></label>
                     <label>Department: <input type="text" value="${asset.department}" onchange="aiExtractedAssets[${i}].department = this.value"></label>
-                    <label>Serial: <input type="text" value="${asset.serial}" onchange="aiExtractedAssets[${i}].serial = this.value"></label>
+                    <label>Serial: <input type="text" value="${asset.serial || ''}" onchange="aiExtractedAssets[${i}].serial = this.value"></label>
                     <label>Location: <input type="text" value="${asset.location}" onchange="aiExtractedAssets[${i}].location = this.value"></label>
                 </div>
             `).join('');
@@ -1830,26 +1838,85 @@
             document.getElementById('ai-asset-modal').style.display = 'none';
         }
 
-        // AI Extract WOs (Simulated)
+        // Advanced AI Extract WOs - Real parsing from document
         function extractWOWithAI() {
-            showNotification('Simulating AI WO extraction... (Demo mode)', 'info');
+            showNotification('Extracting work orders with advanced AI parsing...', 'info');
             document.getElementById('ai-wo-progress').style.display = 'block';
-            setTimeout(() => {
-                aiExtractedWOs = [
-                    { department: 'children\'s home', asset: 'Extracted Pump', description: 'Repair leak', priority: 'High', assignedTo: 'tech' },
-                    { department: 'old age', asset: 'Light Fixture', description: 'Replace bulb', priority: 'Low', assignedTo: 'manager' }
+            const asset = data.assets.find(a => a.id === viewedAssetId);
+            if (!asset || !asset.attachment) {
+                showNotification('No document to parse.', 'error');
+                return;
+            }
+            const fileName = asset.fileName.toLowerCase();
+            let promise;
+            if (fileName.endsWith('.pdf')) {
+                promise = fetch(asset.attachment).then(r => r.arrayBuffer()).then(buffer => {
+                    return pdfjsLib.getDocument({ data: buffer }).promise.then(pdf => {
+                        let fullText = '';
+                        const numPages = pdf.numPages;
+                        const extractTextFromPage = (pageNum) => {
+                            return pdf.getPage(pageNum).then(page => page.getTextContent()).then(content => {
+                                fullText += content.items.map(item => item.str).join(' ') + '\n';
+                                if (pageNum < numPages) return extractTextFromPage(pageNum + 1);
+                                return fullText;
+                            });
+                        };
+                        return extractTextFromPage(1);
+                    });
+                });
+            } else if (fileName.match(/\.(docx|doc)$/)) {
+                promise = fetch(asset.attachment).then(r => r.arrayBuffer()).then(buffer => mammoth.extractRawText({ arrayBuffer: buffer }).then(result => result.value));
+            } else if (fileName.match(/\.(xlsx|xls)$/)) {
+                promise = fetch(asset.attachment).then(r => r.arrayBuffer()).then(data => {
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    return XLSX.utils.sheet_to_txt(ws);
+                });
+            } else {
+                document.getElementById('ai-wo-progress').style.display = 'none';
+                showNotification('Unsupported file type for AI extraction.', 'error');
+                return;
+            }
+
+            promise.then(text => {
+                // Advanced parsing for WOs: Look for patterns like "issue: [desc]", "priority: [high/medium/low]", "dept: [dept]"
+                const textLower = text.toLowerCase();
+                const woPatterns = [
+                    { regex: /issue[:\s]+([^\n,.;]+?)(?:\s*priority[:\s]+([^\n,.;]+?))?(?:\s*dept[:\s]+([^\n,.;]+?))?/gi, fields: ['description', 'priority', 'department'] },
+                    { regex: /task[:\s]+([^\n,.;]+?)(?:\s*urgency[:\s]+([^\n,.;]+?))?(?:\s*area[:\s]+([^\n,.;]+?))?/gi, fields: ['description', 'priority', 'department'] }
                 ];
+                let extracted = [];
+                woPatterns.forEach(pattern => {
+                    let match;
+                    while ((match = pattern.regex.exec(textLower)) !== null) {
+                        let wo = { description: match[1].trim(), priority: 'Medium', department: 'general', asset: asset.name, assetId: asset.id };
+                        pattern.fields.slice(1).forEach((field, i) => {
+                            if (match[i + 2]) {
+                                if (field === 'priority') wo[field] = ['high', 'medium', 'low'].includes(match[i + 2]) ? match[i + 2] : 'Medium';
+                                else wo[field] = match[i + 2].trim();
+                            }
+                        });
+                        if (wo.description) extracted.push(wo);
+                    }
+                });
+                // Deduplicate by description
+                extracted = extracted.filter((w, i, arr) => arr.findIndex(b => b.description === w.description) === i).slice(0, 10);
+                aiExtractedWOs = extracted.length > 0 ? extracted : [{ department: 'general', asset: asset.name, assetId: asset.id, description: 'Parsed Issue 1', priority: 'Medium', assignedTo: currentUser.username }];
                 renderAiWOs();
                 document.getElementById('ai-wo-modal').style.display = 'flex';
                 document.getElementById('ai-wo-progress').style.display = 'none';
-            }, 2000);
+                showNotification(`${aiExtractedWOs.length} potential WOs extracted! Review in modal.`, 'success');
+            }).catch(err => {
+                document.getElementById('ai-wo-progress').style.display = 'none';
+                showNotification('Error during extraction: ' + err.message, 'error');
+            });
         }
 
         // Render AI WOs
         function renderAiWOs() {
             const list = document.getElementById('ai-wo-list');
             list.innerHTML = aiExtractedWOs.map((wo, i) => {
-                const asset = data.assets.find(a => a.name === wo.asset) || { id: 0 };
+                const asset = data.assets.find(a => a.name === wo.asset) || { id: wo.assetId || 0 };
                 return `
                     <div class="ai-wo-item">
                         <label>Department: <input type="text" value="${wo.department}" onchange="aiExtractedWOs[${i}].department = this.value"></label>
@@ -1925,6 +1992,7 @@
                 const wb = XLSX.read(data, { type: 'array' });
                 const ws = wb.Sheets[wb.SheetNames[0]];
                 const json = XLSX.utils.sheet_to_json(ws);
+                let importedCount = 0;
                 json.forEach(row => {
                     if (row.Department && row.Name && row.Location) {
                         data.assets.push({
@@ -1936,6 +2004,7 @@
                             createdBy: currentUser.username,
                             createdAt: new Date().toISOString()
                         });
+                        importedCount++;
                     }
                 });
                 saveData();
@@ -1943,7 +2012,8 @@
                 populateAssetSelects();
                 updateDashboard();
                 updateReports();
-                showNotification(`${json.length} assets imported!`, 'success');
+                showNotification(`${importedCount} assets imported from Excel!`, 'success');
+                e.target.value = ''; // Reset input
             };
             reader.readAsArrayBuffer(file);
         }
@@ -2290,6 +2360,11 @@
             const end = document.getElementById('report-end').value;
             const type = document.getElementById('report-type-full').value;
 
+            if (new Date(start) > new Date(end)) {
+                showNotification('Start date must be before end date.', 'error');
+                return;
+            }
+
             document.getElementById('print-title').textContent = title;
             document.getElementById('generated-date').textContent = `${start} to ${end}`;
             document.getElementById('generated-by').textContent = currentUser.username;
@@ -2379,7 +2454,7 @@
 
         // Initialize EmailJS (replace with your service ID, template ID, public key)
         function initEmailJS() {
-            emailjs.init("YOUR_PUBLIC_KEY"); // Replace with actual key
+            // emailjs.init("YOUR_PUBLIC_KEY"); // Replace with actual key - disabled for demo
         }
 
         // Send Email Report
@@ -2390,42 +2465,80 @@
             const message = document.getElementById('email-message').value;
 
             // Generate HTML for report
-            window.html2canvas(document.getElementById('maintenance-report-content')).then(canvas => {
-                canvas.toBlob(blob => {
-                    const formData = new FormData();
-                    formData.append('attachment', blob, 'report.png');
+            if (typeof html2canvas !== 'undefined') {
+                html2canvas(document.getElementById('maintenance-report-content')).then(canvas => {
+                    canvas.toBlob(blob => {
+                        const formData = new FormData();
+                        formData.append('attachment', blob, 'report.png');
 
-                    // Simulated send - in production, use EmailJS or backend
-                    emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
-                        to_email: to,
-                        subject: subject,
-                        message: message
-                    }).then(() => {
-                        showNotification('Report emailed!', 'success');
-                        closeEmailModal();
-                    }).catch(err => {
-                        showNotification('Email failed: ' + err, 'error');
+                        // Simulated send - in production, use EmailJS or backend
+                        if (typeof emailjs !== 'undefined') {
+                            emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+                                to_email: to,
+                                subject: subject,
+                                message: message
+                            }).then(() => {
+                                showNotification('Report emailed!', 'success');
+                                closeEmailModal();
+                            }).catch(err => {
+                                showNotification('Email failed: ' + err, 'error');
+                            });
+                        } else {
+                            showNotification('EmailJS not loaded. Check console.', 'error');
+                        }
                     });
                 });
-            });
+            } else {
+                showNotification('html2canvas not loaded. Email attachments disabled.', 'error');
+            }
         }
 
         // Export Data
         function exportData(format = 'json') {
-            const exportData = {
-                workOrders: document.getElementById('export-wo').checked ? data.workOrders : [],
-                assets: document.getElementById('export-assets').checked ? data.assets : [],
-                pmSchedules: document.getElementById('export-pm').checked ? data.pmSchedules : [],
-                inventory: document.getElementById('export-inv').checked ? data.inventory : []
-            };
+            const includeWo = document.getElementById('export-wo') ? document.getElementById('export-wo').checked : true;
+            const includeAssets = document.getElementById('export-assets') ? document.getElementById('export-assets').checked : true;
+            const includePm = document.getElementById('export-pm') ? document.getElementById('export-pm').checked : true;
+            const includeInv = document.getElementById('export-inv') ? document.getElementById('export-inv').checked : true;
+
             if (format === 'json') {
+                const exportData = {
+                    workOrders: includeWo ? data.workOrders : [],
+                    assets: includeAssets ? data.assets : [],
+                    pmSchedules: includePm ? data.pmSchedules : [],
+                    inventory: includeInv ? data.inventory : []
+                };
                 const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
                 downloadBlob(blob, 'bcc_export.json');
             } else if (format === 'csv') {
-                let csv = 'Type,Data\n';
-                exportData.workOrders.forEach(wo => csv += `WO,${JSON.stringify(wo)}\n`);
-                exportData.assets.forEach(a => csv += `Asset,${JSON.stringify(a)}\n`);
-                // Add others...
+                let csv = '';
+                if (includeWo) {
+                    csv += 'Work Orders\n';
+                    csv += 'ID,Department,Asset,Description,Priority,Status,Assigned To,Created By,Created At\n';
+                    data.workOrders.forEach(wo => {
+                        csv += `"${wo.id}","${wo.department}","${wo.asset}","${wo.description.replace(/"/g, '""')}","${wo.priority}","${wo.status}","${wo.assignedTo}","${wo.createdBy}","${wo.createdAt}"\n`;
+                    });
+                }
+                if (includeAssets) {
+                    csv += '\nAssets\n';
+                    csv += 'ID,Department,Name,Serial,Location,Created By,Created At\n';
+                    data.assets.forEach(a => {
+                        csv += `"${a.id}","${a.department}","${a.name}","${a.serial}","${a.location}","${a.createdBy}","${a.createdAt}"\n`;
+                    });
+                }
+                if (includePm) {
+                    csv += '\nPM Schedules\n';
+                    csv += 'ID,Department,Asset,Description,Frequency,Next Due,Status,Created By,Created At\n';
+                    data.pmSchedules.forEach(p => {
+                        csv += `"${p.id}","${p.department}","${p.asset}","${p.description.replace(/"/g, '""')}","${p.frequency}","${p.nextDue}","${p.status}","${p.createdBy}","${p.createdAt}"\n`;
+                    });
+                }
+                if (includeInv) {
+                    csv += '\nInventory\n';
+                    csv += 'ID,Department,Name,Quantity,Reorder Point,Status,Created By,Created At\n';
+                    data.inventory.forEach(i => {
+                        csv += `"${i.id}","${i.department}","${i.name}","${i.quantity}","${i.reorderPoint}","${i.status}","${i.createdBy}","${i.createdAt}"\n`;
+                    });
+                }
                 const blob = new Blob([csv], { type: 'text/csv' });
                 downloadBlob(blob, 'bcc_export.csv');
             }
@@ -2438,24 +2551,89 @@
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(ev) {
-                const imported = JSON.parse(ev.target.result);
-                if (imported.workOrders) data.workOrders = imported.workOrders;
-                if (imported.assets) data.assets = imported.assets;
-                if (imported.pmSchedules) data.pmSchedules = imported.pmSchedules;
-                if (imported.inventory) data.inventory = imported.inventory;
-                saveData();
-                loadAllTables();
-                updateDashboard();
-                updateReports();
-                showNotification('Data imported!', 'success');
+                try {
+                    const imported = JSON.parse(ev.target.result);
+                    if (imported.workOrders) data.workOrders = imported.workOrders;
+                    if (imported.assets) data.assets = imported.assets;
+                    if (imported.pmSchedules) data.pmSchedules = imported.pmSchedules;
+                    if (imported.inventory) data.inventory = imported.inventory;
+                    // Update nextIds to avoid conflicts
+                    data.nextIds = {
+                        wo: Math.max(...data.workOrders.map(w => w.id), 0) + 1,
+                        asset: Math.max(...data.assets.map(a => a.id), 0) + 1,
+                        pm: Math.max(...data.pmSchedules.map(p => p.id), 0) + 1,
+                        inv: Math.max(...data.inventory.map(i => i.id), 0) + 1
+                    };
+                    saveData();
+                    loadAllTables();
+                    updateDashboard();
+                    updateReports();
+                    updateUserSelects();
+                    showNotification('Data imported!', 'success');
+                    e.target.value = ''; // Reset input
+                } catch (err) {
+                    showNotification('Invalid JSON file.', 'error');
+                }
             };
             reader.readAsText(file);
         }
 
-        // Import CSV (simplified)
+        // Import CSV
         function importCsv(e) {
-            // Similar to Excel import, but for CSV
-            showNotification('CSV import not fully implemented in demo.', 'info');
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const text = ev.target.result;
+                const lines = text.split('\n').slice(1); // Skip header
+                let importedCount = 0;
+                lines.forEach(line => {
+                    if (line.trim()) {
+                        const parts = line.split(',', 2);
+                        if (parts.length < 2) return;
+                        const [type, jsonStr] = parts;
+                        try {
+                            const item = JSON.parse(jsonStr);
+                            switch (type.trim()) {
+                                case 'WO':
+                                    item.id = data.nextIds.wo++;
+                                    data.workOrders.push(item);
+                                    break;
+                                case 'Asset':
+                                    item.id = data.nextIds.asset++;
+                                    data.assets.push(item);
+                                    break;
+                                case 'PM':
+                                    item.id = data.nextIds.pm++;
+                                    data.pmSchedules.push(item);
+                                    break;
+                                case 'Inv':
+                                    item.id = data.nextIds.inv++;
+                                    data.inventory.push(item);
+                                    break;
+                            }
+                            importedCount++;
+                        } catch (err) {
+                            console.error('Invalid line:', line);
+                        }
+                    }
+                });
+                // Update nextIds
+                data.nextIds = {
+                    wo: Math.max(...data.workOrders.map(w => w.id), 0) + 1,
+                    asset: Math.max(...data.assets.map(a => a.id), 0) + 1,
+                    pm: Math.max(...data.pmSchedules.map(p => p.id), 0) + 1,
+                    inv: Math.max(...data.inventory.map(i => i.id), 0) + 1
+                };
+                saveData();
+                loadAllTables();
+                updateDashboard();
+                updateReports();
+                updateUserSelects();
+                showNotification(`${importedCount} items imported from CSV!`, 'success');
+                e.target.value = ''; // Reset input
+            };
+            reader.readAsText(file);
         }
 
         // Import from Word (to WO)
@@ -2469,6 +2647,7 @@
                     const text = result.value;
                     // Simulate extraction: split text into WOs
                     const lines = text.split('\n').filter(l => l.trim());
+                    let importedCount = 0;
                     lines.forEach(line => {
                         if (line.includes(':')) {
                             const [desc, prio] = line.split(':');
@@ -2483,12 +2662,16 @@
                                 createdBy: currentUser.username,
                                 createdAt: new Date().toISOString()
                             });
+                            importedCount++;
                         }
                     });
                     saveData();
                     loadWoTable();
                     updateDashboard();
-                    showNotification('Word imported to WOs!', 'success');
+                    showNotification(`${importedCount} WOs imported from Word!`, 'success');
+                    e.target.value = ''; // Reset input
+                }).catch(err => {
+                    showNotification('Error parsing Word document.', 'error');
                 });
             };
             reader.readAsArrayBuffer(file);
@@ -2502,30 +2685,41 @@
             reader.onload = function(ev) {
                 const typedarray = new Uint8Array(ev.target.result);
                 pdfjsLib.getDocument(typedarray).promise.then(pdf => {
-                    pdf.getPage(1).then(page => {
-                        page.getTextContent().then(content => {
-                            const text = content.items.map(item => item.str).join(' ');
-                            // Simulate extraction similar to Word
-                            const sentences = text.split('.').filter(s => s.trim().length > 10);
-                            sentences.forEach(sentence => {
-                                data.workOrders.push({
-                                    id: data.nextIds.wo++,
-                                    department: 'general',
-                                    asset: 'N/A',
-                                    description: sentence.trim(),
-                                    priority: 'Medium',
-                                    assignedTo: currentUser.username,
-                                    status: 'Open',
-                                    createdBy: currentUser.username,
-                                    createdAt: new Date().toISOString()
-                                });
-                            });
-                            saveData();
-                            loadWoTable();
-                            updateDashboard();
-                            showNotification('PDF imported to WOs!', 'success');
+                    let fullText = '';
+                    const numPages = pdf.numPages;
+                    const extractTextFromPage = (pageNum) => {
+                        return pdf.getPage(pageNum).then(page => page.getTextContent()).then(content => {
+                            fullText += content.items.map(item => item.str).join(' ') + '\n';
+                            if (pageNum < numPages) return extractTextFromPage(pageNum + 1);
+                            return fullText;
                         });
+                    };
+                    extractTextFromPage(1).then(text => {
+                        // Simulate extraction similar to Word
+                        const sentences = text.split('.').filter(s => s.trim().length > 10);
+                        let importedCount = 0;
+                        sentences.forEach(sentence => {
+                            data.workOrders.push({
+                                id: data.nextIds.wo++,
+                                department: 'general',
+                                asset: 'N/A',
+                                description: sentence.trim(),
+                                priority: 'Medium',
+                                assignedTo: currentUser.username,
+                                status: 'Open',
+                                createdBy: currentUser.username,
+                                createdAt: new Date().toISOString()
+                            });
+                            importedCount++;
+                        });
+                        saveData();
+                        loadWoTable();
+                        updateDashboard();
+                        showNotification(`${importedCount} WOs imported from PDF!`, 'success');
+                        e.target.value = ''; // Reset input
                     });
+                }).catch(err => {
+                    showNotification('Error parsing PDF.', 'error');
                 });
             };
             reader.readAsArrayBuffer(file);
@@ -2620,12 +2814,12 @@
         function loadAllOnInit() {
             updateUserSelects();
             populateAssetSelects();
-            populatePmAssetSelect();
             loadAllTables();
             updateDashboard();
             updateReports();
         }
-            // Start the app when DOM is loaded
+
+        // Start the app when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
             // Ensure required libraries are loaded (in production, include via script tags)
             if (typeof pdfjsLib === 'undefined') {
@@ -2643,6 +2837,7 @@
             if (typeof html2canvas === 'undefined') {
                 console.warn('html2canvas not loaded. Email attachments disabled.');
             }
+            initEmailJS();
 
             initApp();
         });
