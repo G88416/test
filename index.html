@@ -1039,7 +1039,7 @@
                     <input type="file" id="import-file" style="display:none;" accept=".json" onchange="importData(event)">
                     <input type="file" id="import-csv" style="display:none;" accept=".csv" onchange="importCsv(event)">
                     <button onclick="document.getElementById('import-csv').click()">Import from CSV</button>
-                    <button onclick="document.getElementById('excel-import').click()">Import from Excel</button>
+                    <button onclick="document.getElementById('excel-import').click()">Import Assets from Excel</button>
                     <input type="file" id="excel-import" style="display:none;" accept=".xlsx,.xls" onchange="importExcel(event)">
                     <button onclick="document.getElementById('word-import').click()">Import from Word (Text to WO)</button>
                     <input type="file" id="word-import" style="display:none;" accept=".docx,.doc" onchange="importWord(event)">
@@ -1178,769 +1178,991 @@
         let currentEditingUserIndex = -1;
         let permissions = {
             admin: { create: true, edit: true, delete: true, manageUsers: true },
-            manager: { create: true, edit: true, delete: true, manageUsers: false },
-            technician: { create: true, edit: true, delete: false, manageUsers: false },
-            viewer: { create: false, edit: false, delete: false, manageUsers: false }
-        };
-        let storageKey = 'bcc_cmms_data';
+                            manager: { create: true, edit: true, delete: true, manageUsers: false },
+                technician: { create: true, edit: true, delete: false, manageUsers: false },
+                viewer: { create: false, edit: false, delete: false, manageUsers: false }
+            };
         let autoSaveEnabled = true;
-        let currentReportHTML = '';
-        let currentViewedAsset = null;
-        let currentFileText = '';
-        let potentialAssets = [];
-        let potentialWOs = [];
+        let darkTheme = true;
+        let viewedAssetId = null;
+        let aiExtractedAssets = [];
+        let aiExtractedWOs = [];
 
-        // EmailJS Config (Replace with your actual keys)
-        const EMAILJS_SERVICE_ID = 'YOUR_SERVICE_ID_HERE';
-        const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID_HERE';
-        const EMAILJS_USER_ID = 'YOUR_USER_ID_HERE';
-
+        // Initialize the app
         function initApp() {
             loadData();
-            loadPreferences();
-            document.getElementById('login-form').addEventListener('submit', handleLogin);
-            document.getElementById('wo-form').addEventListener('submit', handleWoSubmit);
-            document.getElementById('asset-form').addEventListener('submit', handleAssetSubmit);
-            document.getElementById('asset-upload').addEventListener('change', previewAssetFile);
-            document.getElementById('asset-bulk-upload').addEventListener('change', handleBulkAssetImport);
-            updateNextIds();
-            // Check for XLSX availability
-            if (typeof XLSX === 'undefined') {
-                console.error('SheetJS (XLSX) library failed to load. Excel support disabled.');
-            }
+            setupEventListeners();
+            checkLoginStatus();
+            updateUserSelects();
+            populateAssetSelects();
+            populatePmAssetSelect();
+            loadAllTables();
+            updateDashboard();
+            updateReports();
+            initEmailJS(); // Initialize EmailJS if needed
+            toggleTheme(); // Apply saved theme
         }
 
+        // Load data from localStorage
         function loadData() {
-            const saved = localStorage.getItem(storageKey);
+            const saved = localStorage.getItem('bcc_cmms_data');
             if (saved) {
-                Object.assign(data, JSON.parse(saved));
+                data = { ...data, ...JSON.parse(saved) };
             }
-            updateNextIds();
-        }
-
-        function saveData() {
-            if (autoSaveEnabled) {
-                localStorage.setItem(storageKey, JSON.stringify(data));
-            }
-        }
-
-        function loadPreferences() {
-            const prefs = JSON.parse(localStorage.getItem('gs_config') || '{}');
-            document.body.className = prefs.theme || '';
-            document.getElementById('dark-theme-toggle').checked = !prefs.theme || prefs.theme === 'light-theme';
-            autoSaveEnabled = prefs.autoSave !== false;
+            const savedTheme = localStorage.getItem('bcc_theme');
+            if (savedTheme) darkTheme = savedTheme === 'dark';
+            document.getElementById('dark-theme-toggle').checked = darkTheme;
+            const savedAutoSave = localStorage.getItem('bcc_auto_save');
+            if (savedAutoSave !== null) autoSaveEnabled = savedAutoSave === 'true';
             document.getElementById('auto-save-toggle').checked = autoSaveEnabled;
         }
 
-        function savePreferences() {
-            const prefs = {
-                theme: document.body.className,
-                autoSave: autoSaveEnabled
-            };
-            localStorage.setItem('gs_config', JSON.stringify(prefs));
+        // Save data to localStorage
+        function saveData(auto = false) {
+            if (!autoSaveEnabled && !auto) return;
+            localStorage.setItem('bcc_cmms_data', JSON.stringify(data));
+            if (auto) return;
+            showNotification('Data saved successfully!', 'success');
         }
 
-        window.toggleTheme = function() {
-            const isDark = document.getElementById('dark-theme-toggle').checked;
-            const theme = isDark ? '' : 'light-theme';
-            document.body.className = theme;
-            savePreferences();
-            const noEvent = arguments[0] === true;
-            if (!noEvent) showNotification(`Theme switched to ${theme || 'Dark'}.`);
-        };
+        // Setup event listeners
+        function setupEventListeners() {
+            // Login form
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
 
-        window.toggleAutoSave = function() {
-            autoSaveEnabled = document.getElementById('auto-save-toggle').checked;
-            savePreferences();
-            showNotification(autoSaveEnabled ? 'Auto-save enabled.' : 'Auto-save disabled.');
-        };
+            // Work Order form
+            document.getElementById('wo-form').addEventListener('submit', handleWorkOrderSubmit);
 
-        window.backupReminder = function() {
-            const days = prompt('Set backup reminder interval (days):', '30');
-            if (days && !isNaN(days)) {
-                localStorage.setItem('backup-reminder', new Date().getTime() + parseInt(days) * 86400000);
-                showNotification(`Backup reminder set for ${days} days.`);
-            }
-        };
+            // Asset form
+            document.getElementById('asset-form').addEventListener('submit', handleAssetSubmit);
+            document.getElementById('asset-upload').addEventListener('change', handleAssetUploadPreview);
+            document.getElementById('asset-bulk-upload').addEventListener('change', importAssetsFromExcel);
 
-        // Enhanced Export with CSV and Selected
-        window.exportData = function(format = 'json') {
-            let exportData = {};
-            if (format === 'selected') {
-                if (document.getElementById('export-wo').checked) exportData.workOrders = data.workOrders;
-                if (document.getElementById('export-assets').checked) exportData.assets = data.assets;
-                if (document.getElementById('export-pm').checked) exportData.pmSchedules = data.pmSchedules;
-                if (document.getElementById('export-inv').checked) exportData.inventory = data.inventory;
-                exportData.nextIds = data.nextIds;
-            } else {
-                exportData = { ...data };
+            // PM form
+            document.getElementById('pm-form').addEventListener('submit', handlePmSubmit);
+
+            // Inventory form
+            document.getElementById('inv-form').addEventListener('submit', handleInvSubmit);
+
+            // User form
+            document.getElementById('user-form').addEventListener('submit', handleUserSubmit);
+
+            // Report form
+            document.getElementById('report-form').addEventListener('submit', generateReport);
+
+            // Email form
+            document.getElementById('email-form').addEventListener('submit', sendEmailReport);
+
+            // Auto-save interval
+            if (autoSaveEnabled) {
+                setInterval(saveData, 30000); // Save every 30 seconds
             }
 
-            if (format === 'csv') {
-                let csvContent = '';
-                if (exportData.workOrders) {
-                    csvContent += 'Work Orders\n' + convertToCsv(exportData.workOrders) + '\n';
-                }
-                if (exportData.assets) {
-                    csvContent += '\nAssets\n' + convertToCsv(exportData.assets) + '\n';
-                }
-                if (exportData.pmSchedules) {
-                    csvContent += '\nPM Schedules\n' + convertToCsv(exportData.pmSchedules) + '\n';
-                }
-                if (exportData.inventory) {
-                    csvContent += '\nInventory\n' + convertToCsv(exportData.inventory) + '\n';
-                }
-                const blob = new Blob([csvContent], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'bcc_cmms_data.csv';
-                a.click();
-                URL.revokeObjectURL(url);
-            } else {
-                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'bcc_cmms_data.json';
-                a.click();
-                URL.revokeObjectURL(url);
-            }
-            showNotification(`Data exported as ${format.toUpperCase()}.`);
-        };
+            // Department change listeners
+            document.getElementById('wo-department').addEventListener('change', populateWoAssetSelect);
+            document.getElementById('asset-department').addEventListener('change', () => {}); // No dependent select
+            document.getElementById('inv-department').addEventListener('change', () => {});
 
-        function convertToCsv(arr) {
-            return arr.map(row => Object.values(row).join(',')).join('\n');
+            // Date defaults for reports
+            const today = new Date();
+            const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            document.getElementById('report-start').value = lastMonth.toISOString().split('T')[0];
+            document.getElementById('report-end').value = today.toISOString().split('T')[0];
         }
 
-        window.importCsv = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const csv = e.target.result;
-                const lines = csv.split('\n');
-                let currentSection = '';
-                lines.forEach((line, index) => {
-                    if (index === 0) return;
-                    if (line.includes('Work Orders')) { currentSection = 'workOrders'; return; }
-                    if (line.includes('Assets')) { currentSection = 'assets'; return; }
-                    if (line.includes('PM Schedules')) { currentSection = 'pmSchedules'; return; }
-                    if (line.includes('Inventory')) { currentSection = 'inventory'; return; }
-                    if (!currentSection || line.trim() === '') return;
-
-                    const values = line.split(',');
-                    if (currentSection === 'workOrders') {
-                        data.workOrders.push({ id: parseInt(values[0]), department: values[1], assetName: values[2], description: values[3], priority: values[4], status: values[5] });
-                    } else if (currentSection === 'assets') {
-                        data.assets.push({ id: parseInt(values[0]), department: values[1], name: values[2], serial: values[3], location: values[4], attachment: null });
-                    } else if (currentSection === 'pmSchedules') {
-                        data.pmSchedules.push({ id: parseInt(values[0]), assetId: parseInt(values[7] || 0), description: values[3], frequency: values[4], nextDue: values[5], status: values[6] });
-                    } else if (currentSection === 'inventory') {
-                        data.inventory.push({ id: parseInt(values[0]), department: values[1], name: values[2], quantity: parseInt(values[3]), reorderPoint: parseInt(values[4]) });
-                    }
-                });
-                updateNextIds();
-                saveData();
-                showSection('dashboard');
-                showNotification('CSV data imported.');
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        };
-
-        // Utility Functions
-        function uint8ArrayFromBase64(base64) {
-            const binary = atob(base64);
-            const len = binary.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binary.charCodeAt(i);
-            }
-            return bytes;
-        }
-
-        function showNotification(message, isError = false) {
-            const notif = document.getElementById('notification');
-            notif.textContent = message;
-            notif.className = `notification ${isError ? 'error' : ''} show`;
-            setTimeout(() => notif.classList.remove('show'), 3000);
-        }
-
-        function showSection(sectionId, btn) {
-            document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-            document.getElementById(sectionId).classList.add('active');
-            if (btn) btn.classList.add('active');
-
-            switch (sectionId) {
-                case 'dashboard': renderDashboard(); break;
-                case 'work-orders': renderWorkOrders(); populateAssetSelects(); populateUserSelects(); break;
-                case 'assets': renderAssets(); populateAssetSelects(); break;
-                case 'preventive': renderPmSchedules(); populateAssetSelects(); break;
-                case 'inventory': renderInventory(); break;
-                case 'users': if (permissions[currentUser.role].manageUsers) document.getElementById('users-tab').style.display = 'inline-block'; renderUsers(); populateUserSelects(); break;
-                case 'reports': updateReportTotals(); break;
-                case 'maintenance-report': updateReportDates(); break;
-                case 'settings': break;
+        // Check if user is logged in
+        function checkLoginStatus() {
+            const savedUser = localStorage.getItem('bcc_current_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app').style.display = 'flex';
+                updateUserInfo();
+                checkPermissions();
             }
         }
 
-        // Login Handling
+        // Update user info in header
+        function updateUserInfo() {
+            const userInfo = document.getElementById('user-info');
+            userInfo.innerHTML = `
+                Welcome, ${currentUser.username} (${currentUser.role}) 
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            `;
+        }
+
+        // Handle login
         function handleLogin(e) {
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const role = document.getElementById('role').value;
 
+            // Simple auth - in production, use secure backend
             const user = data.users.find(u => u.username === username && u.password === password && u.role === role);
             if (user) {
-                currentUser = user;
+                currentUser = { ...user };
+                localStorage.setItem('bcc_current_user', JSON.stringify(currentUser));
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app').style.display = 'flex';
                 updateUserInfo();
-                showSection('dashboard');
-                showNotification(`Welcome, ${username}!`);
+                checkPermissions();
+                showNotification('Login successful!', 'success');
+                clearLoginForm();
             } else {
-                showNotification('Invalid credentials.', true);
+                showNotification('Invalid credentials!', 'error');
             }
         }
 
-        function updateUserInfo() {
-            const userInfo = document.getElementById('user-info');
-            userInfo.innerHTML = `${currentUser.username} (${currentUser.role}) <button class="logout-btn" onclick="logout()">Logout</button>`;
+        // Clear login form
+        function clearLoginForm() {
+            document.getElementById('login-form').reset();
         }
 
-        window.logout = function() {
+        // Logout
+        function logout() {
+            localStorage.removeItem('bcc_current_user');
             currentUser = null;
-            document.getElementById('app').style.display = 'none';
             document.getElementById('login-screen').style.display = 'flex';
-            document.getElementById('login-form').reset();
-        };
+            document.getElementById('app').style.display = 'none';
+            showNotification('Logged out successfully.', 'success');
+        }
 
-        // Work Orders
-        function renderWorkOrders() {
-            const tbody = document.querySelector('#wo-table tbody');
-            tbody.innerHTML = '';
-            data.workOrders.forEach(wo => {
-                const asset = data.assets.find(a => a.id === wo.assetId);
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${wo.id}</td>
-                    <td>${wo.department}</td>
-                    <td>${wo.assetName || asset?.name || 'N/A'}</td>
-                    <td>${wo.description.substring(0, 40)}${wo.description.length > 40 ? '...' : ''}</td>
-                    <td>${wo.priority}</td>
-                    <td>${wo.status}</td>
-                    <td>
-                        <button class="action-btn edit" onclick="editWo(${wo.id})">Edit</button>
-                        ${permissions[currentUser.role].delete ? `<button class="action-btn delete" onclick="deleteWo(${wo.id})">Delete</button>` : ''}
-                        ${wo.attachment ? `<button class="action-btn view-file" onclick="viewWoAttachment(${wo.id})">View File</button>` : ''}
-                    </td>
-                `;
-                tbody.appendChild(tr);
+        // Check permissions and hide/show elements
+        function checkPermissions() {
+            const role = currentUser.role;
+            const perms = permissions[role];
+            const usersTab = document.getElementById('users-tab');
+            if (!perms.manageUsers) {
+                usersTab.style.display = 'none';
+            } else {
+                usersTab.style.display = 'inline-block';
+            }
+            // Hide edit/delete for viewers
+            if (!perms.edit) {
+                document.querySelectorAll('.action-btn.edit, .action-btn.delete').forEach(btn => btn.style.display = 'none');
+            }
+            // For technicians, hide create in some places
+            if (!perms.create) {
+                document.getElementById('wo-submit-btn').style.display = 'none';
+                document.getElementById('asset-submit-btn').style.display = 'none';
+                // etc.
+            }
+        }
+
+        // Show section
+        function showSection(sectionId, btn) {
+            document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (sectionId === 'work-orders') loadWoTable();
+            if (sectionId === 'assets') loadAssetTable();
+            if (sectionId === 'preventive') loadPmTable();
+            if (sectionId === 'inventory') loadInvTable();
+            if (sectionId === 'users') loadUserTable();
+            if (sectionId === 'dashboard') updateDashboard();
+        }
+
+        // Update user selects
+        function updateUserSelects() {
+            const select = document.getElementById('wo-assigned-to');
+            select.innerHTML = '<option value="" disabled selected>Select User</option>';
+            data.users.filter(u => u.role !== 'viewer').forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.username;
+                option.textContent = user.username + ' (' + user.role + ')';
+                select.appendChild(option);
             });
         }
 
-        function handleWoSubmit(e) {
-            e.preventDefault();
-            if (!permissions[currentUser.role].create && !currentEditingWo) return showNotification('Permission denied.', true);
+        // Populate asset selects
+        function populateAssetSelects() {
+            const woSelect = document.getElementById('wo-asset');
+            const pmSelect = document.getElementById('pm-asset');
+            [woSelect, pmSelect].forEach(select => {
+                select.innerHTML = '<option value="" disabled selected>Select Asset</option>';
+                data.assets.forEach(asset => {
+                    const option = document.createElement('option');
+                    option.value = asset.id;
+                    option.textContent = asset.name + ' (' + asset.department + ')';
+                    select.appendChild(option);
+                });
+            });
+        }
 
-            const id = document.getElementById('wo-id').value || data.nextIds.wo++;
+        // Populate WO asset select based on department
+        function populateWoAssetSelect() {
+            const dept = document.getElementById('wo-department').value;
+            const select = document.getElementById('wo-asset');
+            select.innerHTML = '<option value="" disabled selected>Select Asset</option>';
+            data.assets.filter(a => a.department === dept).forEach(asset => {
+                const option = document.createElement('option');
+                option.value = asset.id;
+                option.textContent = asset.name;
+                select.appendChild(option);
+            });
+        }
+
+        // Populate PM asset select (all)
+        function populatePmAssetSelect() {
+            const select = document.getElementById('pm-asset');
+            select.innerHTML = '<option value="" disabled selected>Select Asset</option>';
+            data.assets.forEach(asset => {
+                const option = document.createElement('option');
+                option.value = asset.id;
+                option.textContent = asset.name + ' (' + asset.department + ')';
+                select.appendChild(option);
+            });
+        }
+
+        // Handle Work Order submit
+        function handleWorkOrderSubmit(e) {
+            e.preventDefault();
+            if (!permissions[currentUser.role].create && currentEditingWo === null) {
+                showNotification('No permission to create work orders.', 'error');
+                return;
+            }
+            const id = currentEditingWo ? currentEditingWo.id : data.nextIds.wo++;
             const department = document.getElementById('wo-department').value;
-            const assetId = parseInt(document.getElementById('wo-asset').value);
-            const assetName = data.assets.find(a => a.id === assetId)?.name || '';
+            const assetId = document.getElementById('wo-asset').value;
+            const asset = data.assets.find(a => a.id === parseInt(assetId));
             const description = document.getElementById('wo-description').value;
             const priority = document.getElementById('wo-priority').value;
             const assignedTo = document.getElementById('wo-assigned-to').value;
-            const status = document.getElementById('wo-status').value || 'Open';
+            const status = currentEditingWo ? document.getElementById('wo-status').value : 'Open';
+
+            const wo = {
+                id,
+                department,
+                asset: asset ? asset.name : '',
+                assetId: parseInt(assetId),
+                description,
+                priority,
+                assignedTo,
+                status,
+                createdBy: currentUser.username,
+                createdAt: new Date().toISOString()
+            };
 
             if (currentEditingWo) {
-                const index = data.workOrders.findIndex(w => w.id === parseInt(id));
-                if (index > -1) {
-                    data.workOrders[index] = { ...data.workOrders[index], id: parseInt(id), department, assetId, assetName, description, priority, assignedTo, status };
-                    showNotification('Work Order updated.');
-                }
+                const index = data.workOrders.findIndex(w => w.id === id);
+                data.workOrders[index] = wo;
+                showNotification('Work order updated!', 'success');
                 currentEditingWo = null;
                 document.getElementById('wo-submit-btn').textContent = 'Create Work Order';
                 document.getElementById('wo-status-label').style.display = 'none';
                 document.getElementById('wo-status').style.display = 'none';
             } else {
-                data.workOrders.push({ id, department, assetId, assetName, description, priority, status, assignedTo, createdBy: currentUser.username, dateCreated: new Date().toISOString() });
-                showNotification('Work Order created.');
+                data.workOrders.push(wo);
+                showNotification('Work order created!', 'success');
             }
 
-            e.target.reset();
-            document.getElementById('wo-id').value = '';
+            document.getElementById('wo-form').reset();
+            document.getElementById('wo-status-label').style.display = 'none';
+            document.getElementById('wo-status').style.display = 'none';
             saveData();
-            renderWorkOrders();
-            populateAssetSelects();
-            populateUserSelects();
+            loadWoTable();
+            updateDashboard();
         }
 
-        window.editWo = function(id) {
-            if (!permissions[currentUser.role].edit) return showNotification('Permission denied.', true);
+        // Edit WO
+        function editWorkOrder(id) {
             const wo = data.workOrders.find(w => w.id === id);
             if (!wo) return;
-
+            currentEditingWo = wo;
             document.getElementById('wo-id').value = wo.id;
             document.getElementById('wo-department').value = wo.department;
-            document.getElementById('wo-asset').value = wo.assetId || '';
+            populateWoAssetSelect();
+            document.getElementById('wo-asset').value = wo.assetId;
             document.getElementById('wo-description').value = wo.description;
             document.getElementById('wo-priority').value = wo.priority;
             document.getElementById('wo-assigned-to').value = wo.assignedTo;
-            document.getElementById('wo-status').value = wo.status;
-            document.getElementById('wo-status-label').style.display = 'block';
-            document.getElementById('wo-status').style.display = 'block';
-            document.getElementById('wo-submit-btn').textContent = 'Update Work Order';
-            currentEditingWo = id;
-            populateAssetSelects();
-        };
-
-        window.deleteWo = function(id) {
-            if (!permissions[currentUser.role].delete) return showNotification('Permission denied.', true);
-            if (confirm('Delete this work order?')) {
-                data.workOrders = data.workOrders.filter(w => w.id !== id);
-                saveData();
-                renderWorkOrders();
-                showNotification('Work Order deleted.');
+            if (wo.status) {
+                document.getElementById('wo-status-label').style.display = 'block';
+                document.getElementById('wo-status').style.display = 'block';
+                document.getElementById('wo-status').value = wo.status;
             }
-        };
+            document.getElementById('wo-submit-btn').textContent = 'Update Work Order';
+            showSection('work-orders');
+        }
 
-        // Asset Functions
-        function renderAssets() {
+        // Delete WO
+        function deleteWorkOrder(id) {
+            if (!confirm('Delete this work order?')) return;
+            if (!permissions[currentUser.role].delete) {
+                showNotification('No permission to delete.', 'error');
+                return;
+            }
+            data.workOrders = data.workOrders.filter(w => w.id !== id);
+            saveData();
+            loadWoTable();
+            updateDashboard();
+            showNotification('Work order deleted!', 'success');
+        }
+
+        // Update WO status
+        function updateWoStatus(id, status) {
+            const wo = data.workOrders.find(w => w.id === id);
+            if (wo) {
+                wo.status = status;
+                wo.updatedAt = new Date().toISOString();
+                saveData();
+                loadWoTable();
+                updateDashboard();
+                showNotification(`Status updated to ${status}!`, 'success');
+            }
+        }
+
+        // Load WO table
+        function loadWoTable() {
+            const tbody = document.querySelector('#wo-table tbody');
+            tbody.innerHTML = '';
+            data.workOrders.forEach(wo => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${wo.id}</td>
+                    <td>${wo.department}</td>
+                    <td>${wo.asset}</td>
+                    <td>${wo.description.substring(0, 50)}${wo.description.length > 50 ? '...' : ''}</td>
+                    <td><span style="color: ${wo.priority === 'High' ? '#dc3545' : wo.priority === 'Medium' ? '#ffc107' : '#28a745'};">${wo.priority}</span></td>
+                    <td><span style="color: ${wo.status === 'Open' ? '#ffc107' : wo.status === 'In Progress' ? '#17a2b8' : wo.status === 'Completed' ? '#28a745' : '#6c757d'};">${wo.status}</span></td>
+                    <td>
+                        ${permissions[currentUser.role].edit ? `<button class="action-btn edit" onclick="editWorkOrder(${wo.id})">Edit</button>` : ''}
+                        ${permissions[currentUser.role].delete ? `<button class="action-btn delete" onclick="deleteWorkOrder(${wo.id})">Delete</button>` : ''}
+                        <select onchange="updateWoStatus(${wo.id}, this.value)" style="padding:5px; border-radius:5px;">
+                            <option value="Open" ${wo.status === 'Open' ? 'selected' : ''}>Open</option>
+                            <option value="In Progress" ${wo.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                            <option value="Completed" ${wo.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                            <option value="Closed" ${wo.status === 'Closed' ? 'selected' : ''}>Closed</option>
+                        </select>
+                    </td>
+                `;
+            });
+        }
+
+        // Handle Asset submit
+        function handleAssetSubmit(e) {
+            e.preventDefault();
+            if (!permissions[currentUser.role].create && currentEditingAsset === null) {
+                showNotification('No permission to add assets.', 'error');
+                return;
+            }
+            const id = currentEditingAsset ? currentEditingAsset.id : data.nextIds.asset++;
+            const department = document.getElementById('asset-department').value;
+            const name = document.getElementById('asset-name').value;
+            const serial = document.getElementById('asset-serial').value;
+            const location = document.getElementById('asset-location').value;
+            const attachment = currentEditingAsset ? currentEditingAsset.attachment : document.getElementById('asset-upload').files[0] ? URL.createObjectURL(document.getElementById('asset-upload').files[0]) : null;
+            const fileName = currentEditingAsset ? currentEditingAsset.fileName : document.getElementById('asset-upload').files[0] ? document.getElementById('asset-upload').files[0].name : null;
+
+            const asset = {
+                id,
+                department,
+                name,
+                serial: serial || '',
+                location,
+                attachment,
+                fileName: fileName || '',
+                createdBy: currentUser.username,
+                createdAt: new Date().toISOString()
+            };
+
+            if (currentEditingAsset) {
+                const index = data.assets.findIndex(a => a.id === id);
+                data.assets[index] = asset;
+                showNotification('Asset updated!', 'success');
+                currentEditingAsset = null;
+                document.getElementById('asset-submit-btn').textContent = 'Add Asset';
+            } else {
+                data.assets.push(asset);
+                showNotification('Asset added!', 'success');
+            }
+
+            document.getElementById('asset-form').reset();
+            document.getElementById('asset-preview').innerHTML = '';
+            saveData();
+            loadAssetTable();
+            populateAssetSelects();
+            updateDashboard();
+            updateReports();
+        }
+
+        // Handle asset upload preview
+        function handleAssetUploadPreview(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification('File too large! Max 5MB.', 'error');
+                return;
+            }
+            const preview = document.getElementById('asset-preview');
+            if (file.type.startsWith('image/')) {
+                const url = URL.createObjectURL(file);
+                preview.innerHTML = `<img src="${url}" alt="Preview"> <div class="file-info">Selected: ${file.name}</div>`;
+            } else {
+                preview.innerHTML = `<div class="file-info">Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)</div>`;
+            }
+        }
+
+        // Edit Asset
+        function editAsset(id) {
+            const asset = data.assets.find(a => a.id === id);
+            if (!asset) return;
+            currentEditingAsset = asset;
+            document.getElementById('asset-id').value = asset.id;
+            document.getElementById('asset-department').value = asset.department;
+            document.getElementById('asset-name').value = asset.name;
+            document.getElementById('asset-serial').value = asset.serial;
+            document.getElementById('asset-location').value = asset.location;
+            // Re-trigger preview if attachment exists
+            const preview = document.getElementById('asset-preview');
+            if (asset.attachment) {
+                if (asset.fileName.toLowerCase().endsWith('.pdf')) {
+                    preview.innerHTML = `<div class="file-info">PDF: ${asset.fileName}</div>`;
+                } else if (asset.fileName.toLowerCase().match(/\.(xlsx|xls)$/)) {
+                    preview.innerHTML = `<div class="file-info">Excel: ${asset.fileName}</div>`;
+                } else {
+                    preview.innerHTML = `<img src="${asset.attachment}" alt="Preview"> <div class="file-info">Selected: ${asset.fileName}</div>`;
+                }
+            }
+            document.getElementById('asset-submit-btn').textContent = 'Update Asset';
+            showSection('assets');
+        }
+
+        // Delete Asset
+        function deleteAsset(id) {
+            if (!confirm('Delete this asset?')) return;
+            if (!permissions[currentUser.role].delete) {
+                showNotification('No permission to delete.', 'error');
+                return;
+            }
+            data.assets = data.assets.filter(a => a.id !== id);
+            saveData();
+            loadAssetTable();
+            populateAssetSelects();
+            updateDashboard();
+            updateReports();
+            showNotification('Asset deleted!', 'success');
+        }
+
+        // View Asset
+        function viewAsset(id) {
+            const asset = data.assets.find(a => a.id === id);
+            if (!asset) return;
+            viewedAssetId = id;
+            document.getElementById('viewer-title').textContent = `Asset: ${asset.name}`;
+            const content = document.getElementById('viewer-content');
+            const meta = document.getElementById('viewer-meta');
+            if (asset.attachment) {
+                const fileName = asset.fileName.toLowerCase();
+                if (fileName.endsWith('.pdf')) {
+                    content.innerHTML = '<canvas class="pdf-canvas"></canvas>';
+                    renderPdf(asset.attachment, document.querySelector('.pdf-canvas'));
+                    document.getElementById('download-trigger').style.display = 'inline-block';
+                    document.getElementById('ai-extract-trigger').style.display = 'inline-block';
+                    document.getElementById('ai-wo-extract-trigger').style.display = 'inline-block';
+                } else if (fileName.match(/\.(xlsx|xls)$/)) {
+                    content.innerHTML = '<div>Loading Excel...</div>';
+                    renderExcel(asset.attachment, content);
+                    document.getElementById('download-trigger').style.display = 'inline-block';
+                    document.getElementById('ai-extract-trigger').style.display = 'inline-block';
+                } else if (fileName.match(/\.(docx|doc)$/)) {
+                    content.innerHTML = '<div>Loading Word...</div>';
+                    renderWord(asset.attachment, content);
+                    document.getElementById('download-trigger').style.display = 'inline-block';
+                    document.getElementById('ai-wo-extract-trigger').style.display = 'inline-block';
+                } else {
+                    content.innerHTML = `<img src="${asset.attachment}" alt="${asset.name}">`;
+                    document.getElementById('download-trigger').style.display = 'inline-block';
+                }
+                document.getElementById('upload-trigger').style.display = 'inline-block';
+            } else {
+                content.innerHTML = '<p>No attachment available.</p>';
+                document.getElementById('upload-trigger').style.display = 'inline-block';
+            }
+            meta.innerHTML = `
+                <p><strong>Department:</strong> ${asset.department}</p>
+                <p><strong>Serial:</strong> ${asset.serial || 'N/A'}</p>
+                <p><strong>Location:</strong> ${asset.location}</p>
+                <p><strong>Created:</strong> ${new Date(asset.createdAt).toLocaleDateString()}</p>
+            `;
+            document.getElementById('asset-viewer-modal').style.display = 'flex';
+        }
+
+        // Close asset viewer
+        function closeAssetViewer() {
+            document.getElementById('asset-viewer-modal').style.display = 'none';
+            document.getElementById('viewer-upload').style.display = 'none';
+            document.getElementById('upload-trigger').style.display = 'inline-block';
+            viewedAssetId = null;
+        }
+
+        // Handle viewer upload
+        function handleViewerUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification('File too large! Max 5MB.', 'error');
+                return;
+            }
+            const asset = data.assets.find(a => a.id === viewedAssetId);
+            if (asset) {
+                asset.attachment = URL.createObjectURL(file);
+                asset.fileName = file.name;
+                saveData();
+                viewAsset(viewedAssetId); // Refresh view
+                showNotification('Attachment updated!', 'success');
+            }
+        }
+
+        // Add viewed asset to WO
+        function addViewedAssetToWO() {
+            const asset = data.assets.find(a => a.id === viewedAssetId);
+            if (asset) {
+                document.getElementById('wo-asset').value = asset.id;
+                populateWoAssetSelect(); // Ensure it's selected
+                closeAssetViewer();
+                showSection('work-orders');
+                showNotification('Asset added to work order form!', 'success');
+            }
+        }
+
+        // Download viewed asset
+        function downloadViewedAsset() {
+            const asset = data.assets.find(a => a.id === viewedAssetId);
+            if (asset && asset.attachment) {
+                const a = document.createElement('a');
+                a.href = asset.attachment;
+                a.download = asset.fileName || 'asset-file';
+                a.click();
+            }
+        }
+
+        // Render PDF in viewer
+        function renderPdf(url, canvas) {
+            pdfjsLib.getDocument(url).promise.then(pdf => {
+                pdf.getPage(1).then(page => {
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    page.render({ canvasContext: canvas.getContext('2d'), viewport });
+                });
+            }).catch(err => {
+                document.getElementById('viewer-content').innerHTML = '<p>Error loading PDF.</p>';
+                console.error(err);
+            });
+        }
+
+        // Render Excel in viewer
+        function renderExcel(url, container) {
+            fetch(url).then(r => r.arrayBuffer()).then(data => {
+                const wb = XLSX.read(data, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const html = XLSX.utils.sheet_to_html(ws);
+                container.innerHTML = `<table class="excel-table">${html}</table>`;
+            }).catch(err => {
+                container.innerHTML = '<p>Error loading Excel.</p>';
+                console.error(err);
+            });
+        }
+
+        // Render Word in viewer
+        function renderWord(url, container) {
+            fetch(url).then(r => r.arrayBuffer()).then(buffer => {
+                mammoth.convertToHtml({ arrayBuffer: buffer }).then(result => {
+                    container.innerHTML = `<div>${result.value}</div><p><em>${result.messages.join(', ')}</em></p>`;
+                }).catch(err => {
+                    container.innerHTML = '<p>Error loading Word document.</p>';
+                    console.error(err);
+                });
+            });
+        }
+
+        // AI Extract Assets (Simulated - in production, call real AI API)
+        function extractAssetsWithAI() {
+            showNotification('Simulating AI extraction... (Demo mode)', 'info');
+            document.getElementById('ai-progress').style.display = 'block';
+            setTimeout(() => {
+                aiExtractedAssets = [
+                    { name: 'Extracted Pump', department: 'children\'s home', serial: 'EX123', location: 'Room 101' },
+                    { name: 'Extracted Light Fixture', department: 'old age', serial: 'LF456', location: 'Hallway' }
+                ];
+                renderAiAssets();
+                document.getElementById('ai-asset-modal').style.display = 'flex';
+                document.getElementById('ai-progress').style.display = 'none';
+            }, 2000);
+        }
+
+        // Render AI assets
+        function renderAiAssets() {
+            const list = document.getElementById('ai-asset-list');
+            list.innerHTML = aiExtractedAssets.map((asset, i) => `
+                <div class="ai-asset-item">
+                    <label>Name: <input type="text" value="${asset.name}" onchange="aiExtractedAssets[${i}].name = this.value"></label>
+                    <label>Department: <input type="text" value="${asset.department}" onchange="aiExtractedAssets[${i}].department = this.value"></label>
+                    <label>Serial: <input type="text" value="${asset.serial}" onchange="aiExtractedAssets[${i}].serial = this.value"></label>
+                    <label>Location: <input type="text" value="${asset.location}" onchange="aiExtractedAssets[${i}].location = this.value"></label>
+                </div>
+            `).join('');
+        }
+
+        // Confirm AI assets
+        function confirmAiAssets() {
+            aiExtractedAssets.forEach(asset => {
+                asset.id = data.nextIds.asset++;
+                asset.createdBy = currentUser.username;
+                asset.createdAt = new Date().toISOString();
+                data.assets.push(asset);
+            });
+            saveData();
+            loadAssetTable();
+            populateAssetSelects();
+            updateDashboard();
+            updateReports();
+            closeAiModal();
+            showNotification('Assets added from AI extraction!', 'success');
+            aiExtractedAssets = [];
+        }
+
+        // Close AI modal
+        function closeAiModal() {
+            document.getElementById('ai-asset-modal').style.display = 'none';
+        }
+
+        // AI Extract WOs (Simulated)
+        function extractWOWithAI() {
+            showNotification('Simulating AI WO extraction... (Demo mode)', 'info');
+            document.getElementById('ai-wo-progress').style.display = 'block';
+            setTimeout(() => {
+                aiExtractedWOs = [
+                    { department: 'children\'s home', asset: 'Extracted Pump', description: 'Repair leak', priority: 'High', assignedTo: 'tech' },
+                    { department: 'old age', asset: 'Light Fixture', description: 'Replace bulb', priority: 'Low', assignedTo: 'manager' }
+                ];
+                renderAiWOs();
+                document.getElementById('ai-wo-modal').style.display = 'flex';
+                document.getElementById('ai-wo-progress').style.display = 'none';
+            }, 2000);
+        }
+
+        // Render AI WOs
+        function renderAiWOs() {
+            const list = document.getElementById('ai-wo-list');
+            list.innerHTML = aiExtractedWOs.map((wo, i) => {
+                const asset = data.assets.find(a => a.name === wo.asset) || { id: 0 };
+                return `
+                    <div class="ai-wo-item">
+                        <label>Department: <input type="text" value="${wo.department}" onchange="aiExtractedWOs[${i}].department = this.value"></label>
+                        <label>Asset: <select onchange="aiExtractedWOs[${i}].assetId = this.value; aiExtractedWOs[${i}].asset = this.options[this.selectedIndex].text">
+                            ${data.assets.map(a => `<option value="${a.id}" ${a.name === wo.asset ? 'selected' : ''}>${a.name}</option>`).join('')}
+                        </select></label>
+                        <label>Description: <input type="text" value="${wo.description}" onchange="aiExtractedWOs[${i}].description = this.value"></label>
+                        <label>Priority: <select onchange="aiExtractedWOs[${i}].priority = this.value">
+                            <option value="High" ${wo.priority === 'High' ? 'selected' : ''}>High</option>
+                            <option value="Medium" ${wo.priority === 'Medium' ? 'selected' : ''}>Medium</option>
+                            <option value="Low" ${wo.priority === 'Low' ? 'selected' : ''}>Low</option>
+                        </select></label>
+                        <label>Assigned To: <select onchange="aiExtractedWOs[${i}].assignedTo = this.value">
+                            ${data.users.filter(u => u.role !== 'viewer').map(u => `<option value="${u.username}" ${u.username === wo.assignedTo ? 'selected' : ''}>${u.username}</option>`).join('')}
+                        </select></label>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Confirm AI WOs
+        function confirmAiWOs() {
+            aiExtractedWOs.forEach(wo => {
+                wo.id = data.nextIds.wo++;
+                wo.assetId = parseInt(wo.assetId) || 0;
+                wo.status = 'Open';
+                wo.createdBy = currentUser.username;
+                wo.createdAt = new Date().toISOString();
+                data.workOrders.push(wo);
+            });
+            saveData();
+            loadWoTable();
+            updateDashboard();
+            closeAiWOModal();
+            showNotification('Work orders added from AI extraction!', 'success');
+            aiExtractedWOs = [];
+        }
+
+        // Close AI WO modal
+        function closeAiWOModal() {
+            document.getElementById('ai-wo-modal').style.display = 'none';
+        }
+
+        // Load Asset table
+        function loadAssetTable() {
             const tbody = document.querySelector('#asset-table tbody');
             tbody.innerHTML = '';
             data.assets.forEach(asset => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
+                const row = tbody.insertRow();
+                const hasAttachment = asset.attachment ? 'Yes' : 'No';
+                row.innerHTML = `
                     <td>${asset.id}</td>
                     <td>${asset.department}</td>
                     <td>${asset.name}</td>
                     <td>${asset.serial || 'N/A'}</td>
                     <td>${asset.location}</td>
-                    <td>${asset.attachment ? asset.attachment.name : 'None'}</td>
+                    <td>${hasAttachment} ${asset.fileName ? `<button class="action-btn view-file" onclick="viewAsset(${asset.id})">View</button>` : ''}</td>
                     <td>
-                        <button class="action-btn edit" onclick="editAsset(${asset.id})">Edit</button>
+                        ${permissions[currentUser.role].edit ? `<button class="action-btn edit" onclick="editAsset(${asset.id})">Edit</button>` : ''}
                         ${permissions[currentUser.role].delete ? `<button class="action-btn delete" onclick="deleteAsset(${asset.id})">Delete</button>` : ''}
-                        ${asset.attachment ? `<button class="action-btn view-file" onclick="viewAsset(${asset.id})">View</button>` : ''}
                     </td>
                 `;
-                tbody.appendChild(tr);
             });
         }
 
-        function previewAssetFile(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const preview = document.getElementById('asset-preview');
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = (e) => preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-                reader.readAsDataURL(file);
-            } else {
-                preview.innerHTML = `<p style="font-weight:700; color:#ffd700;">${file.name}</p><p class="file-info">Type: ${file.type} (${(file.size / 1024).toFixed(0)} KB)</p>`;
-            }
-        }
-
-        // Fixed Bulk Import with XLSX check
-        function handleBulkAssetImport(e) {
-            if (typeof XLSX === 'undefined') {
-                showNotification('Excel library not loaded. Please refresh the page.', true);
-                return;
-            }
+        // Import assets from Excel (bulk)
+        function importAssetsFromExcel(e) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const dataArray = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(dataArray, { type: 'array' });
-                    const sheetName = workbook.SheetNames[0];
-                    const sheet = workbook.Sheets[sheetName];
-                    const json = XLSX.utils.sheet_to_json(sheet);
-                    let importedCount = 0;
-                    json.forEach(row => {
-                        if (row.Department && row.Name && row.Location) {
-                            data.assets.push({
-                                id: data.nextIds.asset++,
-                                department: row.Department,
-                                name: row.Name,
-                                serial: row.Serial || '',
-                                location: row.Location,
-                                attachment: null
-                            });
-                            importedCount++;
-                        }
-                    });
-                    saveData();
-                    renderAssets();
-                    populateAssetSelects();
-                    showNotification(`${importedCount} assets imported from Excel.`);
-                } catch (err) {
-                    showNotification('Error reading Excel file: ' + err.message, true);
-                }
-                e.target.value = '';
+            reader.onload = function(ev) {
+                const data = new Uint8Array(ev.target.result);
+                const wb = XLSX.read(data, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(ws);
+                json.forEach(row => {
+                    if (row.Department && row.Name && row.Location) {
+                        data.assets.push({
+                            id: data.nextIds.asset++,
+                            department: row.Department,
+                            name: row.Name,
+                            serial: row.Serial || '',
+                            location: row.Location,
+                            createdBy: currentUser.username,
+                            createdAt: new Date().toISOString()
+                        });
+                    }
+                });
+                saveData();
+                loadAssetTable();
+                populateAssetSelects();
+                updateDashboard();
+                updateReports();
+                showNotification(`${json.length} assets imported!`, 'success');
             };
             reader.readAsArrayBuffer(file);
         }
 
-        function handleAssetSubmit(e) {
-            e.preventDefault();
-            if (!permissions[currentUser.role].create && !currentEditingAsset) return showNotification('Permission denied.', true);
-
-            const id = document.getElementById('asset-id').value || data.nextIds.asset++;
-            const department = document.getElementById('asset-department').value;
-            const name = document.getElementById('asset-name').value;
-            const serial = document.getElementById('asset-serial').value;
-            const location = document.getElementById('asset-location').value;
-            let attachment = null;
-            const fileInput = document.getElementById('asset-upload');
-            if (fileInput.files[0]) {
-                const file = fileInput.files[0];
-                if (file.size > 5 * 1024 * 1024) return showNotification('File too large (>5MB).', true);
-                const reader = new FileReader();
-                reader.onload = () => {
-                    attachment = { name: file.name, type: file.type, data: reader.result };
-                    saveNewAsset(id, department, name, serial, location, attachment);
-                };
-                reader.readAsDataURL(file);
-            } else {
-                saveNewAsset(id, department, name, serial, location, attachment);
-            }
-
-            function saveNewAsset(id, dept, name, serial, loc, att) {
-                if (currentEditingAsset) {
-                    const index = data.assets.findIndex(a => a.id === parseInt(id));
-                    if (index > -1) {
-                        data.assets[index] = { id: parseInt(id), department: dept, name, serial, location: loc, attachment: att || data.assets[index].attachment };
-                        showNotification('Asset updated.');
-                    }
-                    currentEditingAsset = null;
-                } else {
-                    data.assets.push({ id, department: dept, name, serial, location: loc, attachment: att });
-                    showNotification('Asset added.');
-                }
-                e.target.reset();
-                document.getElementById('asset-id').value = '';
-                document.getElementById('asset-preview').innerHTML = '';
-                saveData();
-                renderAssets();
-                populateAssetSelects();
-            }
-        }
-
-        window.editAsset = function(id) {
-            if (!permissions[currentUser.role].edit) return showNotification('Permission denied.', true);
-            const asset = data.assets.find(a => a.id === id);
-            if (!asset) return;
-
-            document.getElementById('asset-id').value = asset.id;
-            document.getElementById('asset-department').value = asset.department;
-            document.getElementById('asset-name').value = asset.name;
-            document.getElementById('asset-serial').value = asset.serial || '';
-            document.getElementById('asset-location').value = asset.location;
-            populateAssetSelects(); // Refresh
-            if (asset.attachment) {
-                const preview = document.getElementById('asset-preview');
-                if (asset.attachment.type.startsWith('image/')) {
-                    preview.innerHTML = `<img src="${asset.attachment.data}" alt="Preview" style="max-width:250px; max-height:200px; border-radius:12px;">`;
-                } else {
-                    preview.innerHTML = `<p style="font-weight:700; color:#ffd700;">${asset.attachment.name}</p><p class="file-info">Type: ${asset.attachment.type}</p>`;
-                }
-                preview.style.display = 'block';
-            }
-            document.getElementById('asset-submit-btn').textContent = 'Update Asset';
-            currentEditingAsset = id;
-        };
-
-        window.deleteAsset = function(id) {
-            if (!permissions[currentUser.role].delete) return showNotification('Permission denied.', true);
-            if (confirm('Delete this asset?')) {
-                data.assets = data.assets.filter(a => a.id !== id);
-                saveData();
-                renderAssets();
-                populateAssetSelects();
-                showNotification('Asset deleted.');
-            }
-        };
-
-        // View Asset with Excel Support
-        window.viewAsset = function(id) {
-            currentViewedAsset = data.assets.find(a => a.id === id);
-            if (!currentViewedAsset) return;
-            document.getElementById('viewer-title').textContent = `${currentViewedAsset.name} - Attachment Viewer`;
-            const content = document.getElementById('viewer-content');
-            const meta = document.getElementById('viewer-meta');
-            meta.innerHTML = `
-                <p><strong>Department:</strong> ${currentViewedAsset.department}</p>
-                <p><strong>Serial:</strong> ${currentViewedAsset.serial || 'N/A'}</p>
-                <p><strong>Location:</strong> ${currentViewedAsset.location}</p>
-            `;
-            if (!currentViewedAsset.attachment) {
-                content.innerHTML = '<p style="color:#b0b0b0;">No attachment available.</p>';
-                document.getElementById('download-trigger').style.display = 'none';
-                document.getElementById('ai-extract-trigger').style.display = 'none';
-                document.getElementById('ai-wo-extract-trigger').style.display = 'none';
-            } else {
-                document.getElementById('download-trigger').style.display = 'inline-block';
-                const att = currentViewedAsset.attachment;
-                if (att.type.startsWith('image/')) {
-                    content.innerHTML = `<img src="${att.data}" alt="Asset Image">`;
-                    document.getElementById('ai-extract-trigger').style.display = 'none';
-                    document.getElementById('ai-wo-extract-trigger').style.display = 'none';
-                } else if (att.type === 'application/pdf') {
-                    renderPdf(att.data);
-                    document.getElementById('ai-extract-trigger').style.display = 'inline-block';
-                    document.getElementById('ai-wo-extract-trigger').style.display = 'inline-block';
-                } else if (att.type.includes('spreadsheet') || att.name.endsWith('.xlsx') || att.name.endsWith('.xls')) {
-                    renderExcel(att.data);
-                    document.getElementById('ai-extract-trigger').style.display = 'inline-block';
-                    document.getElementById('ai-wo-extract-trigger').style.display = 'none';
-                } else if (att.type.includes('word') || att.name.endsWith('.docx') || att.name.endsWith('.doc')) {
-                    renderWord(att.data);
-                    document.getElementById('ai-extract-trigger').style.display = 'inline-block';
-                    document.getElementById('ai-wo-extract-trigger').style.display = 'inline-block';
-                } else {
-                    content.innerHTML = `<p style="color:#b0b0b0;">Unsupported file type: ${att.type}. Download to view.</p>`;
-                    document.getElementById('ai-extract-trigger').style.display = 'none';
-                    document.getElementById('ai-wo-extract-trigger').style.display = 'none';
-                }
-            }
-            document.getElementById('asset-viewer-modal').style.display = 'flex';
-        };
-
-        // Render Excel with SheetJS (supports .xlsx and .xls)
-        function renderExcel(base64Data) {
-            if (typeof XLSX === 'undefined') {
-                document.getElementById('viewer-content').innerHTML = '<p style="color:#dc3545;">Excel viewer not available. Please refresh the page.</p>';
-                return;
-            }
-            try {
-                const dataArray = uint8ArrayFromBase64(base64Data.split(',')[1]);
-                const workbook = XLSX.read(dataArray, { type: 'array' });
-                const sheetName = workbook.SheetNames[0];
-                const sheet = workbook.Sheets[sheetName];
-                const html = XLSX.utils.sheet_to_html(sheet);
-                document.getElementById('viewer-content').innerHTML = `<div class="excel-table">${html}</div>`;
-            } catch (err) {
-                document.getElementById('viewer-content').innerHTML = `<p style="color:#dc3545;">Error rendering Excel: ${err.message}</p>`;
-            }
-        }
-
-        // Render PDF (existing)
-        async function renderPdf(base64Data) {
-            try {
-                const pdfData = uint8ArrayFromBase64(base64Data.split(',')[1]);
-                const pdf = await pdfjsLib.getDocument(pdfData).promise;
-                const container = document.getElementById('viewer-content');
-                container.innerHTML = '';
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    const viewport = page.getViewport({ scale: 1.5 });
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
-                    canvas.className = 'pdf-canvas';
-                    await page.render({ canvasContext: context, viewport }).promise;
-                    container.appendChild(canvas);
-                }
-            } catch (err) {
-                document.getElementById('viewer-content').innerHTML = `<p style="color:#dc3545;">Error rendering PDF: ${err.message}</p>`;
-            }
-        }
-
-        // Render Word (existing)
-        async function renderWord(base64Data) {
-            try {
-                const arrayBuffer = uint8ArrayFromBase64(base64Data.split(',')[1]).buffer;
-                const result = await mammoth.convertToHtml({ arrayBuffer });
-                document.getElementById('viewer-content').innerHTML = `<div>${result.value}</div><p style="color:#b0b0b0; font-size:0.8rem;">${result.messages.join(', ')}</p>`;
-            } catch (err) {
-                document.getElementById('viewer-content').innerHTML = `<p style="color:#dc3545;">Error rendering Word: ${err.message}</p>`;
-            }
-        }
-
-        // PM Functions (unchanged)
-        function renderPmSchedules() {
-            const tbody = document.querySelector('#pm-table tbody');
-            tbody.innerHTML = '';
-            data.pmSchedules.forEach(pm => {
-                const asset = data.assets.find(a => a.id === pm.assetId);
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${pm.id}</td>
-                    <td>${asset ? asset.department : 'N/A'}</td>
-                    <td>${asset ? asset.name : 'N/A'}</td>
-                    <td>${pm.description.substring(0, 30)}${pm.description.length > 30 ? '...' : ''}</td>
-                    <td>${pm.frequency}</td>
-                    <td>${pm.nextDue}</td>
-                    <td>
-                        <button class="action-btn edit" onclick="editPm(${pm.id})">Edit</button>
-                        ${permissions[currentUser.role].delete ? `<button class="action-btn delete" onclick="deletePm(${pm.id})">Delete</button>` : ''}
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        document.getElementById('pm-form').addEventListener('submit', handlePmSubmit);
-
+        // Handle PM submit
         function handlePmSubmit(e) {
             e.preventDefault();
-            if (!permissions[currentUser.role].create && !currentEditingPm) return showNotification('Permission denied.', true);
-
-            const id = document.getElementById('pm-id').value || data.nextIds.pm++;
+            if (!permissions[currentUser.role].create && currentEditingPm === null) {
+                showNotification('No permission to create PM schedules.', 'error');
+                return;
+            }
+            const id = currentEditingPm ? currentEditingPm.id : data.nextIds.pm++;
             const assetId = parseInt(document.getElementById('pm-asset').value);
+            const asset = data.assets.find(a => a.id === assetId);
             const description = document.getElementById('pm-description').value;
             const frequency = document.getElementById('pm-frequency').value;
-            const nextDue = document.getElementById('pm-due').value;
+            const due = document.getElementById('pm-due').value;
+
+            const pm = {
+                id,
+                department: asset ? asset.department : '',
+                asset: asset ? asset.name : '',
+                assetId,
+                description,
+                frequency,
+                nextDue: due,
+                status: 'Scheduled',
+                createdBy: currentUser.username,
+                createdAt: new Date().toISOString()
+            };
 
             if (currentEditingPm) {
-                const index = data.pmSchedules.findIndex(p => p.id === parseInt(id));
-                if (index > -1) {
-                    data.pmSchedules[index] = { id: parseInt(id), assetId, description, frequency, nextDue, status: 'Scheduled' };
-                    showNotification('PM Schedule updated.');
-                }
+                const index = data.pmSchedules.findIndex(p => p.id === id);
+                data.pmSchedules[index] = pm;
+                showNotification('PM schedule updated!', 'success');
                 currentEditingPm = null;
+                document.getElementById('pm-submit-btn').textContent = 'Create Schedule';
             } else {
-                data.pmSchedules.push({ id, assetId, description, frequency, nextDue, status: 'Scheduled' });
-                showNotification('PM Schedule created.');
+                data.pmSchedules.push(pm);
+                showNotification('PM schedule created!', 'success');
             }
 
-            e.target.reset();
-            document.getElementById('pm-id').value = '';
+            document.getElementById('pm-form').reset();
             saveData();
-            renderPmSchedules();
-            populateAssetSelects();
+            loadPmTable();
+            updateDashboard();
         }
 
-        window.editPm = function(id) {
-            if (!permissions[currentUser.role].edit) return showNotification('Permission denied.', true);
+        // Edit PM
+        function editPm(id) {
             const pm = data.pmSchedules.find(p => p.id === id);
             if (!pm) return;
-
+            currentEditingPm = pm;
             document.getElementById('pm-id').value = pm.id;
             document.getElementById('pm-asset').value = pm.assetId;
             document.getElementById('pm-description').value = pm.description;
             document.getElementById('pm-frequency').value = pm.frequency;
             document.getElementById('pm-due').value = pm.nextDue;
             document.getElementById('pm-submit-btn').textContent = 'Update Schedule';
-            currentEditingPm = id;
-        };
+            showSection('preventive');
+        }
 
-        window.deletePm = function(id) {
-            if (!permissions[currentUser.role].delete) return showNotification('Permission denied.', true);
-            if (confirm('Delete this PM schedule?')) {
-                data.pmSchedules = data.pmSchedules.filter(p => p.id !== id);
-                saveData();
-                renderPmSchedules();
-                showNotification('PM Schedule deleted.');
+        // Delete PM
+        function deletePm(id) {
+            if (!confirm('Delete this PM schedule?')) return;
+            if (!permissions[currentUser.role].delete) {
+                showNotification('No permission to delete.', 'error');
+                return;
             }
-        };
+            data.pmSchedules = data.pmSchedules.filter(p => p.id !== id);
+            saveData();
+            loadPmTable();
+            showNotification('PM schedule deleted!', 'success');
+        }
 
-        // Inventory Functions (unchanged)
-        function renderInventory() {
-            const tbody = document.querySelector('#inv-table tbody');
+        // Load PM table
+        function loadPmTable() {
+            const tbody = document.querySelector('#pm-table tbody');
             tbody.innerHTML = '';
-            data.inventory.forEach(item => {
-                const status = item.quantity <= item.reorderPoint ? 'Low Stock' : 'OK';
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${item.id}</td>
-                    <td>${item.department}</td>
-                    <td>${item.name}</td>
-                    <td>${item.quantity}</td>
-                    <td>${item.reorderPoint}</td>
-                    <td><span style="color: ${status === 'Low Stock' ? '#dc3545' : '#28a745'}">${status}</span></td>
+            data.pmSchedules.forEach(pm => {
+                const row = tbody.insertRow();
+                const overdue = new Date(pm.nextDue) < new Date();
+                row.innerHTML = `
+                    <td>${pm.id}</td>
+                    <td>${pm.department}</td>
+                    <td>${pm.asset}</td>
+                    <td>${pm.description.substring(0, 30)}${pm.description.length > 30 ? '...' : ''}</td>
+                    <td>${pm.frequency}</td>
+                    <td style="color: ${overdue ? '#dc3545' : '#28a745'}">${pm.nextDue}</td>
                     <td>
-                        <button class="action-btn edit" onclick="editInventory(${item.id})">Edit</button>
-                        ${permissions[currentUser.role].delete ? `<button class="action-btn delete" onclick="deleteInventory(${item.id})">Delete</button>` : ''}
+                        ${permissions[currentUser.role].edit ? `<button class="action-btn edit" onclick="editPm(${pm.id})">Edit</button>` : ''}
+                        ${permissions[currentUser.role].delete ? `<button class="action-btn delete" onclick="deletePm(${pm.id})">Delete</button>` : ''}
+                        <button class="action-btn close" onclick="updatePmStatus(${pm.id}, 'Completed')">Complete</button>
                     </td>
                 `;
-                tbody.appendChild(tr);
             });
         }
 
-        document.getElementById('inv-form').addEventListener('submit', handleInventorySubmit);
+        // Update PM status
+        function updatePmStatus(id, status) {
+            const pm = data.pmSchedules.find(p => p.id === id);
+            if (pm && status === 'Completed') {
+                // Reschedule next due based on frequency
+                const dueDate = new Date(pm.nextDue);
+                switch (pm.frequency) {
+                    case 'Weekly': dueDate.setDate(dueDate.getDate() + 7); break;
+                    case 'Monthly': dueDate.setMonth(dueDate.getMonth() + 1); break;
+                    case 'Quarterly': dueDate.setMonth(dueDate.getMonth() + 3); break;
+                    case 'Annually': dueDate.setFullYear(dueDate.getFullYear() + 1); break;
+                }
+                pm.nextDue = dueDate.toISOString().split('T')[0];
+                pm.status = 'Scheduled';
+                pm.updatedAt = new Date().toISOString();
+                saveData();
+                loadPmTable();
+                updateDashboard();
+                showNotification('PM completed and rescheduled!', 'success');
+            }
+        }
 
-        function handleInventorySubmit(e) {
+        // Handle Inventory submit
+        function handleInvSubmit(e) {
             e.preventDefault();
-            if (!permissions[currentUser.role].create && !currentEditingInv) return showNotification('Permission denied.', true);
-
-            const id = document.getElementById('inv-id').value || data.nextIds.inv++;
+            if (!permissions[currentUser.role].create && currentEditingInv === null) {
+                showNotification('No permission to add inventory items.', 'error');
+                return;
+            }
+            const id = currentEditingInv ? currentEditingInv.id : data.nextIds.inv++;
             const department = document.getElementById('inv-department').value;
             const name = document.getElementById('inv-name').value;
-            const quantity = parseInt(document.getElementById('inv-qty').value);
-            const reorderPoint = parseInt(document.getElementById('inv-reorder').value);
+            const qty = parseInt(document.getElementById('inv-qty').value);
+            const reorder = parseInt(document.getElementById('inv-reorder').value);
+
+            const inv = {
+                id,
+                department,
+                name,
+                quantity: qty,
+                reorderPoint: reorder,
+                status: qty <= reorder ? 'Low Stock' : 'OK',
+                createdBy: currentUser.username,
+                createdAt: new Date().toISOString()
+            };
 
             if (currentEditingInv) {
-                const index = data.inventory.findIndex(i => i.id === parseInt(id));
-                if (index > -1) {
-                    data.inventory[index] = { id: parseInt(id), department, name, quantity, reorderPoint };
-                    showNotification('Inventory updated.');
-                }
+                const index = data.inventory.findIndex(i => i.id === id);
+                data.inventory[index] = inv;
+                showNotification('Inventory updated!', 'success');
                 currentEditingInv = null;
+                document.getElementById('inv-submit-btn').textContent = 'Add Item';
             } else {
-                data.inventory.push({ id, department, name, quantity, reorderPoint });
-                showNotification('Inventory item added.');
+                data.inventory.push(inv);
+                showNotification('Inventory item added!', 'success');
             }
 
-            e.target.reset();
-            document.getElementById('inv-id').value = '';
+            document.getElementById('inv-form').reset();
             saveData();
-            renderInventory();
+            loadInvTable();
+            updateDashboard();
+            updateReports();
         }
 
-        window.editInventory = function(id) {
-            if (!permissions[currentUser.role].edit) return showNotification('Permission denied.', true);
-            const item = data.inventory.find(i => i.id === id);
-            if (!item) return;
-
-            document.getElementById('inv-id').value = item.id;
-            document.getElementById('inv-department').value = item.department;
-            document.getElementById('inv-name').value = item.name;
-            document.getElementById('inv-qty').value = item.quantity;
-            document.getElementById('inv-reorder').value = item.reorderPoint;
+        // Edit Inv
+        function editInv(id) {
+            const inv = data.inventory.find(i => i.id === id);
+            if (!inv) return;
+            currentEditingInv = inv;
+            document.getElementById('inv-id').value = inv.id;
+            document.getElementById('inv-department').value = inv.department;
+            document.getElementById('inv-name').value = inv.name;
+            document.getElementById('inv-qty').value = inv.quantity;
+            document.getElementById('inv-reorder').value = inv.reorderPoint;
             document.getElementById('inv-submit-btn').textContent = 'Update Item';
-            currentEditingInv = id;
-        };
+            showSection('inventory');
+        }
 
-        window.deleteInventory = function(id) {
-            if (!permissions[currentUser.role].delete) return showNotification('Permission denied.', true);
-            if (confirm('Delete this inventory item?')) {
-                data.inventory = data.inventory.filter(i => i.id !== id);
-                saveData();
-                renderInventory();
-                showNotification('Inventory item deleted.');
+        // Delete Inv
+        function deleteInv(id) {
+            if (!confirm('Delete this inventory item?')) return;
+            if (!permissions[currentUser.role].delete) {
+                showNotification('No permission to delete.', 'error');
+                return;
             }
-        };
+            data.inventory = data.inventory.filter(i => i.id !== id);
+            saveData();
+            loadInvTable();
+            updateReports();
+            showNotification('Inventory item deleted!', 'success');
+        }
 
-        // Users Functions (unchanged)
-        function renderUsers() {
-            const tbody = document.querySelector('#user-table tbody');
+        // Load Inv table
+        function loadInvTable() {
+            const tbody = document.querySelector('#inv-table tbody');
             tbody.innerHTML = '';
-            data.users.forEach((user, index) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${user.username}</td>
-                    <td>${user.role}</td>
+            data.inventory.forEach(inv => {
+                const row = tbody.insertRow();
+                const statusColor = inv.status === 'Low Stock' ? '#dc3545' : '#28a745';
+                row.innerHTML = `
+                    <td>${inv.id}</td>
+                    <td>${inv.department}</td>
+                    <td>${inv.name}</td>
+                    <td>${inv.quantity}</td>
+                    <td>${inv.reorderPoint}</td>
+                    <td style="color: ${statusColor}"><strong>${inv.status}</strong></td>
                     <td>
-                        <button class="action-btn edit" onclick="editUser(${index})">Edit</button>
-                        ${permissions[currentUser.role].manageUsers ? `<button class="action-btn delete" onclick="deleteUser(${index})">Delete</button>` : ''}
+                        ${permissions[currentUser.role].edit ? `<button class="action-btn edit" onclick="editInv(${inv.id})">Edit</button>` : ''}
+                        ${permissions[currentUser.role].delete ? `<button class="action-btn delete" onclick="deleteInv(${inv.id})">Delete</button>` : ''}
                     </td>
                 `;
-                tbody.appendChild(tr);
             });
         }
 
-        document.getElementById('user-form').addEventListener('submit', handleUserSubmit);
-
+        // Handle User submit
         function handleUserSubmit(e) {
             e.preventDefault();
-            if (!permissions[currentUser.role].manageUsers) return showNotification('Permission denied.', true);
-
+            if (!permissions[currentUser.role].manageUsers) {
+                showNotification('No permission to manage users.', 'error');
+                return;
+            }
             const username = document.getElementById('user-username').value;
             const password = document.getElementById('user-password').value;
             const role = document.getElementById('user-role').value;
@@ -1948,76 +2170,77 @@
 
             if (editIndex >= 0) {
                 data.users[editIndex] = { username, password, role };
-                showNotification('User updated.');
-                currentEditingUserIndex = -1;
+                showNotification('User updated!', 'success');
+                document.getElementById('user-edit-index').value = -1;
                 document.getElementById('user-submit-btn').textContent = 'Add User';
             } else {
-                if (data.users.find(u => u.username === username)) return showNotification('Username exists.', true);
+                if (data.users.find(u => u.username === username)) {
+                    showNotification('Username already exists!', 'error');
+                    return;
+                }
                 data.users.push({ username, password, role });
-                showNotification('User added.');
+                showNotification('User added!', 'success');
+                updateUserSelects();
             }
 
-            e.target.reset();
-            document.getElementById('user-edit-index').value = -1;
+            document.getElementById('user-form').reset();
             saveData();
-            renderUsers();
-            populateUserSelects();
+            loadUserTable();
         }
 
-        window.editUser = function(index) {
-            if (!permissions[currentUser.role].manageUsers) return showNotification('Permission denied.', true);
+        // Edit User
+        function editUser(index) {
             const user = data.users[index];
+            document.getElementById('user-edit-index').value = index;
             document.getElementById('user-username').value = user.username;
             document.getElementById('user-password').value = user.password;
             document.getElementById('user-role').value = user.role;
-            document.getElementById('user-edit-index').value = index;
             document.getElementById('user-submit-btn').textContent = 'Update User';
-            currentEditingUserIndex = index;
-        };
+        }
 
-        window.deleteUser = function(index) {
-            if (!permissions[currentUser.role].manageUsers) return showNotification('Permission denied.', true);
-            if (data.users[index].username === currentUser.username) return showNotification('Cannot delete self.', true);
-            if (confirm('Delete this user?')) {
-                data.users.splice(index, 1);
-                saveData();
-                renderUsers();
-                populateUserSelects();
-                showNotification('User deleted.');
+        // Delete User
+        function deleteUser(index) {
+            if (index === 0 || data.users[index].username === currentUser.username) {
+                showNotification('Cannot delete admin or current user!', 'error');
+                return;
             }
-        };
+            if (!confirm('Delete this user?')) return;
+            data.users.splice(index, 1);
+            saveData();
+            updateUserSelects();
+            loadUserTable();
+            showNotification('User deleted!', 'success');
+        }
 
-        // Populate Selects
-        function populateAssetSelects() {
-            const selects = ['wo-asset', 'pm-asset'];
-            const department = document.getElementById('wo-department') ? document.getElementById('wo-department').value : '';
-            const filteredAssets = department ? data.assets.filter(a => a.department === department) : data.assets;
-            selects.forEach(selId => {
-                const select = document.getElementById(selId);
-                if (select) {
-                    select.innerHTML = '<option value="" disabled selected>Select Asset</option>' + filteredAssets.map(a => `<option value="${a.id}">${a.name} (${a.location})</option>`).join('');
-                }
+        // Load User table
+        function loadUserTable() {
+            const tbody = document.querySelector('#user-table tbody');
+            tbody.innerHTML = '';
+            data.users.forEach((user, index) => {
+                if (user.username === 'admin' && index === 0) return; // Skip default admin
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${user.username}</td>
+                    <td>${user.role}</td>
+                    <td>
+                        <button class="action-btn edit" onclick="editUser(${index})">Edit</button>
+                        <button class="action-btn delete" onclick="deleteUser(${index})">Delete</button>
+                    </td>
+                `;
             });
         }
 
-        function populateUserSelects() {
-            const select = document.getElementById('wo-assigned-to');
-            if (select) {
-                select.innerHTML = '<option value="" disabled selected>Select User</option>' + data.users.map(u => `<option value="${u.username}">${u.username} (${u.role})</option>`).join('');
-            }
-        }
-
-        // Dashboard
-        function renderDashboard() {
+        // Update Dashboard
+        function updateDashboard() {
             // Stats
-            const statsDiv = document.getElementById('dashboard-stats');
-            const openWO = data.workOrders.filter(w => w.status === 'Open').length;
+            const openWo = data.workOrders.filter(w => w.status === 'Open').length;
             const totalAssets = data.assets.length;
-            const overduePM = data.pmSchedules.filter(p => new Date(p.nextDue) < new Date()).length;
+            const overduePm = data.pmSchedules.filter(p => new Date(p.nextDue) < new Date()).length;
             const lowStock = data.inventory.filter(i => i.quantity <= i.reorderPoint).length;
-            statsDiv.innerHTML = `
+
+            document.getElementById('dashboard-stats').innerHTML = `
                 <div class="stat-card">
-                    <h3>${openWO}</h3>
+                    <h3>${openWo}</h3>
                     <p>Open Work Orders</p>
                 </div>
                 <div class="stat-card">
@@ -2025,7 +2248,7 @@
                     <p>Total Assets</p>
                 </div>
                 <div class="stat-card">
-                    <h3>${overduePM}</h3>
+                    <h3>${overduePm}</h3>
                     <p>Overdue PM</p>
                 </div>
                 <div class="stat-card">
@@ -2034,42 +2257,31 @@
                 </div>
             `;
 
-            // Critical WO Table
+            // Critical WOs table
+            const criticalWo = data.workOrders.filter(w => w.status === 'Open' && w.priority === 'High').slice(0, 5);
             const tbody = document.querySelector('#dashboard-wo-table tbody');
             tbody.innerHTML = '';
-            data.workOrders.filter(w => w.status === 'Open' && w.priority === 'High')
-                .slice(0, 5).forEach(wo => {
-                    const tr = document.createElement('tr');
-                    const asset = data.assets.find(a => a.id === wo.assetId);
-                    tr.innerHTML = `
-                        <td>${wo.id}</td>
-                        <td>${wo.department}</td>
-                        <td>${wo.assetName || 'N/A'}</td>
-                        <td>${wo.description.substring(0, 40)}${wo.description.length > 40 ? '...' : ''}</td>
-                        <td><span style="color:#dc3545;">High</span></td>
-                        <td><span style="color:#ffc107;">Open</span></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
+            criticalWo.forEach(wo => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${wo.id}</td>
+                    <td>${wo.department}</td>
+                    <td>${wo.asset}</td>
+                    <td>${wo.description.substring(0, 40)}${wo.description.length > 40 ? '...' : ''}</td>
+                    <td style="color: #dc3545;"><strong>High</strong></td>
+                    <td style="color: #ffc107;">Open</td>
+                `;
+            });
         }
 
-        // Reports
-        function updateReportTotals() {
+        // Update Reports section
+        function updateReports() {
             document.getElementById('report-total-wo').textContent = data.workOrders.length;
             document.getElementById('report-total-asset').textContent = data.assets.length;
             document.getElementById('report-below-reorder').textContent = data.inventory.filter(i => i.quantity <= i.reorderPoint).length;
         }
 
-        function updateReportDates() {
-            const today = new Date().toISOString().split('T')[0];
-            const lastMonth = new Date();
-            lastMonth.setMonth(lastMonth.getMonth() - 1);
-            document.getElementById('report-start').value = lastMonth.toISOString().split('T')[0];
-            document.getElementById('report-end').value = today;
-        }
-
-        document.getElementById('report-form').addEventListener('submit', generateReport);
-
+        // Generate Report
         function generateReport(e) {
             e.preventDefault();
             const title = document.getElementById('report-title').value;
@@ -2078,439 +2290,375 @@
             const end = document.getElementById('report-end').value;
             const type = document.getElementById('report-type-full').value;
 
-            // Filter data by date and dept if applicable
-            const filterWo = data.workOrders.filter(wo => {
-                const created = new Date(wo.dateCreated).toISOString().split('T')[0];
-                return (!department || wo.department === department) && created >= start && created <= end;
-            });
-            const filterPm = data.pmSchedules.filter(pm => {
-                return (!department || data.assets.find(a => a.id === pm.assetId)?.department === department);
-            });
-            const filterAssets = data.assets.filter(a => !department || a.department === department);
-            const filterInv = data.inventory.filter(i => !department || i.department === department);
-
             document.getElementById('print-title').textContent = title;
             document.getElementById('generated-date').textContent = `${start} to ${end}`;
             document.getElementById('generated-by').textContent = currentUser.username;
             document.getElementById('generated-time').textContent = new Date().toLocaleString();
 
-            // Summary Stats
-            const summary = document.getElementById('report-summary');
-            summary.innerHTML = `
+            // Filter data by date and department
+            const filterWo = w => {
+                const created = new Date(w.createdAt);
+                return (!department || w.department === department) &&
+                       created >= new Date(start) && created <= new Date(end);
+            };
+            const filterPm = p => {
+                const due = new Date(p.nextDue);
+                return (!department || p.department === department) &&
+                       due >= new Date(start) && due <= new Date(end);
+            };
+            const filterAssets = a => !department || a.department === department;
+            const filterInv = i => !department || i.department === department;
+
+            const filteredWo = data.workOrders.filter(filterWo);
+            const filteredPm = data.pmSchedules.filter(filterPm);
+            const filteredAssets = data.assets.filter(filterAssets);
+            const filteredInv = data.inventory.filter(filterInv);
+
+            // Summary stats
+            const completedWo = filteredWo.filter(w => w.status === 'Completed').length;
+            const openWo = filteredWo.length - completedWo;
+            const totalPm = filteredPm.length;
+            const lowInv = filteredInv.filter(i => i.quantity <= i.reorderPoint).length;
+
+            document.getElementById('report-summary').innerHTML = `
                 <div class="stat-card">
-                    <h3>${filterWo.length}</h3>
-                    <p>Work Orders</p>
+                    <h3>${openWo}</h3>
+                    <p>Open WOs</p>
                 </div>
                 <div class="stat-card">
-                    <h3>${filterPm.length}</h3>
-                    <p>PM Schedules</p>
+                    <h3>${completedWo}</h3>
+                    <p>Completed WOs</p>
                 </div>
                 <div class="stat-card">
-                    <h3>${filterAssets.length}</h3>
-                    <p>Assets</p>
+                    <h3>${totalPm}</h3>
+                    <p>PM Tasks</p>
                 </div>
                 <div class="stat-card">
-                    <h3>${filterInv.filter(i => i.quantity <= i.reorderPoint).length}</h3>
+                    <h3>${lowInv}</h3>
                     <p>Low Stock</p>
                 </div>
             `;
 
-            // WO Table
+            // Populate tables
             const woTbody = document.querySelector('#report-wo-table tbody');
-            woTbody.innerHTML = filterWo.map(wo => {
-                const asset = data.assets.find(a => a.id === wo.assetId);
-                return `<tr><td>${wo.id}</td><td>${wo.department}</td><td>${wo.description}</td><td>${wo.assetName || 'N/A'}</td><td>${wo.priority}</td><td>${wo.status}</td></tr>`;
-            }).join('');
-
-            // PM Table
+            woTbody.innerHTML = filteredWo.map(w => `<tr><td>${w.id}</td><td>${w.department}</td><td>${w.description}</td><td>${w.asset}</td><td>${w.priority}</td><td>${w.status}</td></tr>`).join('');
             const pmTbody = document.querySelector('#report-pm-table tbody');
-            pmTbody.innerHTML = filterPm.map(pm => {
-                const asset = data.assets.find(a => a.id === pm.assetId);
-                return `<tr><td>${pm.id}</td><td>${asset ? asset.department : 'N/A'}</td><td>${asset ? asset.name : 'N/A'}</td><td>${pm.frequency}</td><td>${pm.nextDue}</td><td>${pm.status}</td></tr>`;
-            }).join('');
-
-            // Assets Table
+            pmTbody.innerHTML = filteredPm.map(p => `<tr><td>${p.id}</td><td>${p.department}</td><td>${p.asset}</td><td>${p.frequency}</td><td>${p.nextDue}</td><td>${p.status}</td></tr>`).join('');
             const assetTbody = document.querySelector('#report-assets-table tbody');
-            assetTbody.innerHTML = filterAssets.map(a => `<tr><td>${a.id}</td><td>${a.department}</td><td>${a.name}</td><td>${a.serial || 'N/A'}</td><td>${a.location}</td></tr>`).join('');
-
-            // Inv Table
+            assetTbody.innerHTML = filteredAssets.map(a => `<tr><td>${a.id}</td><td>${a.department}</td><td>${a.name}</td><td>${a.serial}</td><td>${a.location}</td></tr>`).join('');
             const invTbody = document.querySelector('#report-inv-table tbody');
-            invTbody.innerHTML = filterInv.map(i => {
-                const status = i.quantity <= i.reorderPoint ? 'Low' : 'OK';
-                return `<tr><td>${i.id}</td><td>${i.department}</td><td>${i.name}</td><td>${i.quantity}</td><td>${i.reorderPoint}</td><td>${status}</td></tr>`;
-            }).join('');
+            invTbody.innerHTML = filteredInv.map(i => `<tr><td>${i.id}</td><td>${i.department}</td><td>${i.name}</td><td>${i.quantity}</td><td>${i.reorderPoint}</td><td>${i.status}</td></tr>`).join('');
 
             document.getElementById('maintenance-report-content').style.display = 'block';
-            currentReportHTML = document.getElementById('maintenance-report-content').innerHTML; // For email/print
-            showNotification('Report generated.');
+            if (type === 'detailed') {
+                showSection('maintenance-report');
+            } else {
+                // Scroll to summary
+                document.getElementById('report-summary').scrollIntoView({ behavior: 'smooth' });
+            }
+            showNotification('Report generated!', 'success');
         }
 
-        window.printReport = function() {
-            const original = document.body.innerHTML;
-            document.body.innerHTML = `
-                <div style="background:white; color:black; padding:20px;">
-                    <h1>BCC Maintenance Report</h1>
-                    ${currentReportHTML}
-                </div>
-            `;
+        // Print Report
+        function printReport() {
             window.print();
-            document.body.innerHTML = original;
-            setTimeout(() => location.reload(), 1000); // Refresh after print
-        };
+        }
 
-        // Email Modal
-        document.getElementById('email-form').addEventListener('submit', handleEmailSubmit);
-
-        window.openEmailModal = function() {
-            if (!currentReportHTML) return showNotification('Generate report first.', true);
+        // Open Email Modal
+        function openEmailModal() {
+            document.getElementById('email-to').value = '';
             document.getElementById('email-subject').value = document.getElementById('report-title').value;
-            document.getElementById('email-message').value = `Please find the attached maintenance report for review.\n\nGenerated by: ${currentUser.username}`;
+            document.getElementById('email-message').value = 'Please find the attached maintenance report.';
             document.getElementById('email-modal').style.display = 'flex';
-        };
+        }
 
-        window.closeEmailModal = function() {
+        // Close Email Modal
+        function closeEmailModal() {
             document.getElementById('email-modal').style.display = 'none';
-            document.getElementById('email-form').reset();
-        };
+        }
 
-        function handleEmailSubmit(e) {
+        // Initialize EmailJS (replace with your service ID, template ID, public key)
+        function initEmailJS() {
+            emailjs.init("YOUR_PUBLIC_KEY"); // Replace with actual key
+        }
+
+        // Send Email Report
+        function sendEmailReport(e) {
             e.preventDefault();
-            if (!EMAILJS_USER_ID || EMAILJS_USER_ID === 'YOUR_USER_ID_HERE') return showNotification('EmailJS not configured.', true);
-
             const to = document.getElementById('email-to').value;
             const subject = document.getElementById('email-subject').value;
             const message = document.getElementById('email-message').value;
 
-            // Simple HTML for body
-            const templateParams = {
-                to_email: to,
-                subject: subject,
-                message: message + '<br><br><div>' + currentReportHTML + '</div>',
-                from_name: currentUser.username
-            };
+            // Generate HTML for report
+            window.html2canvas(document.getElementById('maintenance-report-content')).then(canvas => {
+                canvas.toBlob(blob => {
+                    const formData = new FormData();
+                    formData.append('attachment', blob, 'report.png');
 
-            emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
-                .then(() => {
-                    showNotification('Report emailed successfully!');
-                    closeEmailModal();
-                })
-                .catch(error => {
-                    showNotification('Email failed: ' + error.text, true);
-                    console.error('Email Error:', error);
-                });
-        }
-
-        // Import Functions
-        window.importData = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    Object.assign(data, imported);
-                    updateNextIds();
-                    saveData();
-                    showSection('dashboard'); // Refresh all
-                    showNotification('Data imported.');
-                } catch (err) {
-                    showNotification('Invalid JSON file.', true);
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        };
-
-        window.importExcel = function(event) {
-            // For full import, but simplified to assets
-            handleBulkAssetImport(event);
-        };
-
-        window.importWord = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const arrayBuffer = e.target.result;
-                    const result = await mammoth.extractRawText({ arrayBuffer });
-                    const text = result.value;
-                    // Simulate WO creation from text
-                    const lines = text.split('\n');
-                    lines.forEach(line => {
-                        if (line.trim().length > 10) {
-                            data.workOrders.push({
-                                id: data.nextIds.wo++,
-                                department: 'general',
-                                assetId: null,
-                                assetName: 'Unspecified',
-                                description: line.trim(),
-                                priority: 'Medium',
-                                status: 'Open',
-                                assignedTo: currentUser.username,
-                                createdBy: currentUser.username,
-                                dateCreated: new Date().toISOString()
-                            });
-                        }
+                    // Simulated send - in production, use EmailJS or backend
+                    emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+                        to_email: to,
+                        subject: subject,
+                        message: message
+                    }).then(() => {
+                        showNotification('Report emailed!', 'success');
+                        closeEmailModal();
+                    }).catch(err => {
+                        showNotification('Email failed: ' + err, 'error');
                     });
-                    saveData();
-                    renderWorkOrders();
-                    showNotification('Word imported to Work Orders.');
-                } catch (err) {
-                    showNotification('Error processing Word file.', true);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-            event.target.value = '';
-        };
-
-        window.importPdf = function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const pdfData = new Uint8Array(e.target.result);
-                    const pdf = await pdfjsLib.getDocument(pdfData).promise;
-                    let text = '';
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        text += textContent.items.map(item => item.str).join(' ') + '\n';
-                    }
-                    // Similar to Word, create WOs
-                    const lines = text.split('\n');
-                    lines.forEach(line => {
-                        if (line.trim().length > 10) {
-                            data.workOrders.push({
-                                id: data.nextIds.wo++,
-                                department: 'general',
-                                assetId: null,
-                                assetName: 'Unspecified',
-                                description: line.trim(),
-                                priority: 'Medium',
-                                status: 'Open',
-                                assignedTo: currentUser.username,
-                                createdBy: currentUser.username,
-                                dateCreated: new Date().toISOString()
-                            });
-                        }
-                    });
-                    saveData();
-                    renderWorkOrders();
-                    showNotification('PDF imported to Work Orders.');
-                } catch (err) {
-                    showNotification('Error processing PDF file.', true);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-            event.target.value = '';
-        };
-
-        window.clearAllData = function() {
-            if (confirm('Clear ALL data? This cannot be undone!')) {
-                localStorage.removeItem(storageKey);
-                localStorage.removeItem('gs_config');
-                data = { workOrders: [], assets: [], pmSchedules: [], inventory: [], users: defaultUsers, nextIds: { wo: 1, asset: 1, pm: 1, inv: 1 } };
-                saveData();
-                showSection('dashboard');
-                showNotification('All data cleared.');
-            }
-        };
-
-        // Department Listeners
-        document.getElementById('wo-department').addEventListener('change', populateAssetSelects);
-        document.getElementById('asset-department').addEventListener('change', populateAssetSelects);
-
-        // Default Users
-        const defaultUsers = data.users;
-
-        // AI Functions (placeholders - implement as needed)
-        async function extractTextFromAttachment(att) {
-            // Placeholder: Extract text based on type
-            if (att.type.includes('spreadsheet')) {
-                // For Excel, extract as text
-                if (typeof XLSX !== 'undefined') {
-                    const dataArray = uint8ArrayFromBase64(att.data.split(',')[1]);
-                    const workbook = XLSX.read(dataArray, { type: 'array' });
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    return XLSX.utils.sheet_to_txt(sheet);
-                }
-            } else if (att.type === 'application/pdf') {
-                const pdfData = uint8ArrayFromBase64(att.data.split(',')[1]);
-                const pdf = await pdfjsLib.getDocument(pdfData).promise;
-                let text = '';
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    text += textContent.items.map(item => item.str).join(' ') + '\n';
-                }
-                return text;
-            } else if (att.type.includes('word')) {
-                const arrayBuffer = uint8ArrayFromBase64(att.data.split(',')[1]).buffer;
-                const result = await mammoth.extractRawText({ arrayBuffer });
-                return result.value;
-            }
-            return 'No text extractable.';
-        }
-
-        function detectAssets(text) {
-            // Placeholder AI logic: Parse text for asset-like entries
-            potentialAssets = [
-                { department: 'general', name: 'Detected Asset 1', serial: 'N/A', location: 'Detected Location' },
-                // Add more based on text parsing
-            ];
-            const list = document.getElementById('ai-asset-list');
-            list.innerHTML = potentialAssets.map((asset, index) => `
-                <div class="ai-asset-item">
-                    <label>Name: <input value="${asset.name}" onchange="updatePotentialAsset(${index}, 'name', this.value)"></label>
-                    <label>Department: <input value="${asset.department}" onchange="updatePotentialAsset(${index}, 'department', this.value)"></label>
-                    <label>Location: <input value="${asset.location}" onchange="updatePotentialAsset(${index}, 'location', this.value)"></label>
-                    <label>Serial: <input value="${asset.serial}" onchange="updatePotentialAsset(${index}, 'serial', this.value)"></label>
-                </div>
-            `).join('');
-        }
-
-        window.extractAssetsWithAI = async function() {
-            if (!currentViewedAsset?.attachment) return showNotification('No file to analyze.', true);
-            const att = currentViewedAsset.attachment;
-            const progress = document.getElementById('ai-progress');
-            progress.style.display = 'block';
-
-            try {
-                currentFileText = await extractTextFromAttachment(att);
-                progress.style.display = 'none';
-                detectAssets(currentFileText);
-                document.getElementById('ai-asset-modal').style.display = 'flex';
-            } catch (err) {
-                progress.style.display = 'none';
-                showNotification(`AI Extraction failed: ${err.message}`, true);
-            }
-        };
-
-        window.updatePotentialAsset = function(index, field, value) {
-            potentialAssets[index][field] = value;
-        };
-
-        window.confirmAiAssets = function() {
-            potentialAssets.forEach(asset => {
-                data.assets.push({
-                    id: data.nextIds.asset++,
-                    ...asset,
-                    attachment: null
                 });
             });
-            saveData();
-            renderAssets();
-            populateAssetSelects();
-            closeAiModal();
-            showNotification(`${potentialAssets.length} assets registered from AI extraction.`);
-            potentialAssets = [];
-        };
-
-        window.closeAiModal = function() {
-            document.getElementById('ai-asset-modal').style.display = 'none';
-            document.getElementById('ai-asset-list').innerHTML = '';
-            document.getElementById('ai-progress').style.display = 'none';
-            potentialAssets = [];
-        };
-
-        // Similar for WO extraction (placeholder)
-        function detectWOs(text) {
-            potentialWOs = [
-                { department: 'general', description: 'Detected WO 1', priority: 'Medium', assetName: 'Unspecified' },
-                // Add more
-            ];
-            const list = document.getElementById('ai-wo-list');
-            list.innerHTML = potentialWOs.map((wo, index) => `
-                <div class="ai-wo-item">
-                    <label>Description: <input value="${wo.description}" onchange="updatePotentialWO(${index}, 'description', this.value)"></label>
-                    <label>Department: <input value="${wo.department}" onchange="updatePotentialWO(${index}, 'department', this.value)"></label>
-                    <label>Priority: <select onchange="updatePotentialWO(${index}, 'priority', this.value)"><option ${wo.priority === 'High' ? 'selected' : ''}>High</option><option ${wo.priority === 'Medium' ? 'selected' : ''}>Medium</option><option ${wo.priority === 'Low' ? 'selected' : ''}>Low</option></select></label>
-                </div>
-            `).join('');
         }
 
-        window.extractWOWithAI = async function() {
-            // Similar to extractAssetsWithAI
-            // ...
-        };
+        // Export Data
+        function exportData(format = 'json') {
+            const exportData = {
+                workOrders: document.getElementById('export-wo').checked ? data.workOrders : [],
+                assets: document.getElementById('export-assets').checked ? data.assets : [],
+                pmSchedules: document.getElementById('export-pm').checked ? data.pmSchedules : [],
+                inventory: document.getElementById('export-inv').checked ? data.inventory : []
+            };
+            if (format === 'json') {
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                downloadBlob(blob, 'bcc_export.json');
+            } else if (format === 'csv') {
+                let csv = 'Type,Data\n';
+                exportData.workOrders.forEach(wo => csv += `WO,${JSON.stringify(wo)}\n`);
+                exportData.assets.forEach(a => csv += `Asset,${JSON.stringify(a)}\n`);
+                // Add others...
+                const blob = new Blob([csv], { type: 'text/csv' });
+                downloadBlob(blob, 'bcc_export.csv');
+            }
+            showNotification('Data exported!', 'success');
+        }
 
-        window.updatePotentialWO = function(index, field, value) {
-            potentialWOs[index][field] = value;
-        };
+        // Import Data
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const imported = JSON.parse(ev.target.result);
+                if (imported.workOrders) data.workOrders = imported.workOrders;
+                if (imported.assets) data.assets = imported.assets;
+                if (imported.pmSchedules) data.pmSchedules = imported.pmSchedules;
+                if (imported.inventory) data.inventory = imported.inventory;
+                saveData();
+                loadAllTables();
+                updateDashboard();
+                updateReports();
+                showNotification('Data imported!', 'success');
+            };
+            reader.readAsText(file);
+        }
 
-        window.confirmAiWOs = function() {
-            // Similar to confirmAiAssets
-            // ...
-        };
+        // Import CSV (simplified)
+        function importCsv(e) {
+            // Similar to Excel import, but for CSV
+            showNotification('CSV import not fully implemented in demo.', 'info');
+        }
 
-        window.closeAiWOModal = function() {
-            // Similar to closeAiModal
-            // ...
-        };
+        // Import from Word (to WO)
+        function importWord(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const buffer = new Uint8Array(ev.target.result);
+                mammoth.extractRawText({ arrayBuffer: buffer }).then(result => {
+                    const text = result.value;
+                    // Simulate extraction: split text into WOs
+                    const lines = text.split('\n').filter(l => l.trim());
+                    lines.forEach(line => {
+                        if (line.includes(':')) {
+                            const [desc, prio] = line.split(':');
+                            data.workOrders.push({
+                                id: data.nextIds.wo++,
+                                department: 'general',
+                                asset: 'N/A',
+                                description: desc.trim(),
+                                priority: prio ? prio.trim() : 'Medium',
+                                assignedTo: currentUser.username,
+                                status: 'Open',
+                                createdBy: currentUser.username,
+                                createdAt: new Date().toISOString()
+                            });
+                        }
+                    });
+                    saveData();
+                    loadWoTable();
+                    updateDashboard();
+                    showNotification('Word imported to WOs!', 'success');
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        }
 
-        // Viewer Utilities
-        window.closeAssetViewer = function() {
-            document.getElementById('asset-viewer-modal').style.display = 'none';
-            document.getElementById('viewer-content').innerHTML = '';
-            document.getElementById('viewer-upload').style.display = 'none';
-            document.getElementById('upload-trigger').style.display = 'none';
-            document.getElementById('ai-extract-trigger').style.display = 'none';
-            document.getElementById('ai-wo-extract-trigger').style.display = 'none';
-            currentViewedAsset = null;
-            currentFileText = '';
-        };
+        // Import from PDF (to WO)
+        function importPdf(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const typedarray = new Uint8Array(ev.target.result);
+                pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+                    pdf.getPage(1).then(page => {
+                        page.getTextContent().then(content => {
+                            const text = content.items.map(item => item.str).join(' ');
+                            // Simulate extraction similar to Word
+                            const sentences = text.split('.').filter(s => s.trim().length > 10);
+                            sentences.forEach(sentence => {
+                                data.workOrders.push({
+                                    id: data.nextIds.wo++,
+                                    department: 'general',
+                                    asset: 'N/A',
+                                    description: sentence.trim(),
+                                    priority: 'Medium',
+                                    assignedTo: currentUser.username,
+                                    status: 'Open',
+                                    createdBy: currentUser.username,
+                                    createdAt: new Date().toISOString()
+                                });
+                            });
+                            saveData();
+                            loadWoTable();
+                            updateDashboard();
+                            showNotification('PDF imported to WOs!', 'success');
+                        });
+                    });
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        }
 
-        window.handleViewerUpload = function(event) {
-            const file = event.target.files[0];
-            if (!file || file.size > 5 * 1024 * 1024) {
-                showNotification('Invalid file or too large.', true);
-                return;
+        // Import Excel (general, but for assets in settings)
+        function importExcel(e) {
+            // Reuse importAssetsFromExcel logic
+            importAssetsFromExcel(e);
+        }
+
+        // Clear All Data
+        function clearAllData() {
+            if (!confirm('This will delete ALL data! Are you sure?')) return;
+            localStorage.clear();
+            data = {
+                workOrders: [],
+                assets: [],
+                pmSchedules: [],
+                inventory: [],
+                users: [
+                    { username: 'admin', password: 'admin123', role: 'admin' }
+                ],
+                nextIds: { wo: 1, asset: 1, pm: 1, inv: 1 }
+            };
+            loadData();
+            loadAllTables();
+            updateDashboard();
+            updateReports();
+            showNotification('All data cleared!', 'error');
+        }
+
+        // Load all tables
+        function loadAllTables() {
+            loadWoTable();
+            loadAssetTable();
+            loadPmTable();
+            loadInvTable();
+            loadUserTable();
+        }
+
+        // Download blob helper
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Show Notification
+        function showNotification(message, type = 'success') {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.className = `notification ${type}`;
+            notif.classList.add('show');
+            setTimeout(() => {
+                notif.classList.remove('show');
+            }, 4000);
+        }
+
+        // Toggle Theme
+        function toggleTheme() {
+            darkTheme = document.getElementById('dark-theme-toggle').checked;
+            document.body.className = darkTheme ? '' : 'light-theme';
+            localStorage.setItem('bcc_theme', darkTheme ? 'dark' : 'light');
+        }
+
+        // Toggle Auto Save
+        function toggleAutoSave() {
+            autoSaveEnabled = document.getElementById('auto-save-toggle').checked;
+            localStorage.setItem('bcc_auto_save', autoSaveEnabled);
+            if (autoSaveEnabled) {
+                setInterval(saveData, 30000);
+            }
+            showNotification(autoSaveEnabled ? 'Auto-save enabled' : 'Auto-save disabled');
+        }
+
+        // Backup Reminder (simulated)
+        function backupReminder() {
+            const days = prompt('Set reminder in days (0-30):', '7');
+            if (days && !isNaN(days)) {
+                setTimeout(() => {
+                    showNotification('Time to backup your data!', 'warning');
+                }, days * 86400000);
+                showNotification(`Backup reminder set for ${days} days.`);
+            }
+        }
+
+        // Load all on init
+        function loadAllOnInit() {
+            updateUserSelects();
+            populateAssetSelects();
+            populatePmAssetSelect();
+            loadAllTables();
+            updateDashboard();
+            updateReports();
+        }
+            // Start the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ensure required libraries are loaded (in production, include via script tags)
+            if (typeof pdfjsLib === 'undefined') {
+                console.warn('pdf.js not loaded. PDF viewing disabled.');
+            }
+            if (typeof XLSX === 'undefined') {
+                console.warn('SheetJS not loaded. Excel import/export disabled.');
+            }
+            if (typeof mammoth === 'undefined') {
+                console.warn('Mammoth.js not loaded. Word import disabled.');
+            }
+            if (typeof emailjs === 'undefined') {
+                console.warn('EmailJS not loaded. Email features disabled.');
+            }
+            if (typeof html2canvas === 'undefined') {
+                console.warn('html2canvas not loaded. Email attachments disabled.');
             }
 
-            const reader = new FileReader();
-            reader.onload = () => {
-                if (currentViewedAsset) {
-                    const index = data.assets.findIndex(a => a.id === currentViewedAsset.id);
-                    if (index > -1) {
-                        data.assets[index].attachment = { name: file.name, type: file.type, data: reader.result };
-                        saveData();
-                        showNotification('Attachment updated.');
-                        viewAsset(currentViewedAsset.id); // Refresh viewer
-                    }
-                }
-            };
-            reader.readAsDataURL(file);
-            event.target.value = '';
-        };
+            initApp();
+        });
 
-        window.addViewedAssetToWO = function() {
-            if (!currentViewedAsset) return;
-            document.getElementById('wo-asset').value = currentViewedAsset.id;
-            document.getElementById('wo-department').value = currentViewedAsset.department;
-            closeAssetViewer();
-            showSection('work-orders');
-            showNotification('Asset added to Work Order form.');
-        };
+        // Global error handler for uncaught errors
+        window.addEventListener('error', function(e) {
+            showNotification('An error occurred: ' + e.message, 'error');
+            console.error(e.error);
+        });
 
-        window.downloadViewedAsset = function() {
-            if (!currentViewedAsset?.attachment) return;
-            const a = document.createElement('a');
-            a.href = currentViewedAsset.attachment.data;
-            a.download = currentViewedAsset.attachment.name;
-            a.click();
-        };
-
-        // Update nextIds
-        function updateNextIds() {
-            data.nextIds.wo = data.workOrders.length > 0 ? Math.max(...data.workOrders.map(w => w.id)) + 1 : 1;
-            data.nextIds.asset = data.assets.length > 0 ? Math.max(...data.assets.map(a => a.id)) + 1 : 1;
-            data.nextIds.pm = data.pmSchedules.length > 0 ? Math.max(...data.pmSchedules.map(p => p.id)) + 1 : 1;
-            data.nextIds.inv = data.inventory.length > 0 ? Math.max(...data.inventory.map(i => i.id)) + 1 : 1;
-        }
-
-        console.log('BCC CMMS Enhanced Edition with Enhanced AI, Viewer & Settings Loaded Successfully!');
+        // Prevent accidental data loss on page unload
+        window.addEventListener('beforeunload', function(e) {
+            if (autoSaveEnabled) {
+                saveData(true); // Auto-save on exit
+            }
+        });
     </script>
 </body>
 </html>
