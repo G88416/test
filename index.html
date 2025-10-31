@@ -461,14 +461,14 @@
     </header>
     
     <nav>
-        <button onclick="showSection('members')" class="active">Members</button>
-        <button onclick="showSection('visitors')">Visitors</button>
-        <button onclick="showSection('analytics')">Analytics</button>
-        <button onclick="showSection('events')">Events</button>
-        <button onclick="showSection('tithe')">Tithe & Offering</button>
-        <button onclick="showSection('church-admin')">Church Admin</button>
-        <button onclick="showSection('whatsapp')">WhatsApp Interactions</button>
-        <button onclick="showSection('vault')">Vault</button>
+        <button onclick="showSection('members', this)" class="active">Members</button>
+        <button onclick="showSection('visitors', this)">Visitors</button>
+        <button onclick="showSection('analytics', this)">Analytics</button>
+        <button onclick="showSection('events', this)">Events</button>
+        <button onclick="showSection('tithe', this)">Tithe & Offering</button>
+        <button onclick="showSection('church-admin', this)">Church Admin</button>
+        <button onclick="showSection('whatsapp', this)">WhatsApp Interactions</button>
+        <button onclick="showSection('vault', this)">Vault</button>
     </nav>
     
     <div id="members" class="content active">
@@ -497,7 +497,7 @@
                         <option value="Mahube">Mahube</option>
                         <option value="Phase 5">Phase 5</option>
                         <option value="Kwamhlanga">Kwamhlanga</option>
-                        <option value="Kameel port">Kameel port</option>
+                        <option value="Kameel Port">Kameel Port</option>
                         <option value="Nelmaphius ext4">Nelmaphius ext4</option>
                         <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
                     </select>
@@ -564,7 +564,7 @@
                         <option value="Mahube">Mahube</option>
                         <option value="Phase 5">Phase 5</option>
                         <option value="Kwamhlanga">Kwamhlanga</option>
-                        <option value="Kameel port">Kameel port</option>
+                        <option value="Kameel Port">Kameel Port</option>
                         <option value="Nelmaphius ext4">Nelmaphius ext4</option>
                         <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
                     </select>
@@ -785,7 +785,7 @@
                                     <td><input type="number" step="0.01" id="combinedMamelodiExt5Amount" onchange="saveCombinedTransportAmount('mamelodiExt5', this.value); updateCombinedAllTotals();"></td>
                                 </tr>
                                 <tr>
-                                    <td>Kwamhlanga/kameel poort</td>
+                                    <td>Kwamhlanga/Kameel Port</td>
                                     <td><input type="number" step="0.01" id="combinedKwamhlangaKameelAmount" onchange="saveCombinedTransportAmount('kwamhlangaKameel', this.value); updateCombinedAllTotals();"></td>
                                 </tr>
                             </tbody>
@@ -1065,7 +1065,7 @@
                                     <td><input type="number" step="0.01" id="easterMamelodiExt5Amount" onchange="saveEasterTransportAmount('mamelodiExt5', this.value); updateEasterAllTotals();"></td>
                                 </tr>
                                 <tr>
-                                    <td>Kwamhlanga/kameel poort</td>
+                                    <td>Kwamhlanga/Kameel Port</td>
                                     <td><input type="number" step="0.01" id="easterKwamhlangaKameelAmount" onchange="saveEasterTransportAmount('kwamhlangaKameel', this.value); updateEasterAllTotals();"></td>
                                 </tr>
                             </tbody>
@@ -1345,7 +1345,7 @@
                                     <td><input type="number" step="0.01" id="septemberMamelodiExt5Amount" onchange="saveSeptemberTransportAmount('mamelodiExt5', this.value); updateSeptemberAllTotals();"></td>
                                 </tr>
                                 <tr>
-                                    <td>Kwamhlanga/kameel poort</td>
+                                    <td>Kwamhlanga/Kameel Port</td>
                                     <td><input type="number" step="0.01" id="septemberKwamhlangaKameelAmount" onchange="saveSeptemberTransportAmount('kwamhlangaKameel', this.value); updateSeptemberAllTotals();"></td>
                                 </tr>
                             </tbody>
@@ -1699,7 +1699,7 @@
 
     <script>
         // Enhanced and Optimized JavaScript
-        let db;
+        var db;
         const request = indexedDB.open('ChurchDB', 1);
         request.onerror = () => console.error('Database failed to open');
         request.onsuccess = () => {
@@ -1739,9 +1739,9 @@
         async function loadData(storeName) {
             try {
                 const data = await getAllData(storeName);
-                const prevData = window[storeName];
+                const prevData = window[storeName] || [];
                 window[storeName] = data;
-                if (JSON.stringify(data) !== JSON.stringify(prevData || [])) {
+                if (JSON.stringify(data) !== JSON.stringify(prevData)) {
                     const renderFunc = window[`render${storeName.charAt(0).toUpperCase() + storeName.slice(1)}`];
                     if (renderFunc && typeof renderFunc === 'function') renderFunc();
                 }
@@ -1759,8 +1759,35 @@
             await Promise.allSettled(budgetStores.map(async (store) => {
                 try {
                     const data = await getAllData(store);
-                    const storeKey = store.replace(/([A-Z])/g, ' $1').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-                    window[storeKey] = data.reduce((acc, item) => ({ ...acc, [item.key || store]: item.value || item }), {});
+                    if (data.length > 0) {
+                        const item = data[0];
+                        delete item.id;
+                        if (store === 'easterDate') {
+                            easterDate = item.date || '';
+                        } else if (store === 'septemberDate') {
+                            septemberDate = item.date || '';
+                        } else if (store === 'combinedDate') {
+                            combinedDate = item.date || '';
+                        } else if (store === 'easterTransportBudget') {
+                            easterTransportBudget = item;
+                        } else if (store === 'easterConferenceEssentials') {
+                            easterConferenceEssentials = item;
+                        } else if (store === 'easterSundaySchoolEssentials') {
+                            easterSundaySchoolEssentials = item;
+                        } else if (store === 'septemberTransportBudget') {
+                            septemberTransportBudget = item;
+                        } else if (store === 'septemberConferenceEssentials') {
+                            septemberConferenceEssentials = item;
+                        } else if (store === 'septemberSundaySchoolEssentials') {
+                            septemberSundaySchoolEssentials = item;
+                        } else if (store === 'combinedTransportBudget') {
+                            combinedTransportBudget = item;
+                        } else if (store === 'combinedConferenceEssentials') {
+                            combinedConferenceEssentials = item;
+                        } else if (store === 'combinedSundaySchoolEssentials') {
+                            combinedSundaySchoolEssentials = item;
+                        }
+                    }
                 } catch (error) {
                     console.error('Error loading budget data:', error);
                 }
@@ -1854,15 +1881,15 @@
         }
 
         // Data storage variables (loaded from DB)
-        let members = [], visitors = [], visitorFollowUps = [], visitorReminders = [], visitorReports = [], events = [], easterContributions = [], septemberContributions = [], combinedContributions = [], tithes = [], leaders = [], elders = [], cellLeaders = [], branchCoordinators = [], pastors = [], employees = [], leaves = [], reports = [], titheReports = [], historyReports = [], whatsappInteractions = [];
-        let easterTransportBudget = {}, easterConferenceEssentials = {}, easterSundaySchoolEssentials = {}, easterGrocery = [], easterSoundMedia = [], easterStageDeco = [], easterGuestPastor = [], easterDate = '', septemberTransportBudget = {}, septemberConferenceEssentials = {}, septemberSundaySchoolEssentials = {}, septemberGrocery = [], septemberSoundMedia = [], septemberStageDeco = [], septemberGuestPastor = [], septemberDate = '', combinedTransportBudget = {}, combinedConferenceEssentials = {}, combinedSundaySchoolEssentials = {}, combinedGrocery = [], combinedSoundMedia = [], combinedStageDeco = [], combinedGuestPastor = [], combinedDate = '';
+        var members = [], visitors = [], visitorFollowUps = [], visitorReminders = [], visitorReports = [], events = [], easterContributions = [], septemberContributions = [], combinedContributions = [], tithes = [], leaders = [], elders = [], cellLeaders = [], branchCoordinators = [], pastors = [], employees = [], leaves = [], reports = [], titheReports = [], historyReports = [], whatsappInteractions = [];
+        var easterTransportBudget = {}, easterConferenceEssentials = {}, easterSundaySchoolEssentials = {}, easterGrocery = [], easterSoundMedia = [], easterStageDeco = [], easterGuestPastor = [], easterDate = '', septemberTransportBudget = {}, septemberConferenceEssentials = {}, septemberSundaySchoolEssentials = {}, septemberGrocery = [], septemberSoundMedia = [], septemberStageDeco = [], septemberGuestPastor = [], septemberDate = '', combinedTransportBudget = {}, combinedConferenceEssentials = {}, combinedSundaySchoolEssentials = {}, combinedGrocery = [], combinedSoundMedia = [], combinedStageDeco = [], combinedGuestPastor = [], combinedDate = '';
 
         // Utility functions
-        function showSection(sectionId) {
+        function showSection(sectionId, button) {
             document.querySelectorAll('.content').forEach(content => content.classList.remove('active'));
             document.getElementById(sectionId).classList.add('active');
             document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            button.classList.add('active');
             if (sectionId === 'analytics') updateAnalytics();
         }
 
@@ -1872,7 +1899,7 @@
 
         function parseCSV(csv) {
             const lines = csv.split('\n').map(line => line.trim()).filter(line => line);
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const headers = lines[0].split(',').map(h => h.trim());
             return lines.slice(1).map(line => {
                 const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
                 return headers.reduce((obj, header, i) => {
@@ -1907,8 +1934,6 @@
             notification.className = `notification show ${type}`;
             setTimeout(() => notification.classList.remove('show'), 5000);
         }
-
-        // ... (other functions remain the same as before)
 
         // September Conference Functions
         function renderSeptemberContributions() {
@@ -2247,7 +2272,9 @@
             csvContent += `Conference Essentials:\n${Object.entries(reportData.essentials).map(([k,v]) => `${k},${v}`).join('\n')}\n\n`;
             csvContent += `Sunday School:\n${Object.entries(reportData.sundaySchool).map(([k,v]) => `${k},${v}`).join('\n')}\n\n`;
             csvContent += `Grocery:\n${reportData.grocery.map(g => `${g.name},${g.amount}`).join('\n')}\n\n`;
-            // Similar for soundMedia, stageDeco, guestPastor
+            csvContent += `Sound and Media:\n${reportData.soundMedia.map(s => `${s.name},${s.amount}`).join('\n')}\n\n`;
+            csvContent += `Stage and Deco:\n${reportData.stageDeco.map(s => `${s.name},${s.amount}`).join('\n')}\n\n`;
+            csvContent += `Guest Pastor:\n${reportData.guestPastor.map(g => `${g.name},${g.amount}`).join('\n')}\n\n`;
             const blob = new Blob([csvContent], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -2259,40 +2286,6 @@
             addData('reports', report);
             addToHistory(report);
             showNotification('September report generated!');
-        }
-
-        function exportSeptemberBudget() {
-            const headers = ['section', 'item', 'amount'];
-            let data = [];
-            // Add transport
-            Object.entries(septemberTransportBudget).forEach(([branch, amount]) => data.push({ section: 'Transport', item: branch, amount }));
-            // Add essentials, etc.
-            // Similar for other sections
-            downloadCSV(data, 'september_budget.csv', headers);
-        }
-
-        function emailSeptemberBudget() {
-            const summary = `September Budget Grand Total: ${document.getElementById('septemberGrandTotal').textContent}`;
-            emailData('September Budget Export', summary);
-        }
-
-        // ... (rest of the script remains the same)
-            // Complete September report CSV with all sections
-        csvContent += `Sound and Media:\n${reportData.soundMedia.map(s => `${s.name},${s.amount}`).join('\n')}\n\n`;
-        csvContent += `Stage and Deco:\n${reportData.stageDeco.map(s => `${s.name},${s.amount}`).join('\n')}\n\n`;
-        csvContent += `Guest Pastor:\n${reportData.guestPastor.map(g => `${g.name},${g.amount}`).join('\n')}\n\n`;
-        // End CSV
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `September_Report_${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-        const report = { name: `September Report ${new Date().toLocaleDateString()}`, date: new Date().toISOString(), content: csvContent };
-        addData('reports', report);
-        addToHistory(report);
-        showNotification('September report generated!');
         }
 
         function exportSeptemberBudget() {
@@ -2480,8 +2473,6 @@
             reader.readAsText(file);
         });
 
-        // Similar for Easter Sound Media, Stage Deco, Guest Pastor (omitted for brevity, copy-paste pattern from September replacing 'september' with 'easter')
-
         // Generate Easter report (similar to September)
         document.getElementById('easterGenerateReportBtn')?.addEventListener('click', generateEasterReport);
 
@@ -2522,11 +2513,15 @@
         }
 
         function exportEasterBudget() {
-            // Similar to exportSeptemberBudget, replace 'september' with 'easter'
             const headers = ['section', 'item', 'amount'];
             let data = [];
             Object.entries(easterTransportBudget).forEach(([branch, amount]) => data.push({ section: 'Transport', item: branch, amount: amount.toFixed(2) }));
-            // Add other sections similarly
+            Object.entries(easterConferenceEssentials).forEach(([item, amount]) => data.push({ section: 'Conference Essentials', item, amount: amount.toFixed(2) }));
+            Object.entries(easterSundaySchoolEssentials).forEach(([item, amount]) => data.push({ section: 'Sunday School', item, amount: amount.toFixed(2) }));
+            easterGrocery.forEach(g => data.push({ section: 'Grocery', item: g.name, amount: g.amount.toFixed(2) }));
+            easterSoundMedia.forEach(s => data.push({ section: 'Sound and Media', item: s.name, amount: s.amount.toFixed(2) }));
+            easterStageDeco.forEach(s => data.push({ section: 'Stage and Deco', item: s.name, amount: s.amount.toFixed(2) }));
+            easterGuestPastor.forEach(g => data.push({ section: 'Guest Pastor', item: g.name, amount: g.amount.toFixed(2) }));
             downloadCSV(data, 'easter_budget.csv', headers);
         }
 
@@ -2695,13 +2690,10 @@
             reader.readAsText(file);
         });
 
-        // Similar for Combined Sound Media, Stage Deco, Guest Pastor (omitted, copy pattern)
-
         // Generate Combined report
         document.getElementById('combinedGenerateReportBtn')?.addEventListener('click', generateCombinedReport);
 
         function generateCombinedReport() {
-            // Similar to generateSeptemberReport, replace with 'combined' variables
             const transportTotal = Object.values(combinedTransportBudget).reduce((sum, val) => sum + val, 0);
             const reportData = {
                 date: combinedDate,
@@ -2717,7 +2709,13 @@
             };
             let csvContent = `Combined Service Report\nDate: ${reportData.date}\nGrand Total: ${reportData.total.toFixed(2)}\n\nContributions:\n`;
             csvContent += reportData.contributions.map(c => `${c.member},${c.currency},${c.amount},${c.date},${c.notes || ''}`).join('\n') + '\n\n';
-            // Add other sections similarly
+            csvContent += `Transport:\n${Object.entries(reportData.transport).map(([k,v]) => `${k},${v}`).join('\n')}\n\n`;
+            csvContent += `Conference Essentials:\n${Object.entries(reportData.essentials).map(([k,v]) => `${k},${v}`).join('\n')}\n\n`;
+            csvContent += `Sunday School:\n${Object.entries(reportData.sundaySchool).map(([k,v]) => `${k},${v}`).join('\n')}\n\n`;
+            csvContent += `Grocery:\n${reportData.grocery.map(g => `${g.name},${g.amount}`).join('\n')}\n\n`;
+            csvContent += `Sound and Media:\n${reportData.soundMedia.map(s => `${s.name},${s.amount}`).join('\n')}\n\n`;
+            csvContent += `Stage and Deco:\n${reportData.stageDeco.map(s => `${s.name},${s.amount}`).join('\n')}\n\n`;
+            csvContent += `Guest Pastor:\n${reportData.guestPastor.map(g => `${g.name},${g.amount}`).join('\n')}\n\n`;
             const blob = new Blob([csvContent], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -2732,11 +2730,15 @@
         }
 
         function exportCombinedBudget() {
-            // Similar to exportSeptemberBudget
             const headers = ['section', 'item', 'amount'];
             let data = [];
             Object.entries(combinedTransportBudget).forEach(([branch, amount]) => data.push({ section: 'Transport', item: branch, amount: amount.toFixed(2) }));
-            // Add others
+            Object.entries(combinedConferenceEssentials).forEach(([item, amount]) => data.push({ section: 'Conference Essentials', item, amount: amount.toFixed(2) }));
+            Object.entries(combinedSundaySchoolEssentials).forEach(([item, amount]) => data.push({ section: 'Sunday School', item, amount: amount.toFixed(2) }));
+            combinedGrocery.forEach(g => data.push({ section: 'Grocery', item: g.name, amount: g.amount.toFixed(2) }));
+            combinedSoundMedia.forEach(s => data.push({ section: 'Sound and Media', item: s.name, amount: s.amount.toFixed(2) }));
+            combinedStageDeco.forEach(s => data.push({ section: 'Stage and Deco', item: s.name, amount: s.amount.toFixed(2) }));
+            combinedGuestPastor.forEach(g => data.push({ section: 'Guest Pastor', item: g.name, amount: g.amount.toFixed(2) }));
             downloadCSV(data, 'combined_budget.csv', headers);
         }
 
@@ -2853,7 +2855,7 @@
                         email: row.email.trim(),
                         cell: row.cell || '',
                         address: row.address || '',
-                        joinDate: row.joingdate || today,
+                        joinDate: row.joinDate || today,
                         role: row.role || 'Member'
                     }));
                     await batchAdd('members', newMembers);
@@ -2954,7 +2956,7 @@
                         email: row.email || '',
                         cell: row.cell.trim(),
                         address: row.address || '',
-                        visitDate: row.visitdate || today,
+                        visitDate: row.visitDate || today,
                         notes: row.notes || '',
                         status: 'New'
                     }));
@@ -2977,9 +2979,9 @@
             const visitor = visitors.find(v => v.id === id);
             if (visitor) {
                 const member = { ...visitor, role: 'Member', joinDate: visitor.visitDate };
-                delete member.id; // New ID for member
                 addData('members', member);
-                deleteData('visitors', id);
+                visitor.status = 'Converted';
+                updateData('visitors', id, visitor);
                 showNotification('Visitor converted to member!');
             }
         }
@@ -3178,7 +3180,7 @@
         function generateVisitorReport() {
             const totalVisitors = visitors.length;
             const converted = visitors.filter(v => v.status === 'Converted').length;
-            const pending = visitors.filter(v => !v.status || v.status === 'New').length;
+            const pending = visitors.filter(v => v.status !== 'Converted').length;
             let csvContent = `Visitors Report\nTotal Visitors: ${totalVisitors}\nConverted: ${converted}\nPending: ${pending}\nConversion Rate: ${((converted / totalVisitors) * 100).toFixed(2)}%\n\nVisitors:\n`;
             csvContent += visitors.map(v => `${v.name},${v.branch},${v.email},${v.cell},${v.visitDate},${v.status || 'New'}`).join('\n');
             const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -3202,7 +3204,7 @@
             const pendingFollowUpsEl = document.getElementById('pendingFollowUps');
 
             const totalVisitors = visitors.length;
-            const converted = visitors.filter(v => v.status === 'Converted' || v.status === 'Joined').length;
+            const converted = visitors.filter(v => v.status === 'Converted').length;
             const conversionRate = totalVisitors > 0 ? ((converted / totalVisitors) * 100).toFixed(1) : 0;
             const pending = visitorFollowUps.filter(fu => fu.status === 'Contacted' || fu.status === 'Interested').length;
 
