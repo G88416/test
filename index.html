@@ -9,6 +9,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mammoth@1.4.2/mammoth.browser.min.js"></script>
+    <!-- Stripe for payment gateway -->
+    <script src="https://js.stripe.com/v3/"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -482,6 +484,49 @@
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
+        }
+        /* Payment Gateway Styles */
+        #paymentModal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .payment-modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+        }
+        #card-element {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+        #card-errors {
+            color: red;
+            margin-top: 10px;
+        }
+        .conference-file-upload {
+            margin-bottom: 20px;
+        }
+        .conference-file-upload input[type="file"] {
+            max-width: 300px;
+        }
+        .file-download-link {
+            color: #3498db;
+            text-decoration: none;
+            margin-right: 10px;
+        }
+        .file-download-link:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -989,6 +1034,8 @@
         </table>
         <div class="total">Total Tithe: $<span id="totalTitheDisplay">0.00</span> | Total Offering: $<span id="totalOfferingDisplay">0.00</span></div>
         <button id="generateTitheReportBtn" class="generate-report-btn">Generate Tithe Report 📊</button>
+        <!-- Payment Gateway Integration -->
+        <button class="generate-report-btn" onclick="openPaymentModal()">Donate Online (Credit Card)</button>
         <div class="folder-actions">
             <button class="print-btn" onclick="printTithes()">Print</button>
             <button class="export-btn" onclick="exportTithes()">Export</button>
@@ -1259,11 +1306,11 @@
                 <option value="Nelmaphius ext4">Nelmaphius ext4</option>
                 <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
             </select>
-            <input type="number" id="youthAttendance" placeholder="Youth Attendance" min="0" required>
-            <input type="number" id="adultAttendance" placeholder="Adult Attendance" min="0" required>
-            <input type="number" id="sundaySchoolAttendance" placeholder="Sunday School Attendance" min="0" required>
+            <input type="number" id="youthAttendance" placeholder="Youth Attendance" min="0">
+            <input type="number" id="adultAttendance" placeholder="Adult Attendance" min="0">
+            <input type="number" id="sundaySchoolAttendance" placeholder="Sunday School Attendance" min="0">
             <input type="date" id="attendanceDate" required>
-            <button type="submit">Log Attendance</button>
+            <button type="submit">Record Attendance</button>
         </form>
         <table id="attendanceTable">
             <thead>
@@ -1278,45 +1325,55 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Attendance records will be added here -->
+                <!-- Attendance will be added here -->
             </tbody>
         </table>
-        <div class="folder-actions">
-            <button class="print-btn" onclick="printAttendance()">Print</button>
-            <button class="export-btn" onclick="exportAttendance()">Export</button>
-            <button class="email-btn" onclick="emailAttendance()">Email</button>
-        </div>
     </div>
 
     <div id="whatsapp" class="content">
         <h2>WhatsApp Interactions</h2>
-        <details>
+        <details id="broadcast-folder">
             <summary>Broadcast Messages</summary>
             <div class="folder-content">
                 <form id="broadcastForm" class="broadcast-form">
-                    <select id="broadcastSelect" class="broadcast-select" multiple></select>
+                    <select id="broadcastSelect" multiple class="broadcast-select" required></select>
                     <textarea id="broadcastMessage" placeholder="Broadcast message..." required></textarea>
                     <div class="broadcast-actions">
-                        <button type="button" class="broadcast-btn" onclick="sendBroadcast()">Send Broadcast</button>
+                        <button type="button" class="broadcast-btn" onclick="sendBroadcast()">Send Now</button>
                         <button type="button" class="broadcast-btn" onclick="scheduleBroadcast()">Schedule</button>
                     </div>
                 </form>
+                <ul id="whatsappList" class="whatsapp-list">
+                    <!-- WhatsApp history will be added here -->
+                </ul>
             </div>
         </details>
-        <details>
-            <summary>Message History</summary>
-            <div class="folder-content">
-                <ul id="whatsappList" class="whatsapp-list"></ul>
-            </div>
-        </details>
-        <div class="folder-actions">
-            <button class="print-btn" onclick="printWhatsApp()">Print</button>
-            <button class="export-btn" onclick="exportWhatsApp()">Export</button>
-        </div>
     </div>
 
     <div id="vault" class="content">
-        <h2>Vault (Secure Notes & Reports)</h2>
+        <h2>Vault</h2>
+        <details id="conference-reports-folder">
+            <summary>Conference Reports Upload</summary>
+            <div class="folder-content">
+                <p>Supported: PDF, DOCX, XLSX</p>
+                <div class="conference-file-upload">
+                    <form id="conferenceReportUploadForm">
+                        <input type="text" id="conferenceReportTitle" placeholder="Report Title" required>
+                        <input type="file" id="conferenceReportFile" accept=".pdf,.docx,.xlsx" required>
+                        <button type="submit">Upload Conference Report</button>
+                    </form>
+                </div>
+                <ul id="conferenceReportList" class="report-list">
+                    <!-- Conference reports will be added here -->
+                </ul>
+                <div class="folder-actions">
+                    <button class="print-btn" onclick="printFolder('conference-reports')">Print</button>
+                    <button class="export-btn" onclick="exportConferenceReports()">Export</button>
+                    <button class="email-btn" onclick="emailConferenceReports()">Email</button>
+                    <button class="minimize-btn" onclick="toggleFolder('conference-reports')">Minimize</button>
+                </div>
+            </div>
+        </details>
         <details id="conference-reports-folder">
             <summary>Conference Reports</summary>
             <div class="folder-content">
@@ -1391,11 +1448,28 @@
         </div>
     </div>
 
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="payment-modal">
+        <div class="payment-modal-content">
+            <h3>Secure Donation</h3>
+            <form id="paymentForm">
+                <input type="number" id="donationAmount" placeholder="Donation Amount ($)" step="0.01" required>
+                <div id="card-element"></div>
+                <div id="card-errors" role="alert"></div>
+                <button type="submit">Pay Now</button>
+                <button type="button" onclick="closePaymentModal()">Cancel</button>
+            </form>
+        </div>
+    </div>
+
     <div id="notification" class="notification"></div>
 
     <script>
         // Set PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Stripe initialization (Replace 'pk_test_...' with your publishable key)
+        const stripe = Stripe('pk_test_51ABC123...'); // Demo key - replace with real one
 
         // Enhanced JavaScript with fixes, attendance changes, analytics enhancements, and bulk import with viewer/parser
         var db;
@@ -1407,7 +1481,7 @@
         };
         request.onupgradeneeded = (e) => {
             db = e.target.result;
-            const stores = ['members', 'visitors', 'followUps', 'reminders', 'tithes', 'attendance', 'events', 'employees', 'assignments', 'leaves', 'leaders', 'pastors', 'cells', 'elders', 'reports', 'whatsappHistory', 'vault', 'ministryLeaders', 'cellLeaders', 'branchCoordinators', 'conferenceReports', 'titheReports', 'visitorsReports', 'conferenceBudgets'];
+            const stores = ['members', 'visitors', 'followUps', 'reminders', 'tithes', 'attendance', 'events', 'employees', 'assignments', 'leaves', 'leaders', 'pastors', 'cells', 'elders', 'reports', 'whatsappHistory', 'vault', 'ministryLeaders', 'cellLeaders', 'branchCoordinators', 'conferenceReports', 'titheReports', 'visitorsReports', 'conferenceBudgets', 'conferenceReportFiles'];
             stores.forEach(storeName => {
                 if (!db.objectStoreNames.contains(storeName)) {
                     db.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
@@ -1416,7 +1490,7 @@
         };
 
         // Global data caches
-        let members = [], visitors = [], followUps = [], reminders = [], tithes = [], attendance = [], events = [], employees = [], assignments = [], leaves = [], leaders = [], pastors = [], cells = [], elders = [], reports = [], whatsappHistory = [], vault = [], ministryLeaders = [], cellLeaders = [], branchCoordinators = [], conferenceReports = [], titheReports = [], visitorsReports = [], conferenceBudgets = [];
+        let members = [], visitors = [], followUps = [], reminders = [], tithes = [], attendance = [], events = [], employees = [], assignments = [], leaves = [], leaders = [], pastors = [], cells = [], elders = [], reports = [], whatsappHistory = [], vault = [], ministryLeaders = [], cellLeaders = [], branchCoordinators = [], conferenceReports = [], titheReports = [], visitorsReports = [], conferenceBudgets = [], conferenceReportFiles = [];
 
         // Debounce utility
         function debounce(func, wait = 300) {
@@ -1462,6 +1536,7 @@
                     case 'titheReports': titheReports = req.result; break;
                     case 'visitorsReports': visitorsReports = req.result; break;
                     case 'conferenceBudgets': conferenceBudgets = req.result; break;
+                    case 'conferenceReportFiles': conferenceReportFiles = req.result; break;
                 }
                 renderSection(storeName);
                 updateAnalytics();
@@ -1470,7 +1545,7 @@
 
         // Load all data
         function loadAllData() {
-            const stores = ['members', 'visitors', 'followUps', 'reminders', 'tithes', 'attendance', 'events', 'employees', 'assignments', 'leaves', 'leaders', 'pastors', 'cells', 'elders', 'reports', 'whatsappHistory', 'vault', 'ministryLeaders', 'cellLeaders', 'branchCoordinators', 'conferenceReports', 'titheReports', 'visitorsReports', 'conferenceBudgets'];
+            const stores = ['members', 'visitors', 'followUps', 'reminders', 'tithes', 'attendance', 'events', 'employees', 'assignments', 'leaves', 'leaders', 'pastors', 'cells', 'elders', 'reports', 'whatsappHistory', 'vault', 'ministryLeaders', 'cellLeaders', 'branchCoordinators', 'conferenceReports', 'titheReports', 'visitorsReports', 'conferenceBudgets', 'conferenceReportFiles'];
             stores.forEach(loadData);
         }
 
@@ -1542,6 +1617,7 @@
                 case 'titheReports': renderTitheReports(); break;
                 case 'visitorsReports': renderVisitorsReports(); break;
                 case 'vault': renderVault(); break;
+                case 'conferenceReportFiles': renderConferenceReportFiles(); break;
                 // Add more as needed
             }
         }
@@ -1668,7 +1744,67 @@
             document.querySelectorAll('.budget-input').forEach(input => {
                 input.addEventListener('input', calculateTotals);
             });
+
+            // Conference Report Upload
+            document.getElementById('conferenceReportUploadForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const file = document.getElementById('conferenceReportFile').files[0];
+                const title = document.getElementById('conferenceReportTitle').value;
+                if (!file || !title) return showNotification('Title and file required!', 'error');
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const fileData = e.target.result;
+                    addData('conferenceReportFiles', { title, fileName: file.name, fileType: file.type, fileData, date: new Date().toISOString().split('T')[0] });
+                    showNotification('Conference report uploaded!');
+                    e.target.reset();
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // Stripe Elements for Payment
+            const elements = stripe.elements();
+            const card = elements.create('card', { style: { base: { fontSize: '16px' } } });
+            card.mount('#card-element');
+
+            const displayError = document.getElementById('card-errors');
+            card.addEventListener('change', (event) => {
+                displayError.textContent = event.error ? event.error.message : '';
+            });
+
+            document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const amount = document.getElementById('donationAmount').value * 100; // Cents
+                const { error, paymentMethod } = await stripe.createPaymentMethod('card', card);
+                if (error) {
+                    displayError.textContent = error.message;
+                } else {
+                    // Simulate backend call - in real app, send paymentMethod.id to server
+                    console.log('PaymentMethod:', paymentMethod);
+                    showNotification('Payment successful! (Demo - Integrate with backend for real processing)');
+                    closePaymentModal();
+                    // Optionally add to tithes as online donation
+                    const today = new Date().toISOString().split('T')[0];
+                    addData('tithes', {
+                        memberName: 'Online Donor',
+                        type: 'Offering',
+                        amount: document.getElementById('donationAmount').value,
+                        date: today,
+                        branch: 'Online'
+                    });
+                }
+            });
         });
+
+        // Payment Modal Functions
+        function openPaymentModal() {
+            document.getElementById('paymentModal').style.display = 'block';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').style.display = 'none';
+            document.getElementById('paymentForm').reset();
+            document.getElementById('card-errors').textContent = '';
+        }
 
         // Member functions
         function renderMembers() {
@@ -2162,6 +2298,20 @@
             document.getElementById('conferenceReportDate').value = today;
             showNotification('Conference Report added!');
         });
+
+        // Conference Report Files
+        function renderConferenceReportFiles() {
+            const ul = document.getElementById('conferenceReportList');
+            if (ul) {
+                ul.innerHTML = conferenceReportFiles.map(crf => `
+                    <li class="report-item">
+                        <strong>${crf.title}</strong> - ${crf.fileName} (${crf.date})<br>
+                        <a href="${crf.fileData}" download="${crf.fileName}" class="file-download-link">Download</a>
+                        <button class="delete-btn" onclick="deleteData('conferenceReportFiles', ${crf.id})">Delete</button>
+                    </li>
+                `).join('');
+            }
+        }
 
         // Tithe Reports
         function renderTitheReports() {
