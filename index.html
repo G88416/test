@@ -3,2952 +3,792 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Charity And Faith Mission Management System</title>
+    <title>Advanced Comprehensive HRMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Added libraries for enhanced bulk import -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.4.2/mammoth.browser.min.js"></script>
-    <!-- Stripe for payment gateway -->
-    <script src="https://js.stripe.com/v3/"></script>
-    <!-- PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=YOUR_PAYPAL_CLIENT_ID&currency=USD&intent=capture"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-        }
-        header {
-            background-color: #2c3e50;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        nav {
-            background-color: #34495e;
-            padding: 10px;
-            text-align: center;
-        }
-        nav button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            margin: 0 5px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        nav button:hover {
-            background-color: #2980b9;
-        }
-        nav button.active {
-            background-color: #e74c3c;
-        }
-        .content {
-            display: none;
-            padding: 20px;
-            max-width: 800px;
-            margin: 20px auto;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .content.active {
-            display: block;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        form {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-width: 400px;
-        }
-        input, select, button, textarea, .file-input {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        select[multiple] {
-            height: 150px;
-        }
-        input[readonly] {
-            background-color: #f9f9f9;
-        }
-        .file-input {
-            border: none;
-            background-color: #f9f9f9;
-        }
-        button[type="submit"] {
-            background-color: #27ae60;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        button[type="submit"]:hover {
-            background-color: #229954;
-        }
-        .whatsapp-btn {
-            background-color: #25D366;
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            display: inline-block;
-            margin: 5px 0;
-        }
-        .whatsapp-btn:hover {
-            background-color: #128C7E;
-        }
-        a.whatsapp-link {
-            color: #25D366;
-            text-decoration: none;
-        }
-        a.whatsapp-link:hover {
-            text-decoration: underline;
-        }
-        .event-list, .tithe-list, .assignment-list, .employee-list, .leave-list, .leader-list, .pastor-list, .cell-list, .elder-list, .report-list, .whatsapp-list, .follow-up-list, .reminder-list, .attendance-list {
-            list-style: none;
-            padding: 0;
-        }
-        .event-item, .tithe-item, .assignment-item, .employee-item, .leave-item, .leader-item, .pastor-item, .cell-item, .elder-item, .report-item, .whatsapp-item, .follow-up-item, .reminder-item, .attendance-item {
-            background-color: #f9f9f9;
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .reminder-item.due {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-        }
-        .reminder-item.overdue {
-            background-color: #f8d7da;
-            border-left: 4px solid #dc3545;
-        }
-        .total {
-            font-weight: bold;
-            background-color: #e8f5e8;
-            padding: 8px;
-            border-radius: 5px;
-            margin-top: 10px;
-            font-size: 1em;
-        }
-        .bulk-upload {
-            margin-bottom: 20px;
-        }
-        .bulk-upload input[type="file"] {
-            max-width: 300px;
-        }
-        /* Added preview styles */
-        #filePreview {
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            padding: 10px;
-            max-height: 300px;
-            overflow: auto;
-            display: none;
-        }
-        #filePreview table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        #filePreview canvas {
-            max-width: 100%;
-        }
-        .search-container {
-            margin-bottom: 20px;
-        }
-        .search-container input {
-            width: 100%;
-            max-width: 300px;
-        }
-        .leaders-container {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        .leaders-section {
-            flex: 1;
-            min-width: 300px;
-        }
-        .events-container {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        .events-section {
-            flex: 1;
-            min-width: 300px;
-        }
-        details {
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        summary {
-            padding: 10px;
-            background-color: #f2f2f2;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .folder-content {
-            padding: 10px;
-        }
-        .folder-actions {
-            margin-top: 10px;
-            text-align: right;
-        }
-        .folder-actions button {
-            margin-left: 5px;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .folder-actions .print-btn {
-            background-color: #f39c12;
-            color: white;
-        }
-        .folder-actions .export-btn {
-            background-color: #3498db;
-            color: white;
-        }
-        .folder-actions .email-btn {
-            background-color: #27ae60;
-            color: white;
-        }
-        .folder-actions .minimize-btn {
-            background-color: #e74c3c;
-            color: white;
-        }
-        .transport-table input, .essentials-table input, .sunday-school-table input, .grocery-table input, .sound-media-table input, .stage-deco-table input, .guest-pastor-table input {
-            width: 100px;
-        }
-        .budget-date {
-            margin-bottom: 10px;
-        }
-        .budget-total {
-            font-weight: bold;
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #e8f5e8;
-            border: 1px solid #27ae60;
-            border-radius: 5px;
-            text-align: center;
-            font-size: 1em;
-            color: #27ae60;
-        }
-        .grand-total {
-            font-weight: bold;
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #d4edda;
-            border: 2px solid #28a745;
-            border-radius: 5px;
-            text-align: center;
-            font-size: 1.1em;
-            color: #155724;
-        }
-        .generate-report-btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .generate-report-btn:hover {
-            background-color: #2980b9;
-        }
-        .report-download-btn {
-            background-color: #27ae60;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            margin-right: 5px;
-        }
-        .report-delete-btn {
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .history-icon {
-            background-color: #f39c12;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.2em;
-            margin: 10px;
-            display: inline-block;
-        }
-        .history-section {
-            display: none;
-            margin-top: 20px;
-        }
-        .history-section.active {
-            display: block;
-        }
-        .history-report-item {
-            background-color: #f9f9f9;
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        button.delete-btn {
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
-        button.convert-btn {
-            background-color: #f39c12;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
-        .add-item-form {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
-        }
-        .add-item-form input {
-            flex: 1;
-            min-width: 150px;
-        }
-        .add-item-form button {
-            background-color: #27ae60;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .template-buttons {
-            display: flex;
-            gap: 10px;
-            margin: 10px 0;
-            flex-wrap: wrap;
-        }
-        .template-btn {
-            background-color: #25D366;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
-        .template-btn:hover {
-            background-color: #128C7E;
-        }
-        .whatsapp-history {
-            margin-top: 20px;
-        }
-        .whatsapp-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .whatsapp-item-details {
-            flex: 1;
-        }
-        .broadcast-form {
-            max-width: 600px;
-        }
-        .broadcast-select {
-            height: 200px;
-        }
-        .broadcast-actions {
-            display: flex;
-            gap: 10px;
-            margin: 10px 0;
-        }
-        .broadcast-btn {
-            background-color: #e67e22;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .broadcast-btn:hover {
-            background-color: #d35400;
-        }
-        .converted {
-            background-color: #d4edda;
-            font-style: italic;
-        }
-        .analytics-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .chart-container {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 5px;
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        .stat-card {
-            background-color: #e8f5e8;
-            padding: 20px;
-            border-radius: 5px;
-            text-align: center;
-            font-size: 1.2em;
-        }
-        .stat-number {
-            font-size: 2em;
-            font-weight: bold;
-            color: #27ae60;
-        }
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border-radius: 5px;
-            border: 1px solid #c3e6cb;
-            z-index: 1000;
-            display: none;
-        }
-        .notification.show {
-            display: block;
-            animation: slideIn 0.3s ease;
-        }
-        @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
-        }
-        .bulk-send-btn {
-            background-color: #25D366;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px 0;
-        }
-        .bulk-send-btn:hover {
-            background-color: #128C7E;
-        }
-        .tithe-message-form, .contributor-message-form {
-            max-width: 500px;
-        }
-        .conference-select {
-            margin-bottom: 10px;
-        }
-        .attendance-form {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-width: 400px;
-        }
-        .attendance-select {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        /* Payment Gateway Styles */
-        #paymentModal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-        .payment-modal-content {
-            background-color: white;
-            margin: 5% auto;
-            padding: 20px;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 500px;
-        }
-        #card-element {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: white;
-        }
-        #card-errors {
-            color: red;
-            margin-top: 10px;
-        }
-        .recurring-option {
-            margin: 10px 0;
-        }
-        .payment-method {
-            display: none;
-        }
-        .payment-method.active {
-            display: block;
-        }
-        #paypal-button-container {
-            margin: 10px 0;
-        }
-        .conference-file-upload {
-            margin-bottom: 20px;
-        }
-        .conference-file-upload input[type="file"] {
-            max-width: 300px;
-        }
-        .file-download-link {
-            color: #3498db;
-            text-decoration: none;
-            margin-right: 10px;
-        }
-        .file-download-link:hover {
-            text-decoration: underline;
-        }
-        .view-btn {
-            background-color: #9b59b6;
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 0.9em;
-            margin-right: 5px;
-        }
-        /* Enhanced File Viewer Modal */
-        #fileViewerModal {
-            display: none;
-            position: fixed;
-            z-index: 2001;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.8);
-            overflow: auto;
-        }
-        .file-viewer-content {
-            background-color: white;
-            margin: 2% auto;
-            padding: 20px;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 1200px;
-            max-height: 90vh;
-            overflow: auto;
-            position: relative;
-        }
-        .file-viewer-content iframe,
-        .file-viewer-content canvas,
-        .file-viewer-content table {
-            width: 100%;
-            height: auto;
-            border: 1px solid #ddd;
-            max-width: 100%;
-        }
-        .file-viewer-content .close-viewer {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .file-viewer-content .close-viewer:hover {
-            color: black;
-        }
-        .viewer-loading {
-            text-align: center;
-            padding: 50px;
-        }
-        .viewer-toolbar {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .viewer-toolbar button {
-            padding: 5px 10px;
-            border: none;
-            border-radius: 3px;
-            cursor: pointer;
-            background-color: #3498db;
-            color: white;
-        }
-        .viewer-toolbar button:hover {
-            background-color: #2980b9;
-        }
-        .viewer-toolbar input[type="number"] {
-            width: 60px;
-            padding: 5px;
-        }
-        .pdf-page-nav {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-        }
-        .pdf-canvas {
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            display: block;
-            margin: 0 auto;
-        }
-        .zoom-controls {
-            display: flex;
-            gap: 5px;
-        }
-        .docx-content, .xlsx-content {
-            overflow-x: auto;
-        }
+        body { font-family: 'Poppins', sans-serif; background-color: #f4f7fa; color: #333; }
+        .sidebar { background-color: #ffffff; border-right: 1px solid #dee2e6; height: 100vh; position: fixed; width: 250px; padding: 20px; overflow-y: auto; transition: width 0.3s ease; z-index: 1000; }
+        .sidebar.collapsed { width: 60px; }
+        .sidebar.collapsed .nav-text { display: none; }
+        .sidebar .nav-link { color: #495057; font-weight: 500; margin-bottom: 10px; padding: 10px; transition: all 0.2s; }
+        .sidebar .nav-link:hover { color: #0d6efd; background-color: #f8f9fa; border-radius: 5px; }
+        .sidebar .nav-link.active { color: #0d6efd; background-color: #e7f1ff; border-radius: 5px; }
+        .content { margin-left: 250px; padding: 40px; transition: margin-left 0.3s ease; }
+        .content.expanded { margin-left: 60px; }
+        .card-metric { background-color: #ffffff; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 10px; transition: transform 0.2s; }
+        .card-metric:hover { transform: translateY(-5px); }
+        .table { background-color: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-radius: 10px; overflow: hidden; }
+        .modal-content { border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        #dashboardChart { max-height: 400px; }
+        .section { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .search-input { max-width: 300px; }
+        .btn-toggle-sidebar { position: fixed; top: 20px; left: 260px; z-index: 1001; transition: left 0.3s ease; }
+        .btn-toggle-sidebar.expanded { left: 70px; }
+        @media (max-width: 768px) {
+            .sidebar { width: 60px; }
+            .content { margin-left: 60px; }
+            .btn-toggle-sidebar { left: 70px; }
+            .sidebar .nav-text { display: none; }
+        }
+
+        /* Dark Mode Styles */
+        .dark-mode { background-color: #121212; color: #e0e0e0; }
+        .dark-mode .sidebar { background-color: #1e1e1e; border-right: 1px solid #333; }
+        .dark-mode .nav-link { color: #bbb; }
+        .dark-mode .nav-link:hover { color: #fff; background-color: #333; }
+        .dark-mode .nav-link.active { color: #0d6efd; background-color: #333; }
+        .dark-mode .content { background-color: #121212; }
+        .dark-mode .card-metric { background-color: #1e1e1e; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .dark-mode .table { background-color: #1e1e1e; color: #e0e0e0; }
+        .dark-mode .table-striped tbody tr:nth-of-type(odd) { background-color: #252525; }
+        .dark-mode .table thead th { background-color: #333; }
+        .dark-mode .modal-content { background-color: #1e1e1e; color: #e0e0e0; }
+        .dark-mode .form-control { background-color: #333; color: #e0e0e0; border: 1px solid #555; }
+        .dark-mode .form-control:focus { background-color: #333; color: #e0e0e0; border-color: #0d6efd; box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25); }
+        .dark-mode .btn-primary { background-color: #0d6efd; border-color: #0d6efd; }
+        .dark-mode .btn-primary:hover { background-color: #0b5ed7; border-color: #0a58ca; }
     </style>
 </head>
 <body>
-    <header>
-        <h1>Charity And Faith Mission Management System</h1>
-        <p>Welcome to your church dashboard</p>
-    </header>
-    
-    <nav>
-        <button onclick="showSection('members', this)" class="active">Members</button>
-        <button onclick="showSection('visitors', this)">Visitors</button>
-        <button onclick="showSection('analytics', this)">Analytics</button>
-        <button onclick="showSection('events', this)">Events</button>
-        <button onclick="showSection('tithe', this)">Tithe & Offering</button>
-        <button onclick="showSection('church-admin', this)">Church Admin</button>
-        <button onclick="showSection('attendance', this)">Church Attendance</button>
-        <button onclick="showSection('whatsapp', this)">WhatsApp Interactions</button>
-        <button onclick="showSection('vault', this)">Vault</button>
-    </nav>
-    
-    <div id="members" class="content active">
-        <h2>Member Directory</h2>
-        <div class="bulk-upload">
-            <h3>Bulk Upload Members</h3>
-            <p>Supported: CSV, XLSX, PDF, DOCX. Format: name,email,cell,address,joinDate,role,branch</p>
-            <div id="membersFilePreview" class="file-preview"></div>
-            <form id="bulkMemberForm">
-                <input type="file" id="bulkCsv" accept=".csv,.xlsx,.pdf,.docx" required>
-                <button type="submit">Upload File</button>
+    <button class="btn btn-sm btn-primary btn-toggle-sidebar" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+    <div class="sidebar">
+        <h4 class="mb-4"><i class="fas fa-users me-2"></i><span class="nav-text">HRMS System</span></h4>
+        <ul class="nav flex-column">
+            <li><a href="#dashboard" class="nav-link active" onclick="showSection('dashboard')"><i class="fas fa-tachometer-alt me-2"></i><span class="nav-text">Dashboard</span></a></li>
+            <li><a href="#employees" class="nav-link" onclick="showSection('employees')"><i class="fas fa-user-friends me-2"></i><span class="nav-text">Employees</span></a></li>
+            <li><a href="#payroll" class="nav-link" onclick="showSection('payroll')"><i class="fas fa-money-check-alt me-2"></i><span class="nav-text">Payroll</span></a></li>
+            <li><a href="#recruitment" class="nav-link" onclick="showSection('recruitment')"><i class="fas fa-briefcase me-2"></i><span class="nav-text">Recruitment</span></a></li>
+            <li><a href="#performance" class="nav-link" onclick="showSection('performance')"><i class="fas fa-chart-line me-2"></i><span class="nav-text">Performance</span></a></li>
+            <li><a href="#attendance" class="nav-link" onclick="showSection('attendance')"><i class="fas fa-clock me-2"></i><span class="nav-text">Attendance</span></a></li>
+            <li><a href="#leaves" class="nav-link" onclick="showSection('leaves')"><i class="fas fa-calendar-alt me-2"></i><span class="nav-text">Leaves</span></a></li>
+            <li><a href="#benefits" class="nav-link" onclick="showSection('benefits')"><i class="fas fa-gift me-2"></i><span class="nav-text">Benefits</span></a></li>
+            <li><a href="#training" class="nav-link" onclick="showSection('training')"><i class="fas fa-graduation-cap me-2"></i><span class="nav-text">Training</span></a></li>
+            <li><a href="#reports" class="nav-link" onclick="showSection('reports')"><i class="fas fa-file-alt me-2"></i><span class="nav-text">Reports</span></a></li>
+            <li><a href="#settings" class="nav-link" onclick="showSection('settings')"><i class="fas fa-cog me-2"></i><span class="nav-text">Settings</span></a></li>
+            <li><a href="#" class="nav-link text-danger" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i><span class="nav-text">Logout</span></a></li>
+        </ul>
+    </div>
+
+    <div class="content">
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section active">
+            <h2>Dashboard Overview</h2>
+            <div class="row mt-4">
+                <div class="col-md-3"><div class="card card-metric p-3"><h5>Total Employees</h5><h3 id="totalEmployees">0</h3></div></div>
+                <div class="col-md-3"><div class="card card-metric p-3"><h5>Open Positions</h5><h3 id="openPositions">0</h3></div></div>
+                <div class="col-md-3"><div class="card card-metric p-3"><h5>Average Performance</h5><h3 id="avgPerformance">0/5</h3></div></div>
+                <div class="col-md-3"><div class="card card-metric p-3"><h5>Pending Leaves</h5><h3 id="pendingLeaves">0</h3></div></div>
+            </div>
+            <div class="mt-4">
+                <canvas id="dashboardChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Employees Section -->
+        <section id="employees" class="section d-none">
+            <h2>Employee Management</h2>
+            <div class="d-flex justify-content-between mb-3">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">Add Employee</button>
+                <input type="text" class="form-control search-input" id="employeeSearch" placeholder="Search Employees..." oninput="searchEmployees()">
+            </div>
+            <table class="table table-striped">
+                <thead><tr><th>ID</th><th>Name</th><th>Position</th><th>Department</th><th>Salary</th><th>Join Date</th><th>Email</th><th>Actions</th></tr></thead>
+                <tbody id="employeeTable"></tbody>
+            </table>
+        </section>
+
+        <!-- Payroll Section -->
+        <section id="payroll" class="section d-none">
+            <h2>Payroll Processing</h2>
+            <form id="payrollForm">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <select class="form-control" id="payEmpId">
+                            <option value="">Select Employee</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4"><input type="number" class="form-control" placeholder="Base Salary" id="paySalary"></div>
+                    <div class="col-md-4"><button type="button" class="btn btn-primary" onclick="calculatePayroll()">Calculate & Add</button></div>
+                </div>
             </form>
-        </div>
-        <div class="search-container">
-            <h3>Search Members</h3>
-            <input type="text" id="memberSearch" placeholder="Search by name, email, cell, address, or role..." >
-        </div>
-        <details id="mdf-folder">
-            <summary>MDF</summary>
-            <div class="folder-content">
-                <form id="memberForm">
-                    <input type="text" id="name" placeholder="Full Name" required>
-                    <select id="branch">
-                        <option value="">Select Branch</option>
-                        <option value="Khutsong">Khutsong</option>
-                        <option value="Mamelodi EXT5">Mamelodi EXT5</option>
-                        <option value="Mahube">Mahube</option>
-                        <option value="Phase 5">Phase 5</option>
-                        <option value="Kwamhlanga">Kwamhlanga</option>
-                        <option value="Kameel Port">Kameel Port</option>
-                        <option value="Nelmaphius ext4">Nelmaphius ext4</option>
-                        <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
-                    </select>
-                    <input type="email" id="email" placeholder="Email" required>
-                    <input type="tel" id="cell" placeholder="Cell Number (e.g., +1234567890)" required>
-                    <input type="text" id="address" placeholder="Address" required>
-                    <input type="date" id="joinDate" required>
-                    <select id="role">
-                        <option value="Member">Member</option>
-                        <option value="Volunteer">Volunteer</option>
-                        <option value="Leader">Leader</option>
-                    </select>
-                    <button type="submit">Add Member</button>
-                </form>
-                <table id="memberTable">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Branch</th>
-                            <th>Email</th>
-                            <th>Cell Number</th>
-                            <th>Address</th>
-                            <th>Join Date</th>
-                            <th>Role</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Members will be added here -->
-                    </tbody>
-                </table>
-                <div class="folder-actions">
-                    <button class="print-btn" onclick="printFolder('mdf')">Print</button>
-                    <button class="export-btn" onclick="exportMembers()">Export</button>
-                    <button class="email-btn" onclick="emailMembers()">Email</button>
-                    <button class="minimize-btn" onclick="toggleFolder('mdf')">Minimize</button>
-                </div>
-            </div>
-        </details>
-    </div>
+            <table class="table mt-4">
+                <thead><tr><th>Employee Name</th><th>Net Pay</th><th>Date</th><th>Actions</th></tr></thead>
+                <tbody id="payrollTable"></tbody>
+            </table>
+        </section>
 
-    <div id="visitors" class="content">
-        <h2>Visitor Directory</h2>
-        <div class="bulk-upload">
-            <h3>Bulk Upload Visitors</h3>
-            <p>Supported: CSV, XLSX, PDF, DOCX. Format: name,email,cell,address,visitDate,branch,notes</p>
-            <div id="visitorsFilePreview" class="file-preview"></div>
-            <form id="bulkVisitorForm">
-                <input type="file" id="bulkVisitorCsv" accept=".csv,.xlsx,.pdf,.docx" required>
-                <button type="submit">Upload File</button>
+        <!-- Recruitment Section -->
+        <section id="recruitment" class="section d-none">
+            <h2>Recruitment Management</h2>
+            <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addJobModal">Add Job Posting</button>
+            <table class="table table-striped">
+                <thead><tr><th>ID</th><th>Title</th><th>Description</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="jobTable"></tbody>
+            </table>
+        </section>
+
+        <!-- Performance Section -->
+        <section id="performance" class="section d-none">
+            <h2>Performance Management</h2>
+            <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addReviewModal">Add Review</button>
+            <table class="table table-striped">
+                <thead><tr><th>Employee</th><th>Score</th><th>Comments</th><th>Date</th><th>Actions</th></tr></thead>
+                <tbody id="performanceTable"></tbody>
+            </table>
+        </section>
+
+        <!-- Attendance Section -->
+        <section id="attendance" class="section d-none">
+            <h2>Time & Attendance</h2>
+            <div class="d-flex justify-content-between mb-3">
+                <select class="form-control w-auto" id="attEmpId">
+                    <option value="">Select Employee</option>
+                </select>
+                <button class="btn btn-success ms-2" onclick="clockIn()">Clock In</button>
+                <button class="btn btn-warning ms-2" onclick="clockOut()">Clock Out</button>
+            </div>
+            <table class="table table-striped">
+                <thead><tr><th>Employee</th><th>Date</th><th>In Time</th><th>Out Time</th><th>Hours</th></tr></thead>
+                <tbody id="attendanceTable"></tbody>
+            </table>
+        </section>
+
+        <!-- Leaves Section -->
+        <section id="leaves" class="section d-none">
+            <h2>Leave Management</h2>
+            <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addLeaveModal">Apply Leave</button>
+            <table class="table table-striped">
+                <thead><tr><th>Employee</th><th>Start Date</th><th>End Date</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="leavesTable"></tbody>
+            </table>
+        </section>
+
+        <!-- Benefits Section -->
+        <section id="benefits" class="section d-none">
+            <h2>Benefits Administration</h2>
+            <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addBenefitModal">Add Benefit</button>
+            <table class="table table-striped">
+                <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Actions</th></tr></thead>
+                <tbody id="benefitsTable"></tbody>
+            </table>
+        </section>
+
+        <!-- Training Section -->
+        <section id="training" class="section d-none">
+            <h2>Training & Development</h2>
+            <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addCourseModal">Add Course</button>
+            <table class="table table-striped">
+                <thead><tr><th>ID</th><th>Title</th><th>Description</th><th>Assigned To</th><th>Actions</th></tr></thead>
+                <tbody id="trainingTable"></tbody>
+            </table>
+        </section>
+
+        <!-- Reports Section -->
+        <section id="reports" class="section d-none">
+            <h2>Reporting & Analytics</h2>
+            <div class="row">
+                <div class="col-md-4"><button class="btn btn-info w-100 mb-3" onclick="generateEmployeeReport()">Employee Report</button></div>
+                <div class="col-md-4"><button class="btn btn-info w-100 mb-3" onclick="generatePayrollReport()">Payroll Report</button></div>
+                <div class="col-md-4"><button class="btn btn-info w-100 mb-3" onclick="generateAttendanceReport()">Attendance Report</button></div>
+            </div>
+            <div id="reportOutput" class="mt-4"></div>
+        </section>
+
+        <!-- Settings Section -->
+        <section id="settings" class="section d-none">
+            <h2>System Settings</h2>
+            <form id="settingsForm">
+                <div class="mb-3"><label>Company Name</label><input type="text" class="form-control" id="companyName" placeholder="Enter company name"></div>
+                <div class="mb-3"><label>Tax Rate (%)</label><input type="number" class="form-control" id="taxRate" placeholder="Enter tax rate" value="15"></div>
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="darkMode">
+                    <label class="form-check-label" for="darkMode">Enable Dark Mode</label>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
             </form>
-        </div>
-        <div class="search-container">
-            <h3>Search Visitors</h3>
-            <input type="text" id="visitorSearch" placeholder="Search by name, email, cell, address, or branch..." >
-        </div>
-        <details id="visitor-directory-folder">
-            <summary>Visitor Directory</summary>
-            <div class="folder-content">
-                <form id="visitorForm">
-                    <input type="text" id="visitorName" placeholder="Full Name" required>
-                    <select id="visitorBranch">
-                        <option value="">Select Branch</option>
-                        <option value="Khutsong">Khutsong</option>
-                        <option value="Mamelodi EXT5">Mamelodi EXT5</option>
-                        <option value="Mahube">Mahube</option>
-                        <option value="Phase 5">Phase 5</option>
-                        <option value="Kwamhlanga">Kwamhlanga</option>
-                        <option value="Kameel Port">Kameel Port</option>
-                        <option value="Nelmaphius ext4">Nelmaphius ext4</option>
-                        <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
-                    </select>
-                    <input type="email" id="visitorEmail" placeholder="Email">
-                    <input type="tel" id="visitorCell" placeholder="Cell Number (e.g., +1234567890)" required>
-                    <input type="text" id="visitorAddress" placeholder="Address">
-                    <input type="date" id="visitorVisitDate" required>
-                    <textarea id="visitorNotes" placeholder="Notes (e.g., interests, follow-up needs)"></textarea>
-                    <button type="submit">Add Visitor</button>
-                </form>
-                <table id="visitorTable">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Branch</th>
-                            <th>Email</th>
-                            <th>Cell Number</th>
-                            <th>Address</th>
-                            <th>Visit Date</th>
-                            <th>Notes</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Visitors will be added here -->
-                    </tbody>
-                </table>
-                <div class="folder-actions">
-                    <button class="print-btn" onclick="printFolder('visitor-directory')">Print</button>
-                    <button class="export-btn" onclick="exportVisitors()">Export</button>
-                    <button class="email-btn" onclick="emailVisitors()">Email</button>
-                    <button class="minimize-btn" onclick="toggleFolder('visitor-directory')">Minimize</button>
-                </div>
-            </div>
-        </details>
-        <details id="follow-ups-folder">
-            <summary>Visitor Follow-ups</summary>
-            <div class="folder-content">
-                <form id="followUpForm">
-                    <select id="followUpVisitorSelect" required></select>
-                    <select id="followUpStatus">
-                        <option value="Contacted">Contacted</option>
-                        <option value="Interested">Interested</option>
-                        <option value="Joined">Joined</option>
-                        <option value="Not Interested">Not Interested</option>
-                    </select>
-                    <input type="date" id="followUpDate">
-                    <input type="date" id="followUpReminderDate" placeholder="Reminder Date">
-                    <textarea id="followUpNotes" placeholder="Notes"></textarea>
-                    <button type="submit">Log Follow-up</button>
-                </form>
-                <ul id="followUpList" class="follow-up-list">
-                    <!-- Follow-ups will be added here -->
-                </ul>
-                <div class="folder-actions">
-                    <button class="print-btn" onclick="printFolder('follow-ups')">Print</button>
-                    <button class="export-btn" onclick="exportFollowUps()">Export</button>
-                    <button class="email-btn" onclick="emailFollowUps()">Email</button>
-                    <button class="minimize-btn" onclick="toggleFolder('follow-ups')">Minimize</button>
-                </div>
-            </div>
-        </details>
-        <details id="follow-up-reminders-folder">
-            <summary>Follow-up Reminders (Enhanced)</summary>
-            <div class="folder-content">
-                <p><strong>Enhanced Features:</strong> Bulk send for due reminders, priority sorting, and customizable templates.</p>
-                <button class="bulk-send-btn" onclick="bulkSendDueReminders()">Bulk Send Due Reminders Today</button>
-                <ul id="reminderList" class="reminder-list">
-                    <!-- Reminders will be added here -->
-                </ul>
-                <div class="folder-actions">
-                    <button class="print-btn" onclick="printFolder('follow-up-reminders')">Print</button>
-                    <button class="export-btn" onclick="exportReminders()">Export</button>
-                    <button class="email-btn" onclick="emailReminders()">Email</button>
-                    <button class="minimize-btn" onclick="toggleFolder('follow-up-reminders')">Minimize</button>
-                </div>
-            </div>
-        </details>
-        <details id="send-visitor-message-folder">
-            <summary>Send Visitor Message</summary>
-            <div class="folder-content">
-                <form id="visitorWhatsAppForm" class="tithe-message-form">
-                    <label for="visitorWhatsAppSelect">Select Visitor:</label>
-                    <select id="visitorWhatsAppSelect" required></select>
-                    <label for="visitorWhatsAppMessage">Message:</label>
-                    <textarea id="visitorWhatsAppMessage" placeholder="Enter your message..." required></textarea>
-                    <div class="template-buttons">
-                        <button type="button" class="template-btn" onclick="fillVisitorTemplate('Welcome [Name]! We\'re glad you visited us. Join us next Sunday at 9 AM. God bless!')">Welcome Message</button>
-                        <button type="button" class="template-btn" onclick="fillVisitorTemplate('Hello [Name], we have a visitor follow-up class on [Date]. Interested? Reply yes!')">Follow-up Invite</button>
-                        <button type="button" class="template-btn" onclick="fillVisitorTemplate('Thank you [Name] for visiting. How can we pray for you today?')">Prayer Offer</button>
-                        <button type="button" class="template-btn" onclick="fillVisitorTemplate('Hi [Name], here\'s our church newsletter: [Link]. Blessings!')">Newsletter Share</button>
-                    </div>
-                    <button type="submit">Send via WhatsApp</button>
-                </form>
-            </div>
-        </details>
-        <button id="generateVisitorReportBtn" class="generate-report-btn">Generate Visitors Report 📊</button>
+        </section>
     </div>
 
-    <div id="analytics" class="content">
-        <h2>Church Analytics Dashboard</h2>
-        <div class="stats-grid">
-            <!-- Visitor Stats -->
-            <div class="stat-card">
-                <div class="stat-number" id="totalVisitors">0</div>
-                <div>Total Visitors</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="totalConverted">0</div>
-                <div>Converted to Members</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="conversionRate">0%</div>
-                <div>Conversion Rate</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="pendingFollowUps">0</div>
-                <div>Pending Follow-ups</div>
-            </div>
-            <!-- Tithe & Offering Stats -->
-            <div class="stat-card">
-                <div class="stat-number" id="totalTithe">0</div>
-                <div>Total Tithe</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="totalOffering">0</div>
-                <div>Total Offering</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="averageTithe">0</div>
-                <div>Average Tithe</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" id="totalAttendance">0</div>
-                <div>Total Attendance</div>
-            </div>
-        </div>
-        <div class="analytics-container">
-            <div class="chart-container">
-                <h3>Visitors Over Time</h3>
-                <canvas id="visitorsChart"></canvas>
-            </div>
-            <div class="chart-container">
-                <h3>Conversion Status</h3>
-                <canvas id="conversionChart"></canvas>
-            </div>
-            <div class="chart-container">
-                <h3>Tithe vs Offering Over Time</h3>
-                <canvas id="titheChart"></canvas>
-            </div>
-            <div class="chart-container">
-                <h3>Attendance Over Time</h3>
-                <canvas id="attendanceChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <div id="events" class="content">
-        <h2>Events Management</h2>
-        <div class="bulk-upload">
-            <h3>Bulk Upload Events</h3>
-            <p>Supported: CSV, XLSX, PDF, DOCX. Format: title,description,date,branch,organizer</p>
-            <div id="eventsFilePreview" class="file-preview"></div>
-            <form id="bulkEventsForm">
-                <input type="file" id="bulkEventsCsv" accept=".csv,.xlsx,.pdf,.docx" required>
-                <button type="submit">Upload File</button>
-            </form>
-        </div>
-        <div class="search-container">
-            <h3>Search Events</h3>
-            <input type="text" id="eventsSearch" placeholder="Search by title, date, or branch...">
-        </div>
-        <details id="events-folder">
-            <summary>Events Directory</summary>
-            <div class="folder-content">
-                <form id="eventForm">
-                    <input type="text" id="eventTitle" placeholder="Event Title" required>
-                    <textarea id="eventDescription" placeholder="Description"></textarea>
-                    <input type="date" id="eventDate" required>
-                    <select id="eventBranch">
-                        <option value="">Select Branch</option>
-                        <option value="Khutsong">Khutsong</option>
-                        <option value="Mamelodi EXT5">Mamelodi EXT5</option>
-                        <option value="Mahube">Mahube</option>
-                        <option value="Phase 5">Phase 5</option>
-                        <option value="Kwamhlanga">Kwamhlanga</option>
-                        <option value="Kameel Port">Kameel Port</option>
-                        <option value="Nelmaphius ext4">Nelmaphius ext4</option>
-                        <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
-                    </select>
-                    <input type="text" id="eventOrganizer" placeholder="Organizer">
-                    <button type="submit">Add Event</button>
-                </form>
-                <table id="eventTable">
-                    <thead>
-                        <tr>
-                            <th>Title</th>
-                            <th>Description</th>
-                            <th>Date</th>
-                            <th>Branch</th>
-                            <th>Organizer</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Events will be added here -->
-                    </tbody>
-                </table>
-                <div class="folder-actions">
-                    <button class="print-btn" onclick="printFolder('events')">Print</button>
-                    <button class="export-btn" onclick="exportEvents()">Export</button>
-                    <button class="email-btn" onclick="emailEvents()">Email</button>
-                    <button class="minimize-btn" onclick="toggleFolder('events')">Minimize</button>
-                </div>
-            </div>
-        </details>
-        <details id="conference-budgets-folder">
-            <summary>Conference Budgets</summary>
-            <div class="folder-content">
-                <div class="budget-date">
-                    <label for="budgetDate">Budget Date: </label>
-                    <input type="date" id="budgetDate" value="2025-10-31">
-                </div>
-                <!-- September Conference -->
-                <details>
-                    <summary>September Conference</summary>
-                    <div>
-                        <h4>Transport</h4>
-                        <table class="transport-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="september" data-category="transport" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Decoration (Deco)</h4>
-                        <table class="stage-deco-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="september" data-category="deco" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Security</h4>
-                        <table class="essentials-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="september" data-category="security" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Sound/Media</h4>
-                        <table class="sound-media-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="september" data-category="sound-media" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Guest Pastor</h4>
-                        <table class="guest-pastor-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="september" data-category="guest-pastor" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Grocery and Conference Essentials</h4>
-                        <table class="grocery-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="september" data-category="grocery" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Sunday School</h4>
-                        <table class="sunday-school-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="september" data-category="sunday-school" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <div class="budget-total" id="september-total">Total: $0.00</div>
-                    </div>
-                </details>
-                <!-- Easter Conference -->
-                <details>
-                    <summary>Easter Conference</summary>
-                    <div>
-                        <h4>Transport</h4>
-                        <table class="transport-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="easter" data-category="transport" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Decoration (Deco)</h4>
-                        <table class="stage-deco-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="easter" data-category="deco" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Security</h4>
-                        <table class="essentials-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="easter" data-category="security" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Sound/Media</h4>
-                        <table class="sound-media-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="easter" data-category="sound-media" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Guest Pastor</h4>
-                        <table class="guest-pastor-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="easter" data-category="guest-pastor" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Grocery and Conference Essentials</h4>
-                        <table class="grocery-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="easter" data-category="grocery" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Sunday School</h4>
-                        <table class="sunday-school-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="easter" data-category="sunday-school" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <div class="budget-total" id="easter-total">Total: $0.00</div>
-                    </div>
-                </details>
-                <!-- Combined Service -->
-                <details>
-                    <summary>Combined Service</summary>
-                    <div>
-                        <h4>Combined Essentials</h4>
-                        <table class="essentials-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="combined" data-category="essentials" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Transport</h4>
-                        <table class="transport-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="combined" data-category="transport" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <h4>Sunday School</h4>
-                        <table class="sunday-school-table">
-                            <thead><tr><th>Amount</th></tr></thead>
-                            <tbody><tr><td><input type="number" class="budget-input" data-event="combined" data-category="sunday-school" value="0" step="0.01"></td></tr></tbody>
-                        </table>
-                        <div class="budget-total" id="combined-total">Total: $0.00</div>
-                    </div>
-                </details>
-                <div class="grand-total" id="grand-total">Grand Total: $0.00</div>
-                <button class="generate-report-btn" onclick="saveBudgets()">Save Budgets</button>
-                <button class="generate-report-btn" onclick="calculateTotals()">Calculate Totals</button>
-            </div>
-        </details>
-    </div>
-
-    <div id="tithe" class="content">
-        <h2>Tithe & Offering</h2>
-        <div class="bulk-upload">
-            <h3>Bulk Upload Tithes/Offerings</h3>
-            <p>Supported: CSV, XLSX, PDF, DOCX. Format: memberName,type,amount,date,branch</p>
-            <div id="titheFilePreview" class="file-preview"></div>
-            <form id="bulkTitheForm">
-                <input type="file" id="bulkTitheCsv" accept=".csv,.xlsx,.pdf,.docx" required>
-                <button type="submit">Upload File</button>
-            </form>
-        </div>
-        <div class="search-container">
-            <h3>Search Tithes</h3>
-            <input type="text" id="titheSearch" placeholder="Search by member, type, or date...">
-        </div>
-        <form id="titheForm">
-            <select id="titheMemberSelect"></select>
-            <select id="titheType">
-                <option value="Tithe">Tithe</option>
-                <option value="Offering">Offering</option>
-            </select>
-            <input type="number" id="titheAmount" placeholder="Amount" step="0.01" required>
-            <input type="date" id="titheDate" required>
-            <select id="titheBranch">
-                <option value="">Select Branch</option>
-                <option value="Khutsong">Khutsong</option>
-                <option value="Mamelodi EXT5">Mamelodi EXT5</option>
-                <option value="Mahube">Mahube</option>
-                <option value="Phase 5">Phase 5</option>
-                <option value="Kwamhlanga">Kwamhlanga</option>
-                <option value="Kameel Port">Kameel Port</option>
-                <option value="Nelmaphius ext4">Nelmaphius ext4</option>
-                <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
-            </select>
-            <button type="submit">Record Tithe/Offering</button>
-        </form>
-        <table id="titheTable">
-            <thead>
-                <tr>
-                    <th>Member Name</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Date</th>
-                    <th>Branch</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Tithes will be added here -->
-            </tbody>
-        </table>
-        <div class="total">Total Tithe: $<span id="totalTitheDisplay">0.00</span> | Total Offering: $<span id="totalOfferingDisplay">0.00</span></div>
-        <button id="generateTitheReportBtn" class="generate-report-btn">Generate Tithe Report 📊</button>
-        <!-- Advanced Payment Gateway Integration with PayPal -->
-        <button class="generate-report-btn" onclick="openPaymentModal()">Donate Online (Stripe or PayPal)</button>
-        <div class="folder-actions">
-            <button class="print-btn" onclick="printTithes()">Print</button>
-            <button class="export-btn" onclick="exportTithes()">Export</button>
-            <button class="email-btn" onclick="emailTithes()">Email</button>
-        </div>
-    </div>
-
-    <div id="church-admin" class="content">
-        <h2>Church Admin</h2>
-        <div class="leaders-container">
-            <div class="leaders-section">
-                <details id="ministry-leaders-folder">
-                    <summary>Ministry Leaders</summary>
-                    <div class="folder-content">
-                        <form id="ministryLeaderForm">
-                            <input type="text" id="ministryLeaderName" placeholder="Full Name" required>
-                            <select id="ministryLeaderBranch">
-                                <option value="">Select Branch</option>
-                                <option value="Khutsong">Khutsong</option>
-                                <option value="Mamelodi EXT5">Mamelodi EXT5</option>
-                                <option value="Mahube">Mahube</option>
-                                <option value="Phase 5">Phase 5</option>
-                                <option value="Kwamhlanga">Kwamhlanga</option>
-                                <option value="Kameel Port">Kameel Port</option>
-                                <option value="Nelmaphius ext4">Nelmaphius ext4</option>
-                                <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
-                            </select>
-                            <input type="email" id="ministryLeaderEmail" placeholder="Email" required>
-                            <input type="tel" id="ministryLeaderCell" placeholder="Cell Number" required>
-                            <input type="text" id="ministryLeaderMinistry" placeholder="Ministry" required>
-                            <button type="submit">Add Ministry Leader</button>
-                        </form>
-                        <table id="ministryLeaderTable">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Branch</th>
-                                    <th>Email</th>
-                                    <th>Cell</th>
-                                    <th>Ministry</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Ministry Leaders will be added here -->
-                            </tbody>
-                        </table>
-                        <div class="folder-actions">
-                            <button class="print-btn" onclick="printFolder('ministry-leaders')">Print</button>
-                            <button class="export-btn" onclick="exportMinistryLeaders()">Export</button>
-                            <button class="email-btn" onclick="emailMinistryLeaders()">Email</button>
-                            <button class="minimize-btn" onclick="toggleFolder('ministry-leaders')">Minimize</button>
-                        </div>
-                    </div>
-                </details>
-            </div>
-            <div class="leaders-section">
-                <details id="cell-leaders-folder">
-                    <summary>Cell Leaders</summary>
-                    <div class="folder-content">
-                        <form id="cellLeaderForm">
-                            <input type="text" id="cellLeaderName" placeholder="Full Name" required>
-                            <select id="cellLeaderBranch">
-                                <option value="">Select Branch</option>
-                                <option value="Khutsong">Khutsong</option>
-                                <option value="Mamelodi EXT5">Mamelodi EXT5</option>
-                                <option value="Mahube">Mahube</option>
-                                <option value="Phase 5">Phase 5</option>
-                                <option value="Kwamhlanga">Kwamhlanga</option>
-                                <option value="Kameel Port">Kameel Port</option>
-                                <option value="Nelmaphius ext4">Nelmaphius ext4</option>
-                                <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
-                            </select>
-                            <input type="email" id="cellLeaderEmail" placeholder="Email" required>
-                            <input type="tel" id="cellLeaderCell" placeholder="Cell Number" required>
-                            <input type="text" id="cellLeaderCellGroup" placeholder="Cell Group" required>
-                            <button type="submit">Add Cell Leader</button>
-                        </form>
-                        <table id="cellLeaderTable">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Branch</th>
-                                    <th>Email</th>
-                                    <th>Cell</th>
-                                    <th>Cell Group</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Cell Leaders will be added here -->
-                            </tbody>
-                        </table>
-                        <div class="folder-actions">
-                            <button class="print-btn" onclick="printFolder('cell-leaders')">Print</button>
-                            <button class="export-btn" onclick="exportCellLeaders()">Export</button>
-                            <button class="email-btn" onclick="emailCellLeaders()">Email</button>
-                            <button class="minimize-btn" onclick="toggleFolder('cell-leaders')">Minimize</button>
-                        </div>
-                    </div>
-                </details>
-            </div>
-            <div class="leaders-section">
-                <details id="elders-folder">
-                    <summary>Elders</summary>
-                    <div class="folder-content">
-                        <form id="elderForm">
-                            <input type="text" id="elderName" placeholder="Full Name" required>
-                            <select id="elderBranch">
-                                <option value="">Select Branch</option>
-                                <option value="Khutsong">Khutsong</option>
-                                <option value="Mamelodi EXT5">Mamelodi EXT5</option>
-                                <option value="Mahube">Mahube</option>
-                                <option value="Phase 5">Phase 5</option>
-                                <option value="Kwamhlanga">Kwamhlanga</option>
-                                <option value="Kameel Port">Kameel Port</option>
-                                <option value="Nelmaphius ext4">Nelmaphius ext4</option>
-                                <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
-                            </select>
-                            <input type="email" id="elderEmail" placeholder="Email" required>
-                            <input type="tel" id="elderCell" placeholder="Cell Number" required>
-                            <input type="date" id="elderOrdinationDate" required>
-                            <button type="submit">Add Elder</button>
-                        </form>
-                        <table id="elderTable">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Branch</th>
-                                    <th>Email</th>
-                                    <th>Cell</th>
-                                    <th>Ordination Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Elders will be added here -->
-                            </tbody>
-                        </table>
-                        <div class="folder-actions">
-                            <button class="print-btn" onclick="printFolder('elders')">Print</button>
-                            <button class="export-btn" onclick="exportElders()">Export</button>
-                            <button class="email-btn" onclick="emailElders()">Email</button>
-                            <button class="minimize-btn" onclick="toggleFolder('elders')">Minimize</button>
-                        </div>
-                    </div>
-                </details>
-            </div>
-            <div class="leaders-section">
-                <details id="pastors-folder">
-                    <summary>Pastors</summary>
-                    <div class="folder-content">
-                        <form id="pastorForm">
-                            <input type="text" id="pastorName" placeholder="Full Name" required>
-                            <select id="pastorBranch">
-                                <option value="">Select Branch</option>
-                                <option value="Khutsong">Khutsong</option>
-                                <option value="Mamelodi EXT5">Mamelodi EXT5</option>
-                                <option value="Mahube">Mahube</option>
-                                <option value="Phase 5">Phase 5</option>
-                                <option value="Kwamhlanga">Kwamhlanga</option>
-                                <option value="Kameel Port">Kameel Port</option>
-                                <option value="Nelmaphius ext4">Nelmaphius ext4</option>
-                                <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
-                            </select>
-                            <input type="email" id="pastorEmail" placeholder="Email" required>
-                            <input type="tel" id="pastorCell" placeholder="Cell Number" required>
-                            <input type="date" id="pastorAppointmentDate" required>
-                            <button type="submit">Add Pastor</button>
-                        </form>
-                        <table id="pastorTable">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Branch</th>
-                                    <th>Email</th>
-                                    <th>Cell</th>
-                                    <th>Appointment Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Pastors will be added here -->
-                            </tbody>
-                        </table>
-                        <div class="folder-actions">
-                            <button class="print-btn" onclick="printFolder('pastors')">Print</button>
-                            <button class="export-btn" onclick="exportPastors()">Export</button>
-                            <button class="email-btn" onclick="emailPastors()">Email</button>
-                            <button class="minimize-btn" onclick="toggleFolder('pastors')">Minimize</button>
-                        </div>
-                    </div>
-                </details>
-            </div>
-            <div class="leaders-section">
-                <details id="branch-coordination-folder">
-                    <summary>Branch Coordination</summary>
-                    <div class="folder-content">
-                        <form id="branchCoordForm">
-                            <input type="text" id="branchCoordName" placeholder="Full Name" required>
-                            <select id="branchCoordBranch">
-                                <option value="">Select Branch</option>
-                                <option value="Khutsong">Khutsong</option>
-                                <option value="Mamelodi EXT5">Mamelodi EXT5</option>
-                                <option value="Mahube">Mahube</option>
-                                <option value="Phase 5">Phase 5</option>
-                                <option value="Kwamhlanga">Kwamhlanga</option>
-                                <option value="Kameel Port">Kameel Port</option>
-                                <option value="Nelmaphius ext4">Nelmaphius ext4</option>
-                                <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
-                            </select>
-                            <input type="email" id="branchCoordEmail" placeholder="Email" required>
-                            <input type="tel" id="branchCoordCell" placeholder="Cell Number" required>
-                            <textarea id="branchCoordNotes" placeholder="Coordination Notes"></textarea>
-                            <button type="submit">Add Branch Coordinator</button>
-                        </form>
-                        <table id="branchCoordTable">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Branch</th>
-                                    <th>Email</th>
-                                    <th>Cell</th>
-                                    <th>Notes</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Branch Coordinators will be added here -->
-                            </tbody>
-                        </table>
-                        <div class="folder-actions">
-                            <button class="print-btn" onclick="printFolder('branch-coordination')">Print</button>
-                            <button class="export-btn" onclick="exportBranchCoordinators()">Export</button>
-                            <button class="email-btn" onclick="emailBranchCoordinators()">Email</button>
-                            <button class="minimize-btn" onclick="toggleFolder('branch-coordination')">Minimize</button>
-                        </div>
-                    </div>
-                </details>
-            </div>
-        </div>
-    </div>
-
-    <div id="attendance" class="content">
-        <h2>Church Attendance</h2>
-        <div class="bulk-upload">
-            <h3>Bulk Upload Attendance</h3>
-            <p>Supported: CSV, XLSX, PDF, DOCX. Format: branch,date,youth,adult,sundaySchool</p>
-            <div id="attendanceFilePreview" class="file-preview"></div>
-            <form id="bulkAttendanceForm">
-                <input type="file" id="bulkAttendanceCsv" accept=".csv,.xlsx,.pdf,.docx" required>
-                <button type="submit">Upload File</button>
-            </form>
-        </div>
-        <div class="search-container">
-            <h3>Search Attendance</h3>
-            <input type="text" id="attendanceSearch" placeholder="Search by branch or date...">
-        </div>
-        <form class="attendance-form" id="attendanceForm">
-            <select id="attendanceBranch">
-                <option value="">Select Branch</option>
-                <option value="Khutsong">Khutsong</option>
-                <option value="Mamelodi EXT5">Mamelodi EXT5</option>
-                <option value="Mahube">Mahube</option>
-                <option value="Phase 5">Phase 5</option>
-                <option value="Kwamhlanga">Kwamhlanga</option>
-                <option value="Kameel Port">Kameel Port</option>
-                <option value="Nelmaphius ext4">Nelmaphius ext4</option>
-                <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
-            </select>
-            <input type="date" id="attendanceDate" required>
-            <input type="number" id="youthAttendance" placeholder="Youth Attendance" min="0">
-            <input type="number" id="adultAttendance" placeholder="Adult Attendance" min="0">
-            <input type="number" id="sundaySchoolAttendance" placeholder="Sunday School Attendance" min="0">
-            <button type="submit">Log Attendance</button>
-        </form>
-        <table id="attendanceTable">
-            <thead>
-                <tr>
-                    <th>Branch</th>
-                    <th>Date</th>
-                    <th>Youth</th>
-                    <th>Adult</th>
-                    <th>Sunday School</th>
-                    <th>Total</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Attendance records will be added here -->
-            </tbody>
-        </table>
-    </div>
-
-    <div id="whatsapp" class="content">
-        <h2>WhatsApp Interactions</h2>
-        <details id="broadcast-folder">
-            <summary>Broadcast Messages</summary>
-            <div class="folder-content">
-                <form id="broadcastForm" class="broadcast-form">
-                    <select id="broadcastSelect" multiple class="broadcast-select" required></select>
-                    <textarea id="broadcastMessage" placeholder="Enter broadcast message..." required></textarea>
-                    <div class="broadcast-actions">
-                        <button type="button" class="broadcast-btn" onclick="sendBroadcast()">Send Now</button>
-                        <button type="button" class="broadcast-btn" onclick="scheduleBroadcast()">Schedule</button>
-                    </div>
-                </form>
-                <ul id="whatsappList" class="whatsapp-list">
-                    <!-- WhatsApp history will be added here -->
-                </ul>
-            </div>
-        </details>
-    </div>
-
-    <div id="vault" class="content">
-        <h2>Vault</h2>
-        <details id="secure-notes-folder">
-            <summary>Secure Notes</summary>
-            <div class="folder-content">
-                <form id="vaultForm">
-                    <input type="text" id="vaultTitle" placeholder="Note Title" required>
-                    <textarea id="vaultContent" placeholder="Secure content..." required></textarea>
-                    <button type="submit">Add Secure Note</button>
-                </form>
-                <ul id="vaultList" class="report-list">
-                    <!-- Secure notes will be added here -->
-                </ul>
-            </div>
-        </details>
-        <details id="conference-reports-folder">
-            <summary>Conference Reports</summary>
-            <div class="folder-content">
-                <form id="conferenceReportForm">
-                    <input type="text" id="conferenceReportTitle" placeholder="Report Title" required>
-                    <textarea id="conferenceReportContent" placeholder="Report Content"></textarea>
-                    <input type="date" id="conferenceReportDate">
-                    <button type="submit">Add Text Report</button>
-                </form>
-                <ul id="conferenceReportList" class="report-list">
-                    <!-- Conference reports will be added here -->
-                </ul>
-                <div class="conference-file-upload">
-                    <h4>Upload File Report</h4>
-                    <form id="conferenceReportUploadForm">
-                        <input type="text" id="fileReportTitle" placeholder="File Title" required>
-                        <input type="file" id="conferenceReportFile" accept=".pdf,.docx,.xlsx" required>
-                        <button type="submit">Upload File</button>
+    <!-- Modals -->
+    <!-- Add Employee Modal -->
+    <div class="modal fade" id="addEmployeeModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Add New Employee</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <form id="employeeForm">
+                        <input type="text" class="form-control mb-3" id="empName" placeholder="Name" required>
+                        <input type="text" class="form-control mb-3" id="empPosition" placeholder="Position" required>
+                        <input type="text" class="form-control mb-3" id="empDepartment" placeholder="Department" required>
+                        <input type="number" class="form-control mb-3" id="empSalary" placeholder="Salary" required>
+                        <input type="date" class="form-control mb-3" id="empJoinDate" required>
+                        <input type="email" class="form-control mb-3" id="empEmail" placeholder="Email" required>
                     </form>
                 </div>
-                <ul id="conferenceReportFileList" class="report-list">
-                    <!-- Conference file reports will be added here -->
-                </ul>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="addEmployee()">Save</button></div>
             </div>
-        </details>
-        <details id="tithe-reports-folder">
-            <summary>Tithe Reports</summary>
-            <div class="folder-content">
-                <form id="titheReportForm">
-                    <input type="text" id="titheReportTitle" placeholder="Report Title" required>
-                    <textarea id="titheReportContent" placeholder="Report Content"></textarea>
-                    <input type="date" id="titheReportDate">
-                    <button type="submit">Add Tithe Report</button>
-                </form>
-                <ul id="titheReportList" class="report-list">
-                    <!-- Tithe reports will be added here -->
-                </ul>
-            </div>
-        </details>
-        <details id="visitors-reports-folder">
-            <summary>Visitors Reports</summary>
-            <div class="folder-content">
-                <form id="visitorsReportForm">
-                    <input type="text" id="visitorsReportTitle" placeholder="Report Title" required>
-                    <textarea id="visitorsReportContent" placeholder="Report Content"></textarea>
-                    <input type="date" id="visitorsReportDate">
-                    <button type="submit">Add Visitors Report</button>
-                </form>
-                <ul id="visitorsReportList" class="report-list">
-                    <!-- Visitors reports will be added here -->
-                </ul>
-            </div>
-        </details>
-    </div>
-
-    <!-- Enhanced Payment Modal with PayPal -->
-    <div id="paymentModal">
-        <div class="payment-modal-content">
-            <span onclick="closePaymentModal()" style="float: right; cursor: pointer; font-size: 24px;">&times;</span>
-            <h3>Secure Online Donation</h3>
-            <form id="paymentForm">
-                <label for="donationAmount">Donation Amount ($):</label>
-                <input type="number" id="donationAmount" placeholder="e.g., 50.00" step="0.01" required>
-                <div class="recurring-option">
-                    <label><input type="radio" name="recurring" value="one-time" checked> One-Time Donation</label>
-                    <label><input type="radio" name="recurring" value="monthly"> Monthly Recurring</label>
-                    <label><input type="radio" name="recurring" value="yearly"> Yearly Recurring</label>
-                </div>
-                <label for="donorName">Donor Name (Optional):</label>
-                <input type="text" id="donorName" placeholder="Your Name">
-                <label for="donorEmail">Donor Email (for receipt):</label>
-                <input type="email" id="donorEmail" placeholder="your@email.com">
-                <div>
-                    <label><input type="radio" name="paymentMethod" value="stripe" checked onchange="togglePaymentMethod()"> Credit Card (Stripe)</label>
-                    <label><input type="radio" name="paymentMethod" value="paypal" onchange="togglePaymentMethod()"> PayPal</label>
-                </div>
-                <div id="stripe-payment" class="payment-method active">
-                    <div id="card-element"></div>
-                    <div id="card-errors"></div>
-                    <button type="submit">Process with Stripe</button>
-                </div>
-                <div id="paypal-payment" class="payment-method">
-                    <div id="paypal-button-container"></div>
-                </div>
-            </form>
-            <p><small>Powered by Stripe and PayPal. Secure and PCI compliant.</small></p>
         </div>
     </div>
 
-    <!-- Enhanced File Viewer Modal -->
-    <div id="fileViewerModal">
-        <div class="file-viewer-content">
-            <span class="close-viewer" onclick="closeFileViewer()">&times;</span>
-            <div class="viewer-toolbar" id="viewerToolbar" style="display: none;">
-                <button onclick="zoomIn()">Zoom In</button>
-                <button onclick="zoomOut()">Zoom Out</button>
-                <input type="number" id="zoomLevel" value="100" min="50" max="300" onchange="setZoom(this.value)">%
-                <div class="pdf-page-nav" id="pdfNav" style="display: none;">
-                    <button onclick="prevPage()">Previous</button>
-                    <span id="pageInfo"></span>
-                    <button onclick="nextPage()">Next</button>
+    <!-- Edit Employee Modal -->
+    <div class="modal fade" id="editEmployeeModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Edit Employee</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <form id="editEmployeeForm">
+                        <input type="hidden" id="editEmpIndex">
+                        <input type="text" class="form-control mb-3" id="editEmpName" placeholder="Name" required>
+                        <input type="text" class="form-control mb-3" id="editEmpPosition" placeholder="Position" required>
+                        <input type="text" class="form-control mb-3" id="editEmpDepartment" placeholder="Department" required>
+                        <input type="number" class="form-control mb-3" id="editEmpSalary" placeholder="Salary" required>
+                        <input type="date" class="form-control mb-3" id="editEmpJoinDate" required>
+                        <input type="email" class="form-control mb-3" id="editEmpEmail" placeholder="Email" required>
+                    </form>
                 </div>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="updateEmployee()">Update</button></div>
             </div>
-            <div id="fileViewerContent" class="viewer-loading">Loading...</div>
         </div>
     </div>
 
-    <!-- Notification -->
-    <div id="notification" class="notification"></div>
+    <!-- Add Job Modal -->
+    <div class="modal fade" id="addJobModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Add Job Posting</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-3" id="jobTitle" placeholder="Job Title" required>
+                    <textarea class="form-control mb-3" id="jobDesc" placeholder="Description" required></textarea>
+                    <select class="form-control" id="jobStatus">
+                        <option value="Open">Open</option>
+                        <option value="Closed">Closed</option>
+                    </select>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="addJob()">Save</button></div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Add Review Modal -->
+    <div class="modal fade" id="addReviewModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Add Performance Review</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <select class="form-control mb-3" id="reviewEmpId">
+                        <option value="">Select Employee</option>
+                    </select>
+                    <input type="number" class="form-control mb-3" id="reviewScore" placeholder="Score (1-5)" min="1" max="5" required>
+                    <textarea class="form-control mb-3" id="reviewComments" placeholder="Comments" required></textarea>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="addReview()">Save</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Leave Modal -->
+    <div class="modal fade" id="addLeaveModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Apply for Leave</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <select class="form-control mb-3" id="leaveEmpId">
+                        <option value="">Select Employee</option>
+                    </select>
+                    <input type="date" class="form-control mb-3" id="leaveStart" required>
+                    <input type="date" class="form-control mb-3" id="leaveEnd" required>
+                    <textarea class="form-control mb-3" id="leaveReason" placeholder="Reason" required></textarea>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="addLeave()">Save</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Benefit Modal -->
+    <div class="modal fade" id="addBenefitModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Add Benefit</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-3" id="benefitName" placeholder="Benefit Name" required>
+                    <textarea class="form-control mb-3" id="benefitDesc" placeholder="Description" required></textarea>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="addBenefit()">Save</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Course Modal -->
+    <div class="modal fade" id="addCourseModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Add Training Course</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-3" id="courseTitle" placeholder="Course Title" required>
+                    <textarea class="form-control mb-3" id="courseDesc" placeholder="Description" required></textarea>
+                    <select class="form-control mb-3" id="courseEmpId">
+                        <option value="">Assign to Employee</option>
+                    </select>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="addCourse()">Save</button></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // IndexedDB setup
-        let db;
-        const request = indexedDB.open('ChurchDB', 1);
-        request.onerror = () => console.error('Database failed to open');
-        request.onsuccess = () => { db = request.result; loadAllData(); };
-        request.onupgradeneeded = (e) => {
-            db = e.target.result;
-            ['members', 'visitors', 'followUps', 'reminders', 'tithes', 'attendance', 'events', 'employees', 'assignments', 'leaves', 'leaders', 'pastors', 'cells', 'elders', 'reports', 'whatsappHistory', 'vault', 'ministryLeaders', 'cellLeaders', 'branchCoordinators', 'conferenceReports', 'titheReports', 'visitorsReports', 'conferenceBudgets', 'conferenceReportFiles'].forEach(storeName => {
-                if (!db.objectStoreNames.contains(storeName)) {
-                    db.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
-                }
+        // Data Storage
+        let employees = JSON.parse(localStorage.getItem('employees')) || [];
+        let payrolls = JSON.parse(localStorage.getItem('payrolls')) || [];
+        let jobs = JSON.parse(localStorage.getItem('jobs')) || [];
+        let reviews = JSON.parse(localStorage.getItem('reviews')) || [];
+        let attendances = JSON.parse(localStorage.getItem('attendances')) || [];
+        let leaves = JSON.parse(localStorage.getItem('leaves')) || [];
+        let benefits = JSON.parse(localStorage.getItem('benefits')) || [];
+        let courses = JSON.parse(localStorage.getItem('courses')) || [];
+        let settings = JSON.parse(localStorage.getItem('settings')) || { companyName: 'My Company', taxRate: 15, darkMode: false };
+
+        // Sidebar Toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const content = document.querySelector('.content');
+            const toggleBtn = document.querySelector('.btn-toggle-sidebar');
+            sidebar.classList.toggle('collapsed');
+            content.classList.toggle('expanded');
+            toggleBtn.classList.toggle('expanded');
+        }
+
+        // Apply Theme
+        function applyTheme() {
+            if (settings.darkMode) {
+                document.body.classList.add('dark-mode');
+                dashboardChart.data.datasets[0].borderColor = '#4da6ff';
+            } else {
+                document.body.classList.remove('dark-mode');
+                dashboardChart.data.datasets[0].borderColor = '#0d6efd';
+            }
+            dashboardChart.update();
+        }
+
+        // Show Section
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(sec => sec.classList.add('d-none'));
+            document.getElementById(sectionId).classList.remove('d-none');
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            document.querySelector(`a[href="#${sectionId}"]`).classList.add('active');
+            if (sectionId === 'dashboard') updateDashboard();
+            else if (sectionId === 'employees') renderEmployees();
+            else if (sectionId === 'payroll') { renderPayrolls(); populateEmployeeSelect('payEmpId'); }
+            else if (sectionId === 'recruitment') renderJobs();
+            else if (sectionId === 'performance') { renderReviews(); populateEmployeeSelect('reviewEmpId'); }
+            else if (sectionId === 'attendance') { renderAttendances(); populateEmployeeSelect('attEmpId'); }
+            else if (sectionId === 'leaves') { renderLeaves(); populateEmployeeSelect('leaveEmpId'); }
+            else if (sectionId === 'benefits') renderBenefits();
+            else if (sectionId === 'training') { renderCourses(); populateEmployeeSelect('courseEmpId'); }
+            else if (sectionId === 'settings') renderSettings();
+        }
+
+        // Populate Employee Select
+        function populateEmployeeSelect(selectId) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Select Employee</option>';
+            employees.forEach((emp, index) => {
+                select.innerHTML += `<option value="${index}">${emp.name} (${emp.position})</option>`;
             });
-        };
-
-        // Global data stores
-        let members = [], visitors = [], followUps = [], reminders = [], tithes = [], attendance = [], events = [], employees = [], assignments = [], leaves = [], leaders = [], pastors = [], cells = [], elders = [], reports = [], whatsappHistory = [], vault = [], ministryLeaders = [], cellLeaders = [], branchCoordinators = [], conferenceReports = [], titheReports = [], visitorsReports = [], conferenceBudgets = [], conferenceReportFiles = [];
-
-        // Enhanced viewer globals
-        let currentScale = 1;
-        let currentPdf = null;
-        let currentPage = 1;
-        let totalPages = 0;
-
-        // Debounce utility
-        function debounce(func, wait = 300) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
         }
 
-        // Load data for a specific store
-        function loadData(storeName) {
-            const transaction = db.transaction([storeName], 'readonly');
-            const store = transaction.objectStore(storeName);
-            const req = store.getAll();
-            req.onsuccess = () => {
-                switch (storeName) {
-                    case 'members': members = req.result; break;
-                    case 'visitors': visitors = req.result; break;
-                    case 'followUps': followUps = req.result; break;
-                    case 'reminders': reminders = req.result; break;
-                    case 'tithes': tithes = req.result; break;
-                    case 'attendance': attendance = req.result; break;
-                    case 'events': events = req.result; break;
-                    case 'employees': employees = req.result; break;
-                    case 'assignments': assignments = req.result; break;
-                    case 'leaves': leaves = req.result; break;
-                    case 'leaders': leaders = req.result; break;
-                    case 'pastors': pastors = req.result; break;
-                    case 'cells': cells = req.result; break;
-                    case 'elders': elders = req.result; break;
-                    case 'reports': reports = req.result; break;
-                    case 'whatsappHistory': whatsappHistory = req.result; break;
-                    case 'vault': vault = req.result; break;
-                    case 'ministryLeaders': ministryLeaders = req.result; break;
-                    case 'cellLeaders': cellLeaders = req.result; break;
-                    case 'branchCoordinators': branchCoordinators = req.result; break;
-                    case 'conferenceReports': conferenceReports = req.result; break;
-                    case 'titheReports': titheReports = req.result; break;
-                    case 'visitorsReports': visitorsReports = req.result; break;
-                    case 'conferenceBudgets': conferenceBudgets = req.result; break;
-                    case 'conferenceReportFiles': conferenceReportFiles = req.result; break;
-                }
-                renderSection(storeName);
-                updateAnalytics();
-            };
+        // Employees Functions
+        function renderEmployees(search = '') {
+            const table = document.getElementById('employeeTable');
+            table.innerHTML = '';
+            employees.filter(emp => emp.name.toLowerCase().includes(search.toLowerCase())).forEach((emp, index) => {
+                table.innerHTML += `<tr><td>${index + 1}</td><td>${emp.name}</td><td>${emp.position}</td><td>${emp.department}</td><td>${emp.salary}</td><td>${emp.joinDate}</td><td>${emp.email}</td><td><button class="btn btn-sm btn-warning me-1" onclick="editEmployee(${index})">Edit</button><button class="btn btn-sm btn-danger" onclick="deleteEmployee(${index})">Delete</button></td></tr>`;
+            });
         }
-
-        // Load all data
-        function loadAllData() {
-            const stores = ['members', 'visitors', 'followUps', 'reminders', 'tithes', 'attendance', 'events', 'employees', 'assignments', 'leaves', 'leaders', 'pastors', 'cells', 'elders', 'reports', 'whatsappHistory', 'vault', 'ministryLeaders', 'cellLeaders', 'branchCoordinators', 'conferenceReports', 'titheReports', 'visitorsReports', 'conferenceBudgets', 'conferenceReportFiles'];
-            stores.forEach(loadData);
+        function searchEmployees() {
+            const search = document.getElementById('employeeSearch').value;
+            renderEmployees(search);
         }
-
-        // Calculate total for numeric arrays
-        function calculateTotal(data) {
-            return data.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+        function addEmployee() {
+            const name = document.getElementById('empName').value;
+            const position = document.getElementById('empPosition').value;
+            const department = document.getElementById('empDepartment').value;
+            const salary = parseFloat(document.getElementById('empSalary').value);
+            const joinDate = document.getElementById('empJoinDate').value;
+            const email = document.getElementById('empEmail').value;
+            if (name && position && department && salary && joinDate && email) {
+                employees.push({ name, position, department, salary, joinDate, email });
+                localStorage.setItem('employees', JSON.stringify(employees));
+                renderEmployees();
+                bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal')).hide();
+                updateDashboard();
+            }
         }
-
-        // Add single data item
-        function addData(storeName, data) {
-            const transaction = db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            store.add(data).onsuccess = () => loadData(storeName);
+        function editEmployee(index) {
+            document.getElementById('editEmpIndex').value = index;
+            document.getElementById('editEmpName').value = employees[index].name;
+            document.getElementById('editEmpPosition').value = employees[index].position;
+            document.getElementById('editEmpDepartment').value = employees[index].department;
+            document.getElementById('editEmpSalary').value = employees[index].salary;
+            document.getElementById('editEmpJoinDate').value = employees[index].joinDate;
+            document.getElementById('editEmpEmail').value = employees[index].email;
+            new bootstrap.Modal(document.getElementById('editEmployeeModal')).show();
         }
-
-        // Batch add
-        async function batchAdd(storeName, dataArray) {
-            const transaction = db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            dataArray.forEach(item => store.add(item));
-            loadData(storeName);
+        function updateEmployee() {
+            const index = document.getElementById('editEmpIndex').value;
+            const name = document.getElementById('editEmpName').value;
+            const position = document.getElementById('editEmpPosition').value;
+            const department = document.getElementById('editEmpDepartment').value;
+            const salary = parseFloat(document.getElementById('editEmpSalary').value);
+            const joinDate = document.getElementById('editEmpJoinDate').value;
+            const email = document.getElementById('editEmpEmail').value;
+            if (name && position && department && salary && joinDate && email) {
+                employees[index] = { name, position, department, salary, joinDate, email };
+                localStorage.setItem('employees', JSON.stringify(employees));
+                renderEmployees();
+                bootstrap.Modal.getInstance(document.getElementById('editEmployeeModal')).hide();
+                updateDashboard();
+            }
         }
-
-        // Update data
-        function updateData(storeName, id, data) {
-            const transaction = db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            const req = store.get(id);
-            req.onsuccess = () => {
-                const item = req.result;
-                if (item) {
-                    Object.assign(item, data);
-                    store.put(item).onsuccess = () => loadData(storeName);
-                }
-            };
-        }
-
-        // Delete data
-        function deleteData(storeName, id) {
-            const transaction = db.transaction([storeName], 'readwrite');
-            const store = transaction.objectStore(storeName);
-            store.delete(id).onsuccess = () => loadData(storeName);
-        }
-
-        // Show section
-        function showSection(section, button) {
-            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-            document.getElementById(section).classList.add('active');
-            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-            button.classList.add('active');
-            if (section === 'analytics') updateAnalytics();
-            renderSection(section);
-        }
-
-        // Render specific section
-        function renderSection(section) {
-            switch (section) {
-                case 'members': renderMembers(); break;
-                case 'visitors': renderVisitors(); break;
-                case 'tithes': renderTithes(); break;
-                case 'attendance': renderAttendance(); break;
-                case 'events': renderEvents(); break;
-                case 'ministryLeaders': renderMinistryLeaders(); break;
-                case 'cellLeaders': renderCellLeaders(); break;
-                case 'elders': renderElders(); break;
-                case 'pastors': renderPastors(); break;
-                case 'branchCoordinators': renderBranchCoordinators(); break;
-                case 'conferenceReports': renderConferenceReports(); break;
-                case 'titheReports': renderTitheReports(); break;
-                case 'visitorsReports': renderVisitorsReports(); break;
-                case 'vault': renderVault(); break;
-                case 'conferenceReportFiles': renderConferenceReportFiles(); break;
-                // Add more as needed
+        function deleteEmployee(index) {
+            if (confirm('Are you sure?')) {
+                employees.splice(index, 1);
+                localStorage.setItem('employees', JSON.stringify(employees));
+                renderEmployees();
+                updateDashboard();
             }
         }
 
-        // CSV Parser
-        function parseCSV(text) {
-            const lines = text.split('\n').filter(line => line.trim());
-            if (lines.length < 2) return [];
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-            return lines.slice(1).map(line => {
-                const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-                const row = {};
-                headers.forEach((h, i) => row[h] = values[i] || '');
-                return row;
-            });
-        }
-
-        // Notification
-        function showNotification(message, type = 'success') {
-            const notif = document.getElementById('notification');
-            notif.textContent = message;
-            notif.className = `notification show ${type === 'error' ? 'error' : ''}`;
-            setTimeout(() => notif.classList.remove('show'), 3000);
-        }
-
-        // Enhanced bulk upload function with preview and multi-format support
-        async function handleBulkUpload(formId, storeName, headers, previewId) {
-            const form = document.getElementById(formId);
-            const fileInput = form.querySelector('input[type="file"]');
-            const previewDiv = document.getElementById(previewId);
-            let parsedData = [];
-
-            const parseFile = async (file) => {
-                if (file.name.endsWith('.csv')) {
-                    const text = await file.text();
-                    return parseCSV(text);
-                } else if (file.name.endsWith('.xlsx')) {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const workbook = XLSX.read(arrayBuffer, {type: 'array'});
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    return XLSX.utils.sheet_to_json(sheet);
-                } else if (file.name.endsWith('.pdf')) {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
-                    let fullText = '';
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const textContent = await page.getTextContent();
-                        fullText += textContent.items.map(item => item.str).join(' ') + '\n';
-                    }
-                    return parseCSV(fullText);
-                } else if (file.name.endsWith('.docx')) {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const result = await mammoth.extractRawText({arrayBuffer: arrayBuffer});
-                    return parseCSV(result.value);
-                }
-                return [];
-            };
-
-            fileInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                previewDiv.style.display = 'block';
-                previewDiv.innerHTML = '<p>Loading preview...</p>';
-                try {
-                    parsedData = await parseFile(file);
-                    let previewHtml = '<table><thead><tr>';
-                    if (parsedData.length > 0) {
-                        Object.keys(parsedData[0]).forEach(h => previewHtml += `<th>${h}</th>`);
-                    } else {
-                        headers.forEach(h => previewHtml += `<th>${h}</th>`);
-                    }
-                    previewHtml += '</tr></thead><tbody>';
-                    parsedData.slice(0, 10).forEach(row => {
-                        previewHtml += '<tr>';
-                        Object.keys(row).forEach(k => previewHtml += `<td>${row[k]}</td>`);
-                        previewHtml += '</tr>';
-                    });
-                    previewHtml += '</tbody></table>';
-                    previewDiv.innerHTML = previewHtml;
-                } catch (error) {
-                    previewDiv.innerHTML = `<p>Error loading preview: ${error.message}</p>`;
-                }
-            });
-
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const file = fileInput.files[0];
-                if (!file) return alert('Please select a file.');
-                try {
-                    let csvData = parsedData.length > 0 ? parsedData : await parseFile(file);
-                    const today = new Date().toISOString().split('T')[0];
-                    const newItems = csvData.filter(row => row[headers[0]]).map(row => {
-                        const item = {};
-                        headers.forEach(h => {
-                            item[h] = row[h] || (h.includes('Date') ? today : '');
-                        });
-                        if (storeName === 'attendance') {
-                            item.total = (parseInt(item.youth || 0) + parseInt(item.adult || 0) + parseInt(item.sundaySchool || 0));
-                        }
-                        return item;
-                    });
-                    await batchAdd(storeName, newItems);
-                    showNotification(`${newItems.length} items added.`);
-                    form.reset();
-                    previewDiv.style.display = 'none';
-                    parsedData = [];
-                    renderSection(storeName);
-                    if (storeName === 'tithes') updateAnalytics();
-                    if (storeName === 'attendance') updateAnalytics();
-                } catch (error) {
-                    showNotification(`Error uploading: ${error.message}`, 'error');
-                }
-            });
-        }
-
-        // Initialize bulk uploads
-        document.addEventListener('DOMContentLoaded', () => {
-            handleBulkUpload('bulkMemberForm', 'members', ['name', 'email', 'cell', 'address', 'joinDate', 'role', 'branch'], 'membersFilePreview');
-            handleBulkUpload('bulkVisitorForm', 'visitors', ['name', 'email', 'cell', 'address', 'visitDate', 'branch', 'notes'], 'visitorsFilePreview');
-            handleBulkUpload('bulkAttendanceForm', 'attendance', ['branch', 'date', 'youth', 'adult', 'sundaySchool'], 'attendanceFilePreview');
-            handleBulkUpload('bulkEventsForm', 'events', ['title', 'description', 'date', 'branch', 'organizer'], 'eventsFilePreview');
-            handleBulkUpload('bulkTitheForm', 'tithes', ['memberName', 'type', 'amount', 'date', 'branch'], 'titheFilePreview');
-            document.querySelectorAll('.budget-input').forEach(input => {
-                input.addEventListener('input', calculateTotals);
-            });
-
-            // Conference Report Upload
-            const uploadForm = document.getElementById('conferenceReportUploadForm');
-            if (uploadForm) {
-                uploadForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const file = document.getElementById('conferenceReportFile').files[0];
-                    const title = document.getElementById('fileReportTitle').value;
-                    if (!file || !title) return showNotification('Title and file required!', 'error');
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const fileData = e.target.result;
-                        addData('conferenceReportFiles', { title, fileName: file.name, fileType: file.type, fileData, date: new Date().toISOString().split('T')[0] });
-                        showNotification('Conference report uploaded!');
-                        uploadForm.reset();
-                    };
-                    reader.readAsDataURL(file);
-                });
+        // Payroll Functions
+        function calculatePayroll() {
+            const empIndex = document.getElementById('payEmpId').value;
+            const salary = parseFloat(document.getElementById('paySalary').value);
+            if (empIndex !== '' && salary) {
+                const taxRate = settings.taxRate / 100;
+                const netPay = salary * (1 - taxRate);
+                payrolls.push({ empIndex, netPay, date: new Date().toLocaleDateString() });
+                localStorage.setItem('payrolls', JSON.stringify(payrolls));
+                renderPayrolls();
             }
-
-            // Advanced Stripe Elements for Payment
-            const stripe = Stripe('pk_test_your_publishable_key_here'); // Replace with real key
-            const elements = stripe.elements();
-            const card = elements.create('card', { style: { base: { fontSize: '16px' } } });
-            card.mount('#card-element');
-
-            const displayError = document.getElementById('card-errors');
-            card.addEventListener('change', (event) => {
-                displayError.textContent = event.error ? event.error.message : '';
+        }
+        function renderPayrolls() {
+            const table = document.getElementById('payrollTable');
+            table.innerHTML = '';
+            payrolls.forEach((pay, index) => {
+                const emp = employees[pay.empIndex] || { name: 'Deleted Employee' };
+                table.innerHTML += `<tr><td>${emp.name}</td><td>${pay.netPay.toFixed(2)}</td><td>${pay.date}</td><td><button class="btn btn-sm btn-danger" onclick="deletePayroll(${index})">Delete</button></td></tr>`;
             });
+        }
+        function deletePayroll(index) {
+            if (confirm('Are you sure?')) {
+                payrolls.splice(index, 1);
+                localStorage.setItem('payrolls', JSON.stringify(payrolls));
+                renderPayrolls();
+            }
+        }
 
-            // PayPal Button
-            paypal.Buttons({
-                createOrder: function(data, actions) {
-                    return actions.order.create({
-                        purchase_units: [{
-                            amount: {
-                                value: document.getElementById('donationAmount').value || '10.00'
-                            }
-                        }]
-                    });
-                },
-                onApprove: function(data, actions) {
-                    return actions.order.capture().then(function(details) {
-                        console.log('PayPal Payment:', details);
-                        showNotification(`PayPal Payment successful! $${document.getElementById('donationAmount').value} from ${details.payer.name.given_name}. (Demo - Integrate with backend)`);
-                        closePaymentModal();
-                        const today = new Date().toISOString().split('T')[0];
-                        addData('tithes', {
-                            memberName: details.payer.name.given_name || 'PayPal Donor',
-                            type: 'Offering',
-                            amount: document.getElementById('donationAmount').value,
-                            date: today,
-                            branch: 'Online',
-                            paymentMethod: 'PayPal'
-                        });
-                    });
-                },
-                onError: function(err) {
-                    console.error('PayPal Error:', err);
-                    showNotification('PayPal payment failed!', 'error');
-                }
-            }).render('#paypal-button-container');
+        // Recruitment Functions
+        function addJob() {
+            const title = document.getElementById('jobTitle').value;
+            const desc = document.getElementById('jobDesc').value;
+            const status = document.getElementById('jobStatus').value;
+            if (title && desc) {
+                jobs.push({ title, desc, status });
+                localStorage.setItem('jobs', JSON.stringify(jobs));
+                renderJobs();
+                bootstrap.Modal.getInstance(document.getElementById('addJobModal')).hide();
+                updateDashboard();
+            }
+        }
+        function renderJobs() {
+            const table = document.getElementById('jobTable');
+            table.innerHTML = '';
+            jobs.forEach((job, index) => {
+                table.innerHTML += `<tr><td>${index + 1}</td><td>${job.title}</td><td>${job.desc}</td><td>${job.status}</td><td><button class="btn btn-sm btn-danger" onclick="deleteJob(${index})">Delete</button></td></tr>`;
+            });
+            document.getElementById('openPositions').textContent = jobs.filter(j => j.status === 'Open').length;
+        }
+        function deleteJob(index) {
+            if (confirm('Are you sure?')) {
+                jobs.splice(index, 1);
+                localStorage.setItem('jobs', JSON.stringify(jobs));
+                renderJobs();
+                updateDashboard();
+            }
+        }
 
-            document.getElementById('paymentForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (document.querySelector('input[name="paymentMethod"]:checked').value !== 'stripe') return;
-                const amount = document.getElementById('donationAmount').value * 100; // Cents
-                const recurring = document.querySelector('input[name="recurring"]:checked').value;
-                const donorName = document.getElementById('donorName').value;
-                const donorEmail = document.getElementById('donorEmail').value;
-                const { error, paymentMethod } = await stripe.createPaymentMethod('card', card, {
-                    billing_details: { name: donorName, email: donorEmail }
-                });
-                if (error) {
-                    displayError.textContent = error.message;
+        // Performance Functions
+        function addReview() {
+            const empIndex = document.getElementById('reviewEmpId').value;
+            const score = parseInt(document.getElementById('reviewScore').value);
+            const comments = document.getElementById('reviewComments').value;
+            if (empIndex !== '' && score && comments) {
+                reviews.push({ empIndex, score, comments, date: new Date().toLocaleDateString() });
+                localStorage.setItem('reviews', JSON.stringify(reviews));
+                renderReviews();
+                bootstrap.Modal.getInstance(document.getElementById('addReviewModal')).hide();
+                updateDashboard();
+            }
+        }
+        function renderReviews() {
+            const table = document.getElementById('performanceTable');
+            table.innerHTML = '';
+            reviews.forEach((rev, index) => {
+                const emp = employees[rev.empIndex] || { name: 'Deleted Employee' };
+                table.innerHTML += `<tr><td>${emp.name}</td><td>${rev.score}</td><td>${rev.comments}</td><td>${rev.date}</td><td><button class="btn btn-sm btn-danger" onclick="deleteReview(${index})">Delete</button></td></tr>`;
+            });
+        }
+        function deleteReview(index) {
+            if (confirm('Are you sure?')) {
+                reviews.splice(index, 1);
+                localStorage.setItem('reviews', JSON.stringify(reviews));
+                renderReviews();
+                updateDashboard();
+            }
+        }
+
+        // Attendance Functions
+        function clockIn() {
+            const empIndex = document.getElementById('attEmpId').value;
+            if (empIndex !== '') {
+                const now = new Date();
+                attendances.push({ empIndex, date: now.toLocaleDateString(), inTime: now.toLocaleTimeString(), outTime: null, hours: 0 });
+                localStorage.setItem('attendances', JSON.stringify(attendances));
+                renderAttendances();
+            }
+        }
+        function clockOut() {
+            const empIndex = document.getElementById('attEmpId').value;
+            if (empIndex !== '') {
+                const today = new Date().toLocaleDateString();
+                const att = attendances.find(a => a.empIndex == empIndex && a.date === today && !a.outTime);
+                if (att) {
+                    const outTime = new Date();
+                    att.outTime = outTime.toLocaleTimeString();
+                    const inDate = new Date(`${att.date} ${att.inTime}`);
+                    att.hours = ((outTime - inDate) / 3600000).toFixed(2);
+                    localStorage.setItem('attendances', JSON.stringify(attendances));
+                    renderAttendances();
                 } else {
-                    // Simulate backend call
-                    console.log('Stripe PaymentMethod:', paymentMethod, 'Recurring:', recurring);
-                    showNotification(`Stripe Payment successful! ${recurring} donation of $${document.getElementById('donationAmount').value} processed. Receipt sent to ${donorEmail || 'email'}. (Demo - Integrate with backend)`);
-                    closePaymentModal();
-                    const today = new Date().toISOString().split('T')[0];
-                    addData('tithes', {
-                        memberName: donorName || 'Online Donor',
-                        type: 'Offering',
-                        amount: document.getElementById('donationAmount').value,
-                        date: today,
-                        branch: 'Online',
-                        recurring: recurring,
-                        paymentMethod: 'Stripe'
-                    });
+                    alert('No clock-in found for today.');
                 }
-            });
-        });
-
-        function togglePaymentMethod() {
-            const selected = document.querySelector('input[name="paymentMethod"]:checked').value;
-            document.getElementById('stripe-payment').classList.toggle('active', selected === 'stripe');
-            document.getElementById('paypal-payment').classList.toggle('active', selected === 'paypal');
-        }
-
-        // Enhanced Payment Modal Functions
-        function openPaymentModal() {
-            document.getElementById('paymentModal').style.display = 'block';
-            togglePaymentMethod(); // Ensure correct display
-        }
-
-        function closePaymentModal() {
-            document.getElementById('paymentModal').style.display = 'none';
-            document.getElementById('paymentForm').reset();
-            document.getElementById('card-errors').textContent = '';
-        }
-
-        // Enhanced File Viewer Functions
-        window.viewConferenceFile = async function(id) {
-            const file = conferenceReportFiles.find(f => f.id === id);
-            if (!file) return;
-            const modal = document.getElementById('fileViewerModal');
-            const content = document.getElementById('fileViewerContent');
-            const toolbar = document.getElementById('viewerToolbar');
-            content.innerHTML = '<div class="viewer-loading">Loading file...</div>';
-            toolbar.style.display = 'none';
-            modal.style.display = 'block';
-            currentScale = 1;
-            document.getElementById('zoomLevel').value = 100;
-
-            try {
-                const response = await fetch(file.fileData);
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-
-                if (file.fileType === 'application/pdf') {
-                    // Enhanced PDF Rendering
-                    currentPdf = await pdfjsLib.getDocument(url).promise;
-                    totalPages = currentPdf.numPages;
-                    toolbar.style.display = 'flex';
-                    document.getElementById('pdfNav').style.display = 'flex';
-                    renderPdfPage(currentPage);
-                } else if (file.fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                    // Enhanced DOCX
-                    const arrayBuffer = await blob.arrayBuffer();
-                    const result = await mammoth.convertToHtml({ arrayBuffer });
-                    content.innerHTML = `<div class="docx-content">${result.value}</div>`;
-                    toolbar.style.display = 'flex';
-                    document.getElementById('pdfNav').style.display = 'none';
-                } else if (file.fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-                    // Enhanced XLSX
-                    const arrayBuffer = await blob.arrayBuffer();
-                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-                    const html = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
-                    content.innerHTML = `<div class="xlsx-content">${html}</div>`;
-                    toolbar.style.display = 'flex';
-                    document.getElementById('pdfNav').style.display = 'none';
-                } else {
-                    content.innerHTML = '<iframe src="' + url + '" style="width:100%; height:500px;"></iframe>';
-                    toolbar.style.display = 'none';
-                }
-            } catch (error) {
-                content.innerHTML = `<p>Error viewing file: ${error.message}</p>`;
             }
-        };
-
-        function renderPdfPage(pageNum) {
-            currentPdf.getPage(pageNum).then(page => {
-                const content = document.getElementById('fileViewerContent');
-                const viewport = page.getViewport({ scale: currentScale });
-                const canvas = document.createElement('canvas');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                canvas.className = 'pdf-canvas';
-                const context = canvas.getContext('2d');
-                const renderContext = { canvasContext: context, viewport };
-                page.render(renderContext).promise.then(() => {
-                    content.innerHTML = '';
-                    content.appendChild(canvas);
-                    document.getElementById('pageInfo').textContent = `${pageNum} / ${totalPages}`;
-                });
+        }
+        function renderAttendances() {
+            const table = document.getElementById('attendanceTable');
+            table.innerHTML = '';
+            attendances.forEach(att => {
+                const emp = employees[att.empIndex] || { name: 'Deleted Employee' };
+                table.innerHTML += `<tr><td>${emp.name}</td><td>${att.date}</td><td>${att.inTime}</td><td>${att.outTime || 'Pending'}</td><td>${att.hours}</td></tr>`;
             });
         }
 
-        function prevPage() {
-            if (currentPage > 1) {
-                currentPage--;
-                renderPdfPage(currentPage);
+        // Leaves Functions
+        function addLeave() {
+            const empIndex = document.getElementById('leaveEmpId').value;
+            const start = document.getElementById('leaveStart').value;
+            const end = document.getElementById('leaveEnd').value;
+            const reason = document.getElementById('leaveReason').value;
+            if (empIndex !== '' && start && end && reason) {
+                leaves.push({ empIndex, start, end, reason, status: 'Pending' });
+                localStorage.setItem('leaves', JSON.stringify(leaves));
+                renderLeaves();
+                bootstrap.Modal.getInstance(document.getElementById('addLeaveModal')).hide();
+                updateDashboard();
             }
         }
-
-        function nextPage() {
-            if (currentPage < totalPages) {
-                currentPage++;
-                renderPdfPage(currentPage);
-            }
-        }
-
-        function zoomIn() {
-            currentScale += 0.2;
-            document.getElementById('zoomLevel').value = Math.round(currentScale * 100);
-            renderPdfPage(currentPage);
-        }
-
-        function zoomOut() {
-            if (currentScale > 0.5) {
-                currentScale -= 0.2;
-                document.getElementById('zoomLevel').value = Math.round(currentScale * 100);
-                renderPdfPage(currentPage);
-            }
-        }
-
-        function setZoom(value) {
-            currentScale = value / 100;
-            renderPdfPage(currentPage);
-        }
-
-        function closeFileViewer() {
-            document.getElementById('fileViewerModal').style.display = 'none';
-            currentPdf = null;
-            currentPage = 1;
-            totalPages = 0;
-        }
-
-        // Member functions
-        function renderMembers() {
-            const tbody = document.getElementById('memberTable').querySelector('tbody');
-            if (tbody) {
-                tbody.innerHTML = members.map(m => `
-                    <tr>
-                        <td>${m.name}</td>
-                        <td>${m.branch || ''}</td>
-                        <td>${m.email || ''}</td>
-                        <td>${m.cell || ''}</td>
-                        <td>${m.address || ''}</td>
-                        <td>${m.joinDate || ''}</td>
-                        <td>${m.role || ''}</td>
-                    </tr>
-                `).join('');
-            }
-        }
-
-        document.getElementById('memberForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const today = new Date().toISOString().split('T')[0];
-            const memberData = {
-                name: document.getElementById('name').value,
-                branch: document.getElementById('branch').value,
-                email: document.getElementById('email').value,
-                cell: document.getElementById('cell').value,
-                address: document.getElementById('address').value,
-                joinDate: document.getElementById('joinDate').value || today,
-                role: document.getElementById('role').value
-            };
-            addData('members', memberData);
-            e.target.reset();
-            document.getElementById('joinDate').value = today;
-            showNotification('Member added!');
-        });
-
-        // Search members
-        if (document.getElementById('memberSearch')) {
-            document.getElementById('memberSearch').addEventListener('input', debounce((e) => {
-                const term = e.target.value.toLowerCase();
-                const rows = document.querySelectorAll('#memberTable tbody tr');
-                rows.forEach(row => {
-                    row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
-                });
-            }));
-        }
-
-        // Visitor functions
-        function renderVisitors() {
-            const tbody = document.getElementById('visitorTable').querySelector('tbody');
-            if (tbody) {
-                tbody.innerHTML = visitors.map(v => `
-                    <tr>
-                        <td>${v.name}</td>
-                        <td>${v.branch || ''}</td>
-                        <td>${v.email || ''}</td>
-                        <td>${v.cell || ''}</td>
-                        <td>${v.address || ''}</td>
-                        <td>${v.visitDate || ''}</td>
-                        <td>${v.notes || ''}</td>
-                        <td class="${v.status === 'Converted' ? 'converted' : ''}">${v.status || 'Pending'}</td>
-                        <td><button class="convert-btn" onclick="convertVisitor(${v.id})">Convert</button></td>
-                    </tr>
-                `).join('');
-            }
-            // Update selects
-            const fuSelect = document.getElementById('followUpVisitorSelect');
-            const waSelect = document.getElementById('visitorWhatsAppSelect');
-            const titheSelect = document.getElementById('titheMemberSelect');
-            if (fuSelect) fuSelect.innerHTML = visitors.map(v => `<option value="${v.id}">${v.name}</option>`).join('');
-            if (waSelect) waSelect.innerHTML = visitors.map(v => `<option value="${v.id}">${v.name}</option>`).join('');
-            if (titheSelect) titheSelect.innerHTML = members.map(m => `<option value="${m.id}">${m.name}</option>`).join('') + visitors.map(v => `<option value="${v.id}">${v.name} (Visitor)</option>`).join('');
-        }
-
-        document.getElementById('visitorForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const today = new Date().toISOString().split('T')[0];
-            const visitorData = {
-                name: document.getElementById('visitorName').value,
-                branch: document.getElementById('visitorBranch').value,
-                email: document.getElementById('visitorEmail').value,
-                cell: document.getElementById('visitorCell').value,
-                address: document.getElementById('visitorAddress').value,
-                visitDate: document.getElementById('visitorVisitDate').value || today,
-                notes: document.getElementById('visitorNotes').value,
-                status: 'Pending'
-            };
-            addData('visitors', visitorData);
-            e.target.reset();
-            document.getElementById('visitorVisitDate').value = today;
-            showNotification('Visitor added!');
-        });
-
-        window.convertVisitor = function(id) {
-            updateData('visitors', id, { status: 'Converted' });
-            showNotification('Visitor converted to member!');
-        };
-
-        // Follow-up functions
-        function renderFollowUps() {
-            const ul = document.getElementById('followUpList');
-            if (ul) {
-                ul.innerHTML = followUps.map(fu => `
-                    <li class="follow-up-item">
-                        <strong>${fu.visitorName}</strong> - ${fu.status} on ${fu.date || ''}<br>
-                        ${fu.notes || ''}
-                    </li>
-                `).join('');
-            }
-        }
-
-        document.getElementById('followUpForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const visitorId = document.getElementById('followUpVisitorSelect').value;
-            const visitor = visitors.find(v => v.id == visitorId);
-            const followUpData = {
-                visitorId,
-                visitorName: visitor ? visitor.name : '',
-                status: document.getElementById('followUpStatus').value,
-                date: document.getElementById('followUpDate').value,
-                reminderDate: document.getElementById('followUpReminderDate').value,
-                notes: document.getElementById('followUpNotes').value
-            };
-            addData('followUps', followUpData);
-            if (followUpData.reminderDate) {
-                addData('reminders', {
-                    visitorId,
-                    type: 'Follow-up',
-                    dueDate: followUpData.reminderDate,
-                    message: `Follow up with ${followUpData.visitorName}`,
-                    sent: false
-                });
-            }
-            e.target.reset();
-            showNotification('Follow-up logged!');
-        });
-
-        // Reminder functions
-        function renderReminders() {
-            const today = new Date().toISOString().split('T')[0];
-            const ul = document.getElementById('reminderList');
-            if (ul) {
-                ul.innerHTML = reminders.map(r => {
-                    const isDue = r.dueDate === today && !r.sent;
-                    const isOverdue = new Date(r.dueDate) < new Date(today) && !r.sent;
-                    const className = isDue ? 'due' : isOverdue ? 'overdue' : '';
-                    return `<li class="reminder-item ${className}">${r.message} - Due: ${r.dueDate} ${r.sent ? '(Sent)' : ''}</li>`;
-                }).join('');
-            }
-        }
-
-        window.bulkSendDueReminders = function() {
-            const today = new Date().toISOString().split('T')[0];
-            const due = reminders.filter(r => r.dueDate === today && !r.sent);
-            due.forEach(r => {
-                updateData('reminders', r.id, { sent: true });
-            });
-            showNotification(`${due.length} reminders sent!`);
-            renderReminders();
-        };
-
-        // Tithe functions
-        function renderTithes() {
-            const tbody = document.getElementById('titheTable').querySelector('tbody');
-            if (tbody) {
-                tbody.innerHTML = tithes.map(t => `
-                    <tr>
-                        <td>${t.memberName || ''}</td>
-                        <td>${t.type || ''}</td>
-                        <td>$${parseFloat(t.amount || 0).toFixed(2)}</td>
-                        <td>${t.date || ''}</td>
-                        <td>${t.branch || ''}</td>
-                        <td><button class="delete-btn" onclick="deleteData('tithes', ${t.id})">Delete</button></td>
-                    </tr>
-                `).join('');
-            }
-            const titheData = tithes.filter(t => t.type === 'Tithe');
-            const offeringData = tithes.filter(t => t.type === 'Offering');
-            document.getElementById('totalTitheDisplay').textContent = calculateTotal(titheData).toFixed(2);
-            document.getElementById('totalOfferingDisplay').textContent = calculateTotal(offeringData).toFixed(2);
-        }
-
-        document.getElementById('titheForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const today = new Date().toISOString().split('T')[0];
-            const memberId = document.getElementById('titheMemberSelect').value;
-            const member = members.find(m => m.id == memberId) || visitors.find(v => v.id == memberId);
-            const titheData = {
-                memberId,
-                memberName: member ? member.name : '',
-                type: document.getElementById('titheType').value,
-                amount: parseFloat(document.getElementById('titheAmount').value) || 0,
-                date: document.getElementById('titheDate').value || today,
-                branch: document.getElementById('titheBranch').value
-            };
-            addData('tithes', titheData);
-            e.target.reset();
-            document.getElementById('titheDate').value = today;
-            showNotification('Tithe/Offering recorded!');
-        });
-
-        // Search tithes
-        if (document.getElementById('titheSearch')) {
-            document.getElementById('titheSearch').addEventListener('input', debounce((e) => {
-                const term = e.target.value.toLowerCase();
-                const rows = document.querySelectorAll('#titheTable tbody tr');
-                rows.forEach(row => {
-                    row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
-                });
-            }));
-        }
-
-        // Events functions
-        function renderEvents() {
-            const tbody = document.getElementById('eventTable').querySelector('tbody');
-            if (tbody) {
-                tbody.innerHTML = events.map(ev => `
-                    <tr>
-                        <td>${ev.title}</td>
-                        <td>${ev.description || ''}</td>
-                        <td>${ev.date || ''}</td>
-                        <td>${ev.branch || ''}</td>
-                        <td>${ev.organizer || ''}</td>
-                        <td><button class="delete-btn" onclick="deleteData('events', ${ev.id})">Delete</button></td>
-                    </tr>
-                `).join('');
-            }
-            renderBudgets();
-        }
-
-        function renderBudgets() {
-            conferenceBudgets.forEach(b => {
-                const input = document.querySelector(`input.budget-input[data-event="${b.event}"][data-category="${b.category}"]`);
-                if (input) {
-                    input.value = b.amount || 0;
-                }
-            });
-            calculateTotals();
-        }
-
-        function calculateTotals() {
-            const eventNames = ['september', 'easter', 'combined'];
-            let grandTotal = 0;
-            eventNames.forEach(eventName => {
-                let eventTotal = 0;
-                document.querySelectorAll(`.budget-input[data-event="${eventName}"]`).forEach(input => {
-                    eventTotal += parseFloat(input.value) || 0;
-                });
-                const totalElement = document.getElementById(`${eventName}-total`);
-                if (totalElement) {
-                    totalElement.textContent = `Total: $${eventTotal.toFixed(2)}`;
-                    grandTotal += eventTotal;
-                }
-            });
-            const grandTotalElement = document.getElementById('grand-total');
-            if (grandTotalElement) {
-                grandTotalElement.textContent = `Grand Total: $${grandTotal.toFixed(2)}`;
-            }
-        }
-
-        window.saveBudgets = function() {
-            const inputs = document.querySelectorAll('.budget-input');
-            const budgetDate = document.getElementById('budgetDate').value;
-            inputs.forEach(input => {
-                const event = input.dataset.event;
-                const category = input.dataset.category;
-                const amount = parseFloat(input.value) || 0;
-                let existing = conferenceBudgets.find(cb => cb.event === event && cb.category === category && cb.date === budgetDate);
-                if (existing) {
-                    existing.amount = amount;
-                    updateData('conferenceBudgets', existing.id, existing);
-                } else {
-                    addData('conferenceBudgets', { event, category, amount, date: budgetDate });
-                }
-            });
-            showNotification('Budgets saved!');
-        };
-
-        window.calculateTotals = function() {
-            calculateTotals();
-            showNotification('Totals calculated!');
-        };
-
-        document.getElementById('eventForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const today = new Date().toISOString().split('T')[0];
-            const eventData = {
-                title: document.getElementById('eventTitle').value,
-                description: document.getElementById('eventDescription').value,
-                date: document.getElementById('eventDate').value || today,
-                branch: document.getElementById('eventBranch').value,
-                organizer: document.getElementById('eventOrganizer').value
-            };
-            addData('events', eventData);
-            e.target.reset();
-            document.getElementById('eventDate').value = today;
-            showNotification('Event added!');
-        });
-
-        // Search events
-        if (document.getElementById('eventsSearch')) {
-            document.getElementById('eventsSearch').addEventListener('input', debounce((e) => {
-                const term = e.target.value.toLowerCase();
-                const rows = document.querySelectorAll('#eventTable tbody tr');
-                rows.forEach(row => {
-                    row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
-                });
-            }));
-        }
-
-        // Church Admin functions - Ministry Leaders
-        function renderMinistryLeaders() {
-            const tbody = document.getElementById('ministryLeaderTable').querySelector('tbody');
-            if (tbody) {
-                tbody.innerHTML = ministryLeaders.map(ml => `
-                    <tr>
-                        <td>${ml.name}</td>
-                        <td>${ml.branch || ''}</td>
-                        <td>${ml.email || ''}</td>
-                        <td>${ml.cell || ''}</td>
-                        <td>${ml.ministry || ''}</td>
-                    </tr>
-                `).join('');
-            }
-        }
-
-        document.getElementById('ministryLeaderForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const today = new Date().toISOString().split('T')[0];
-            const mlData = {
-                name: document.getElementById('ministryLeaderName').value,
-                branch: document.getElementById('ministryLeaderBranch').value,
-                email: document.getElementById('ministryLeaderEmail').value,
-                cell: document.getElementById('ministryLeaderCell').value,
-                ministry: document.getElementById('ministryLeaderMinistry').value
-            };
-            addData('ministryLeaders', mlData);
-            e.target.reset();
-            showNotification('Ministry Leader added!');
-        });
-
-        // Cell Leaders
-        function renderCellLeaders() {
-            const tbody = document.getElementById('cellLeaderTable').querySelector('tbody');
-            if (tbody) {
-                tbody.innerHTML = cellLeaders.map(cl => `
-                    <tr>
-                        <td>${cl.name}</td>
-                        <td>${cl.branch || ''}</td>
-                        <td>${cl.email || ''}</td>
-                        <td>${cl.cell || ''}</td>
-                        <td>${cl.cellGroup || ''}</td>
-                    </tr>
-                `).join('');
-            }
-        }
-
-        document.getElementById('cellLeaderForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const clData = {
-                name: document.getElementById('cellLeaderName').value,
-                branch: document.getElementById('cellLeaderBranch').value,
-                email: document.getElementById('cellLeaderEmail').value,
-                cell: document.getElementById('cellLeaderCell').value,
-                cellGroup: document.getElementById('cellLeaderCellGroup').value
-            };
-            addData('cellLeaders', clData);
-            e.target.reset();
-            showNotification('Cell Leader added!');
-        });
-
-        // Elders
-        function renderElders() {
-            const tbody = document.getElementById('elderTable').querySelector('tbody');
-            if (tbody) {
-                tbody.innerHTML = elders.map(el => `
-                    <tr>
-                        <td>${el.name}</td>
-                        <td>${el.branch || ''}</td>
-                        <td>${el.email || ''}</td>
-                        <td>${el.cell || ''}</td>
-                        <td>${el.ordinationDate || ''}</td>
-                    </tr>
-                `).join('');
-            }
-        }
-
-        document.getElementById('elderForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const today = new Date().toISOString().split('T')[0];
-            const elData = {
-                name: document.getElementById('elderName').value,
-                branch: document.getElementById('elderBranch').value,
-                email: document.getElementById('elderEmail').value,
-                cell: document.getElementById('elderCell').value,
-                ordinationDate: document.getElementById('elderOrdinationDate').value || today
-            };
-            addData('elders', elData);
-            e.target.reset();
-            document.getElementById('elderOrdinationDate').value = today;
-            showNotification('Elder added!');
-        });
-
-        // Pastors
-        function renderPastors() {
-            const tbody = document.getElementById('pastorTable').querySelector('tbody');
-            if (tbody) {
-                tbody.innerHTML = pastors.map(p => `
-                    <tr>
-                        <td>${p.name}</td>
-                        <td>${p.branch || ''}</td>
-                        <td>${p.email || ''}</td>
-                        <td>${p.cell || ''}</td>
-                        <td>${p.appointmentDate || ''}</td>
-                    </tr>
-                `).join('');
-            }
-        }
-
-        document.getElementById('pastorForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const today = new Date().toISOString().split('T')[0];
-            const pData = {
-                name: document.getElementById('pastorName').value,
-                branch: document.getElementById('pastorBranch').value,
-                email: document.getElementById('pastorEmail').value,
-                cell: document.getElementById('pastorCell').value,
-                appointmentDate: document.getElementById('pastorAppointmentDate').value || today
-            };
-            addData('pastors', pData);
-            e.target.reset();
-            document.getElementById('pastorAppointmentDate').value = today;
-            showNotification('Pastor added!');
-        });
-
-        // Branch Coordinators
-        function renderBranchCoordinators() {
-            const tbody = document.getElementById('branchCoordTable').querySelector('tbody');
-            if (tbody) {
-                tbody.innerHTML = branchCoordinators.map(bc => `
-                    <tr>
-                        <td>${bc.name}</td>
-                        <td>${bc.branch || ''}</td>
-                        <td>${bc.email || ''}</td>
-                        <td>${bc.cell || ''}</td>
-                        <td>${bc.notes || ''}</td>
-                    </tr>
-                `).join('');
-            }
-        }
-
-        document.getElementById('branchCoordForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const bcData = {
-                name: document.getElementById('branchCoordName').value,
-                branch: document.getElementById('branchCoordBranch').value,
-                email: document.getElementById('branchCoordEmail').value,
-                cell: document.getElementById('branchCoordCell').value,
-                notes: document.getElementById('branchCoordNotes').value
-            };
-            addData('branchCoordinators', bcData);
-            e.target.reset();
-            showNotification('Branch Coordinator added!');
-        });
-
-        // Vault Reports - Conference Reports
-        function renderConferenceReports() {
-            const ul = document.getElementById('conferenceReportList');
-            if (ul) {
-                ul.innerHTML = conferenceReports.map(cr => `
-                    <li class="report-item">
-                        <strong>${cr.title}</strong> - ${cr.date || ''}<br>
-                        ${cr.content || ''}<br>
-                        <button class="delete-btn" onclick="deleteData('conferenceReports', ${cr.id})">Delete</button>
-                    </li>
-                `).join('');
-            }
-        }
-
-        document.getElementById('conferenceReportForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const today = new Date().toISOString().split('T')[0];
-            const crData = {
-                title: document.getElementById('conferenceReportTitle').value,
-                content: document.getElementById('conferenceReportContent').value,
-                date: document.getElementById('conferenceReportDate').value || today
-            };
-            addData('conferenceReports', crData);
-            e.target.reset();
-            document.getElementById('conferenceReportDate').value = today;
-            showNotification('Conference Report added!');
-        });
-
-        // Conference Report Files with Enhanced Viewer
-        function renderConferenceReportFiles() {
-            const ul = document.getElementById('conferenceReportFileList');
-            if (ul) {
-                ul.innerHTML = conferenceReportFiles.map(crf => `
-                    <li class="report-item">
-                        <strong>${crf.title}</strong> - ${crf.fileName} (${crf.date})<br>
-                        <button class="view-btn" onclick="viewConferenceFile(${crf.id})">View</button>
-                        <a href="${crf.fileData}" download="${crf.fileName}" class="file-download-link">Download</a>
-                        <button class="delete-btn" onclick="deleteData('conferenceReportFiles', ${crf.id})">Delete</button>
-                    </li>
-                `).join('');
-            }
-        }
-
-        // Tithe Reports
-        function renderTitheReports() {
-            const ul = document.getElementById('titheReportList');
-            if (ul) {
-                ul.innerHTML = titheReports.map(tr => `
-                    <li class="report-item">
-                        <strong>${tr.title}</strong> - ${tr.date || ''}<br>
-                        ${tr.content || ''}<br>
-                        <button class="delete-btn" onclick="deleteData('titheReports', ${tr.id})">Delete</button>
-                    </li>
-                `).join('');
-            }
-        }
-
-        document.getElementById('titheReportForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const today = new Date().toISOString().split('T')[0];
-            const trData = {
-                title: document.getElementById('titheReportTitle').value,
-                content: document.getElementById('titheReportContent').value,
-                date: document.getElementById('titheReportDate').value || today
-            };
-            addData('titheReports', trData);
-            e.target.reset();
-            document.getElementById('titheReportDate').value = today;
-            showNotification('Tithe Report added!');
-        });
-
-        document.getElementById('generateTitheReportBtn').addEventListener('click', () => {
-            const report = {
-                title: 'Tithe Report - ' + new Date().toLocaleDateString(),
-                content: `Total Tithe: ${calculateTotal(tithes.filter(t => t.type === 'Tithe')).toFixed(2)}\nTotal Offering: ${calculateTotal(tithes.filter(t => t.type === 'Offering')).toFixed(2)}`,
-                date: new Date().toISOString().split('T')[0]
-            };
-            addData('titheReports', report);
-            showNotification('Tithe Report generated!');
-        });
-
-        // Visitors Reports
-        function renderVisitorsReports() {
-            const ul = document.getElementById('visitorsReportList');
-            if (ul) {
-                ul.innerHTML = visitorsReports.map(vr => `
-                    <li class="report-item">
-                        <strong>${vr.title}</strong> - ${vr.date || ''}<br>
-                        ${vr.content || ''}<br>
-                        <button class="delete-btn" onclick="deleteData('visitorsReports', ${vr.id})">Delete</button>
-                    </li>
-                `).join('');
-            }
-        }
-
-        document.getElementById('visitorsReportForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const today = new Date().toISOString().split('T')[0];
-            const vrData = {
-                title: document.getElementById('visitorsReportTitle').value,
-                content: document.getElementById('visitorsReportContent').value,
-                date: document.getElementById('visitorsReportDate').value || today
-            };
-            addData('visitorsReports', vrData);
-            e.target.reset();
-            document.getElementById('visitorsReportDate').value = today;
-            showNotification('Visitors Report added!');
-        });
-
-        document.getElementById('generateVisitorReportBtn').addEventListener('click', () => {
-            const report = {
-                title: 'Visitors Report - ' + new Date().toLocaleDateString(),
-                content: `Total Visitors: ${visitors.length}\nConverted: ${visitors.filter(v => v.status === 'Converted').length}`,
-                date: new Date().toISOString().split('T')[0]
-            };
-            addData('visitorsReports', report);
-            showNotification('Visitors Report generated!');
-        });
-
-        // Attendance functions
-        function renderAttendance() {
-            const tbody = document.getElementById('attendanceTable').querySelector('tbody');
-            if (!tbody) return;
-            const fragment = document.createDocumentFragment();
-            attendance.forEach(record => {
-                const tr = document.createElement('tr');
-                tr.setAttribute('data-id', record.id);
-                tr.innerHTML = `
-                    <td>${record.branch || ''}</td>
-                    <td>${record.date || ''}</td>
-                    <td>${record.youth || 0}</td>
-                    <td>${record.adult || 0}</td>
-                    <td>${record.sundaySchool || 0}</td>
-                    <td>${record.total || 0}</td>
-                    <td><button class="delete-btn" onclick="deleteAttendance(${record.id})">Delete</button></td>
-                `;
-                fragment.appendChild(tr);
-            });
-            tbody.innerHTML = '';
-            tbody.appendChild(fragment);
-        }
-
-        document.getElementById('attendanceForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const today = new Date().toISOString().split('T')[0];
-            const record = {
-                branch: document.getElementById('attendanceBranch').value,
-                youth: parseInt(document.getElementById('youthAttendance').value) || 0,
-                adult: parseInt(document.getElementById('adultAttendance').value) || 0,
-                sundaySchool: parseInt(document.getElementById('sundaySchoolAttendance').value) || 0,
-                date: document.getElementById('attendanceDate').value || today,
-                total: 0
-            };
-            record.total = record.youth + record.adult + record.sundaySchool;
-            addData('attendance', record);
-            e.target.reset();
-            document.getElementById('attendanceDate').value = today;
-            renderAttendance();
-            updateAnalytics();
-            showNotification('Attendance logged!');
-        });
-
-        window.deleteAttendance = function(id) {
-            deleteData('attendance', id);
-            updateAnalytics();
-        };
-
-        // Search attendance
-        document.getElementById('attendanceSearch').addEventListener('input', debounce((e) => {
-            const term = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#attendanceTable tbody tr');
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(term) ? '' : 'none';
-            });
-        }));
-
-        // WhatsApp functions
-        function renderWhatsAppHistory() {
-            const ul = document.getElementById('whatsappList');
-            if (ul) {
-                ul.innerHTML = whatsappHistory.map(wh => `
-                    <li class="whatsapp-item">
-                        <div class="whatsapp-item-details">
-                            To: ${wh.to || ''} - ${wh.date || ''}<br>
-                            ${wh.message || ''}
-                        </div>
-                        <button class="delete-btn" onclick="deleteData('whatsappHistory', ${wh.id})">Delete</button>
-                    </li>
-                `).join('');
-            }
-            // Update broadcast select
-            const bsSelect = document.getElementById('broadcastSelect');
-            if (bsSelect) {
-                bsSelect.innerHTML = [...members, ...visitors].map(p => `<option value="${p.id}">${p.name} (${p.cell || ''})</option>`).join('');
-            }
-        }
-
-        window.fillVisitorTemplate = function(template) {
-            const select = document.getElementById('visitorWhatsAppSelect');
-            const visitor = visitors.find(v => v.id == select.value);
-            const name = visitor ? visitor.name : '[Name]';
-            document.getElementById('visitorWhatsAppMessage').value = template.replace('[Name]', name).replace('[Date]', new Date().toLocaleDateString());
-        };
-
-        document.getElementById('visitorWhatsAppForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const visitorId = document.getElementById('visitorWhatsAppSelect').value;
-            const visitor = visitors.find(v => v.id == visitorId);
-            if (!visitor) return showNotification('Visitor not found!', 'error');
-            const message = document.getElementById('visitorWhatsAppMessage').value;
-            addData('whatsappHistory', {
-                to: visitor.cell,
-                message,
-                date: new Date().toISOString().split('T')[0],
-                type: 'Visitor'
-            });
-            showNotification(`Message sent to ${visitor.name}`);
-            e.target.reset();
-        });
-
-        window.sendBroadcast = function() {
-            const selected = Array.from(document.getElementById('broadcastSelect').selectedOptions).map(opt => opt.value);
-            const message = document.getElementById('broadcastMessage').value;
-            if (selected.length === 0 || !message) return showNotification('Select recipients and enter message!', 'error');
-            selected.forEach(id => {
-                const person = [...members, ...visitors].find(p => p.id == id);
-                if (person) {
-                    addData('whatsappHistory', {
-                        to: person.cell,
-                        message,
-                        date: new Date().toISOString().split('T')[0],
-                        type: 'Broadcast'
-                    });
-                }
-            });
-            showNotification(`${selected.length} messages sent!`);
-            document.getElementById('broadcastForm').reset();
-        };
-
-        window.scheduleBroadcast = function() {
-            showNotification('Scheduling feature coming soon!');
-        };
-
-        // Vault functions
-        function renderVault() {
-            const ul = document.getElementById('vaultList');
-            if (ul) {
-                ul.innerHTML = vault.map(v => `
-                    <li class="report-item">
-                        <strong>${v.title}</strong><br>
-                        ${v.content}<br>
-                        <button class="delete-btn" onclick="deleteData('vault', ${v.id})">Delete</button>
-                    </li>
-                `).join('');
-            }
-        }
-
-        document.getElementById('vaultForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const vaultData = {
-                title: document.getElementById('vaultTitle').value,
-                content: document.getElementById('vaultContent').value
-            };
-            addData('vault', vaultData);
-            e.target.reset();
-            showNotification('Secure note added!');
-        });
-
-        // Enhanced analytics
-        let visitorsChart, conversionChart, titheChart, attendanceChart;
-        function updateAnalytics() {
-            // Stats
-            document.getElementById('totalVisitors').textContent = visitors.length;
-            const converted = visitors.filter(v => v.status === 'Converted').length;
-            document.getElementById('totalConverted').textContent = converted;
-            document.getElementById('conversionRate').textContent = visitors.length ? ((converted / visitors.length) * 100).toFixed(1) + '%' : '0%';
-            document.getElementById('pendingFollowUps').textContent = visitors.filter(v => !v.status || v.status === 'Pending').length;
-
-            const titheData = tithes.filter(t => t.type === 'Tithe');
-            const offeringData = tithes.filter(t => t.type === 'Offering');
-            document.getElementById('totalTithe').textContent = calculateTotal(titheData).toFixed(2);
-            document.getElementById('totalOffering').textContent = calculateTotal(offeringData).toFixed(2);
-            document.getElementById('averageTithe').textContent = titheData.length ? (calculateTotal(titheData) / titheData.length).toFixed(2) : '0';
-
-            const totalAtt = attendance.reduce((sum, a) => sum + (a.total || 0), 0);
-            document.getElementById('totalAttendance').textContent = totalAtt;
-
-            // Charts
-            const allDates = [...new Set([...visitors.map(v => v.visitDate), ...tithes.map(t => t.date), ...attendance.map(a => a.date)])].sort();
-
-            // Visitors Chart
-            const vCtx = document.getElementById('visitorsChart').getContext('2d');
-            if (visitorsChart) visitorsChart.destroy();
-            visitorsChart = new Chart(vCtx, {
-                type: 'line',
-                data: {
-                    labels: allDates,
-                    datasets: [{
-                        label: 'Visitors',
-                        data: allDates.map(d => visitors.filter(v => v.visitDate === d).length),
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        fill: false
-                    }]
-                },
-                options: { responsive: true }
-            });
-
-            // Conversion Chart
-            const statuses = {};
-            visitors.forEach(v => statuses[v.status || 'Pending'] = (statuses[v.status || 'Pending'] || 0) + 1);
-            const cCtx = document.getElementById('conversionChart').getContext('2d');
-            if (conversionChart) conversionChart.destroy();
-            conversionChart = new Chart(cCtx, {
-                type: 'pie',
-                data: {
-                    labels: Object.keys(statuses),
-                    datasets: [{
-                        data: Object.values(statuses),
-                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
-                    }]
-                },
-                options: { responsive: true }
-            });
-
-            // Tithe Chart
-            const tCtx = document.getElementById('titheChart').getContext('2d');
-            if (titheChart) titheChart.destroy();
-            titheChart = new Chart(tCtx, {
-                type: 'line',
-                data: {
-                    labels: allDates,
-                    datasets: [{
-                        label: 'Tithe',
-                        data: allDates.map(d => calculateTotal(titheData.filter(t => t.date === d))),
-                        borderColor: 'green'
-                    }, {
-                        label: 'Offering',
-                        data: allDates.map(d => calculateTotal(offeringData.filter(t => t.date === d))),
-                        borderColor: 'blue'
-                    }]
-                },
-                options: { responsive: true }
-            });
-
-            // Attendance Chart
-            const aCtx = document.getElementById('attendanceChart').getContext('2d');
-            if (attendanceChart) attendanceChart.destroy();
-            attendanceChart = new Chart(aCtx, {
-                type: 'bar',
-                data: {
-                    labels: allDates,
-                    datasets: [{
-                        label: 'Total Attendance',
-                        data: allDates.map(d => attendance.filter(a => a.date === d).reduce((sum, rec) => sum + (rec.total || 0), 0))
-                    }]
-                },
-                options: { responsive: true }
+        function renderLeaves() {
+            const table = document.getElementById('leavesTable');
+            table.innerHTML = '';
+            leaves.forEach((leave, index) => {
+                const emp = employees[leave.empIndex] || { name: 'Deleted Employee' };
+                const disabled = leave.status !== 'Pending' ? 'disabled' : '';
+                table.innerHTML += `<tr><td>${emp.name}</td><td>${leave.start}</td><td>${leave.end}</td><td>${leave.reason}</td><td>${leave.status}</td><td><button class="btn btn-sm btn-success me-1" onclick="approveLeave(${index})" ${disabled}>Approve</button><button class="btn btn-sm btn-danger me-1" onclick="rejectLeave(${index})" ${disabled}>Reject</button><button class="btn btn-sm btn-danger" onclick="deleteLeave(${index})">Delete</button></td></tr>`;
             });
         }
+        function approveLeave(index) {
+            leaves[index].status = 'Approved';
+            localStorage.setItem('leaves', JSON.stringify(leaves));
+            renderLeaves();
+            updateDashboard();
+        }
+        function rejectLeave(index) {
+            leaves[index].status = 'Rejected';
+            localStorage.setItem('leaves', JSON.stringify(leaves));
+            renderLeaves();
+            updateDashboard();
+        }
+        function deleteLeave(index) {
+            if (confirm('Are you sure?')) {
+                leaves.splice(index, 1);
+                localStorage.setItem('leaves', JSON.stringify(leaves));
+                renderLeaves();
+                updateDashboard();
+            }
+        }
 
-        // Search visitors
-        document.getElementById('visitorSearch').addEventListener('input', debounce((e) => {
-            const term = e.target.value.toLowerCase();
-            const rows = document.querySelectorAll('#visitorTable tbody tr');
-            rows.forEach(row => {
-                row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
+        // Benefits Functions
+        function addBenefit() {
+            const name = document.getElementById('benefitName').value;
+            const desc = document.getElementById('benefitDesc').value;
+            if (name && desc) {
+                benefits.push({ name, desc });
+                localStorage.setItem('benefits', JSON.stringify(benefits));
+                renderBenefits();
+                bootstrap.Modal.getInstance(document.getElementById('addBenefitModal')).hide();
+            }
+        }
+        function renderBenefits() {
+            const table = document.getElementById('benefitsTable');
+            table.innerHTML = '';
+            benefits.forEach((ben, index) => {
+                table.innerHTML += `<tr><td>${index + 1}</td><td>${ben.name}</td><td>${ben.desc}</td><td><button class="btn btn-sm btn-danger" onclick="deleteBenefit(${index})">Delete</button></td></tr>`;
             });
-        }));
-
-        // Mock functions for print, export, email
-        function printFolder(folder) { window.print(); }
-        function exportMembers() {
-            const csv = [Object.keys(members[0] || {}).join(',')].concat(members.map(m => Object.values(m).join(','))).join('\n');
-            downloadCSV(csv, 'members.csv');
         }
-        function downloadCSV(csv, filename) {
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-        function toggleFolder(folderId) {
-            const details = document.getElementById(`${folderId}-folder`) || document.querySelector(`[id*="${folderId}"]`);
-            if (details && details.tagName === 'DETAILS') {
-                details.open = !details.open;
+        function deleteBenefit(index) {
+            if (confirm('Are you sure?')) {
+                benefits.splice(index, 1);
+                localStorage.setItem('benefits', JSON.stringify(benefits));
+                renderBenefits();
             }
         }
 
-        // Additional mock exports/prints
-        ['exportVisitors', 'exportFollowUps', 'exportReminders', 'exportTithes', 'exportAttendance', 'exportEvents', 'exportAdmin', 'exportWhatsApp', 'exportVault', 'exportMinistryLeaders', 'exportCellLeaders', 'exportElders', 'exportPastors', 'exportBranchCoordinators', 'exportConferenceReports', 'exportTitheReports', 'exportVisitorsReports'].forEach(fn => window[fn] = () => showNotification(`${fn} feature coming soon!`));
-        ['printAttendance', 'printTithes', 'printEvents', 'printAdmin', 'printWhatsApp', 'printVault'].forEach(fn => window[fn] = () => window.print());
-
-        // Initialize
-        if (db) loadAllData();
-
-        // Initialize sample events
-        function initSampleData() {
-            if (events.length === 0) {
-                addData('events', {title: 'September Conference', description: 'Annual September Conference', date: '2025-09-15', branch: 'All', organizer: 'Church Admin'});
-                addData('events', {title: 'Easter Conference', description: 'Easter Conference', date: '2025-04-20', branch: 'All', organizer: 'Church Admin'});
-                addData('events', {title: 'Combined Service', description: 'Combined Service', date: '2025-10-31', branch: 'All', organizer: 'Church Admin'});
+        // Training Functions
+        function addCourse() {
+            const title = document.getElementById('courseTitle').value;
+            const desc = document.getElementById('courseDesc').value;
+            const empIndex = document.getElementById('courseEmpId').value;
+            if (title && desc) {
+                courses.push({ title, desc, empIndex });
+                localStorage.setItem('courses', JSON.stringify(courses));
+                renderCourses();
+                bootstrap.Modal.getInstance(document.getElementById('addCourseModal')).hide();
             }
         }
-        // Call after loadAllData
-        setTimeout(initSampleData, 1000);
+        function renderCourses() {
+            const table = document.getElementById('trainingTable');
+            table.innerHTML = '';
+            courses.forEach((course, index) => {
+                const emp = employees[course.empIndex] || { name: 'Unassigned' };
+                table.innerHTML += `<tr><td>${index + 1}</td><td>${course.title}</td><td>${course.desc}</td><td>${emp.name}</td><td><button class="btn btn-sm btn-danger" onclick="deleteCourse(${index})">Delete</button></td></tr>`;
+            });
+        }
+        function deleteCourse(index) {
+            if (confirm('Are you sure?')) {
+                courses.splice(index, 1);
+                localStorage.setItem('courses', JSON.stringify(courses));
+                renderCourses();
+            }
+        }
+
+        // Reports Functions
+        function generateEmployeeReport() {
+            let output = '<h4>Employee Report</h4><table class="table"><thead><tr><th>Name</th><th>Position</th><th>Department</th><th>Salary</th><th>Join Date</th><th>Email</th></tr></thead><tbody>';
+            employees.forEach(emp => {
+                output += `<tr><td>${emp.name}</td><td>${emp.position}</td><td>${emp.department}</td><td>${emp.salary}</td><td>${emp.joinDate}</td><td>${emp.email}</td></tr>`;
+            });
+            output += '</tbody></table>';
+            document.getElementById('reportOutput').innerHTML = output;
+        }
+        function generatePayrollReport() {
+            let output = '<h4>Payroll Report</h4><table class="table"><thead><tr><th>Employee</th><th>Net Pay</th><th>Date</th></tr></thead><tbody>';
+            payrolls.forEach(pay => {
+                const emp = employees[pay.empIndex] || { name: 'Deleted' };
+                output += `<tr><td>${emp.name}</td><td>${pay.netPay.toFixed(2)}</td><td>${pay.date}</td></tr>`;
+            });
+            output += '</tbody></table>';
+            document.getElementById('reportOutput').innerHTML = output;
+        }
+        function generateAttendanceReport() {
+            let output = '<h4>Attendance Report</h4><table class="table"><thead><tr><th>Employee</th><th>Date</th><th>Hours</th></tr></thead><tbody>';
+            attendances.forEach(att => {
+                const emp = employees[att.empIndex] || { name: 'Deleted' };
+                output += `<tr><td>${emp.name}</td><td>${att.date}</td><td>${att.hours}</td></tr>`;
+            });
+            output += '</tbody></table>';
+            document.getElementById('reportOutput').innerHTML = output;
+        }
+
+        // Settings Functions
+        function renderSettings() {
+            document.getElementById('companyName').value = settings.companyName;
+            document.getElementById('taxRate').value = settings.taxRate;
+            document.getElementById('darkMode').checked = settings.darkMode;
+        }
+        function saveSettings() {
+            settings.companyName = document.getElementById('companyName').value;
+            settings.taxRate = parseFloat(document.getElementById('taxRate').value);
+            settings.darkMode = document.getElementById('darkMode').checked;
+            localStorage.setItem('settings', JSON.stringify(settings));
+            applyTheme();
+            alert('Settings saved!');
+        }
+
+        // Dashboard Functions
+        function updateDashboard() {
+            document.getElementById('totalEmployees').textContent = employees.length;
+            document.getElementById('openPositions').textContent = jobs.filter(j => j.status === 'Open').length;
+            const avgScore = reviews.length > 0 ? (reviews.reduce((sum, rev) => sum + rev.score, 0) / reviews.length).toFixed(1) : 0;
+            document.getElementById('avgPerformance').textContent = `${avgScore}/5`;
+            document.getElementById('pendingLeaves').textContent = leaves.filter(l => l.status === 'Pending').length;
+
+            // Update Chart with New Employees per Month
+            const now = new Date();
+            const labels = [];
+            const data = [];
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                labels.push(date.toLocaleString('default', { month: 'short' }));
+                const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+                const count = employees.filter(emp => {
+                    if (!emp.joinDate) return false;
+                    const jd = new Date(emp.joinDate);
+                    return jd >= date && jd < nextMonth;
+                }).length;
+                data.push(count);
+            }
+            dashboardChart.data.labels = labels;
+            dashboardChart.data.datasets[0].data = data;
+            dashboardChart.data.datasets[0].label = 'New Employees';
+            dashboardChart.update();
+        }
+        const ctx = document.getElementById('dashboardChart').getContext('2d');
+        const dashboardChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: 'New Employees', data: [], borderColor: '#0d6efd', fill: false }] },
+            options: { scales: { y: { beginAtZero: true } }, responsive: true }
+        });
+
+        // Logout
+        function logout() {
+            if (confirm('Logout?')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        // Initial Load
+        applyTheme();
+        document.getElementById('payEmpId').addEventListener('change', (e) => {
+            const index = e.target.value;
+            if (index !== '') {
+                document.getElementById('paySalary').value = employees[index].salary || '';
+            }
+        });
+        renderEmployees();
+        renderPayrolls();
+        renderJobs();
+        renderReviews();
+        renderAttendances();
+        renderLeaves();
+        renderBenefits();
+        renderCourses();
+        updateDashboard();
+        showSection('dashboard');
     </script>
 </body>
 </html>
