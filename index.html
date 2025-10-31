@@ -11,6 +11,8 @@
     <script src="https://cdn.jsdelivr.net/npm/mammoth@1.4.2/mammoth.browser.min.js"></script>
     <!-- Stripe for payment gateway -->
     <script src="https://js.stripe.com/v3/"></script>
+    <!-- PayPal SDK -->
+    <script src="https://www.paypal.com/sdk/js?client-id=YOUR_PAYPAL_CLIENT_ID&currency=USD&intent=capture"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -517,6 +519,15 @@
         .recurring-option {
             margin: 10px 0;
         }
+        .payment-method {
+            display: none;
+        }
+        .payment-method.active {
+            display: block;
+        }
+        #paypal-button-container {
+            margin: 10px 0;
+        }
         .conference-file-upload {
             margin-bottom: 20px;
         }
@@ -541,7 +552,7 @@
             font-size: 0.9em;
             margin-right: 5px;
         }
-        /* File Viewer Modal */
+        /* Enhanced File Viewer Modal */
         #fileViewerModal {
             display: none;
             position: fixed;
@@ -559,9 +570,10 @@
             padding: 20px;
             border-radius: 10px;
             width: 90%;
-            max-width: 900px;
+            max-width: 1200px;
             max-height: 90vh;
             overflow: auto;
+            position: relative;
         }
         .file-viewer-content iframe,
         .file-viewer-content canvas,
@@ -569,6 +581,7 @@
             width: 100%;
             height: auto;
             border: 1px solid #ddd;
+            max-width: 100%;
         }
         .file-viewer-content .close-viewer {
             color: #aaa;
@@ -583,6 +596,46 @@
         .viewer-loading {
             text-align: center;
             padding: 50px;
+        }
+        .viewer-toolbar {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .viewer-toolbar button {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            background-color: #3498db;
+            color: white;
+        }
+        .viewer-toolbar button:hover {
+            background-color: #2980b9;
+        }
+        .viewer-toolbar input[type="number"] {
+            width: 60px;
+            padding: 5px;
+        }
+        .pdf-page-nav {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .pdf-canvas {
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            display: block;
+            margin: 0 auto;
+        }
+        .zoom-controls {
+            display: flex;
+            gap: 5px;
+        }
+        .docx-content, .xlsx-content {
+            overflow-x: auto;
         }
     </style>
 </head>
@@ -1090,8 +1143,8 @@
         </table>
         <div class="total">Total Tithe: $<span id="totalTitheDisplay">0.00</span> | Total Offering: $<span id="totalOfferingDisplay">0.00</span></div>
         <button id="generateTitheReportBtn" class="generate-report-btn">Generate Tithe Report 📊</button>
-        <!-- Advanced Payment Gateway Integration -->
-        <button class="generate-report-btn" onclick="openPaymentModal()">Donate Online (Advanced Gateway)</button>
+        <!-- Advanced Payment Gateway Integration with PayPal -->
+        <button class="generate-report-btn" onclick="openPaymentModal()">Donate Online (Stripe or PayPal)</button>
         <div class="folder-actions">
             <button class="print-btn" onclick="printTithes()">Print</button>
             <button class="export-btn" onclick="exportTithes()">Export</button>
@@ -1431,7 +1484,7 @@
                 <div class="conference-file-upload">
                     <h4>Upload File Report</h4>
                     <form id="conferenceReportUploadForm">
-                        <input type="text" id="conferenceReportTitle" placeholder="File Title" required>
+                        <input type="text" id="fileReportTitle" placeholder="File Title" required>
                         <input type="file" id="conferenceReportFile" accept=".pdf,.docx,.xlsx" required>
                         <button type="submit">Upload File</button>
                     </form>
@@ -1471,7 +1524,7 @@
         </details>
     </div>
 
-    <!-- Advanced Payment Modal -->
+    <!-- Enhanced Payment Modal with PayPal -->
     <div id="paymentModal">
         <div class="payment-modal-content">
             <span onclick="closePaymentModal()" style="float: right; cursor: pointer; font-size: 24px;">&times;</span>
@@ -1488,18 +1541,37 @@
                 <input type="text" id="donorName" placeholder="Your Name">
                 <label for="donorEmail">Donor Email (for receipt):</label>
                 <input type="email" id="donorEmail" placeholder="your@email.com">
-                <div id="card-element"></div>
-                <div id="card-errors"></div>
-                <button type="submit">Process Secure Payment</button>
+                <div>
+                    <label><input type="radio" name="paymentMethod" value="stripe" checked onchange="togglePaymentMethod()"> Credit Card (Stripe)</label>
+                    <label><input type="radio" name="paymentMethod" value="paypal" onchange="togglePaymentMethod()"> PayPal</label>
+                </div>
+                <div id="stripe-payment" class="payment-method active">
+                    <div id="card-element"></div>
+                    <div id="card-errors"></div>
+                    <button type="submit">Process with Stripe</button>
+                </div>
+                <div id="paypal-payment" class="payment-method">
+                    <div id="paypal-button-container"></div>
+                </div>
             </form>
-            <p><small>Powered by Stripe. Secure and PCI compliant.</small></p>
+            <p><small>Powered by Stripe and PayPal. Secure and PCI compliant.</small></p>
         </div>
     </div>
 
-    <!-- File Viewer Modal -->
+    <!-- Enhanced File Viewer Modal -->
     <div id="fileViewerModal">
         <div class="file-viewer-content">
             <span class="close-viewer" onclick="closeFileViewer()">&times;</span>
+            <div class="viewer-toolbar" id="viewerToolbar" style="display: none;">
+                <button onclick="zoomIn()">Zoom In</button>
+                <button onclick="zoomOut()">Zoom Out</button>
+                <input type="number" id="zoomLevel" value="100" min="50" max="300" onchange="setZoom(this.value)">%
+                <div class="pdf-page-nav" id="pdfNav" style="display: none;">
+                    <button onclick="prevPage()">Previous</button>
+                    <span id="pageInfo"></span>
+                    <button onclick="nextPage()">Next</button>
+                </div>
+            </div>
             <div id="fileViewerContent" class="viewer-loading">Loading...</div>
         </div>
     </div>
@@ -1524,6 +1596,12 @@
 
         // Global data stores
         let members = [], visitors = [], followUps = [], reminders = [], tithes = [], attendance = [], events = [], employees = [], assignments = [], leaves = [], leaders = [], pastors = [], cells = [], elders = [], reports = [], whatsappHistory = [], vault = [], ministryLeaders = [], cellLeaders = [], branchCoordinators = [], conferenceReports = [], titheReports = [], visitorsReports = [], conferenceBudgets = [], conferenceReportFiles = [];
+
+        // Enhanced viewer globals
+        let currentScale = 1;
+        let currentPdf = null;
+        let currentPage = 1;
+        let totalPages = 0;
 
         // Debounce utility
         function debounce(func, wait = 300) {
@@ -1779,20 +1857,23 @@
             });
 
             // Conference Report Upload
-            document.getElementById('conferenceReportUploadForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const file = document.getElementById('conferenceReportFile').files[0];
-                const title = document.getElementById('conferenceReportTitle').value;
-                if (!file || !title) return showNotification('Title and file required!', 'error');
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const fileData = e.target.result;
-                    addData('conferenceReportFiles', { title, fileName: file.name, fileType: file.type, fileData, date: new Date().toISOString().split('T')[0] });
-                    showNotification('Conference report uploaded!');
-                    e.target.reset();
-                };
-                reader.readAsDataURL(file);
-            });
+            const uploadForm = document.getElementById('conferenceReportUploadForm');
+            if (uploadForm) {
+                uploadForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const file = document.getElementById('conferenceReportFile').files[0];
+                    const title = document.getElementById('fileReportTitle').value;
+                    if (!file || !title) return showNotification('Title and file required!', 'error');
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const fileData = e.target.result;
+                        addData('conferenceReportFiles', { title, fileName: file.name, fileType: file.type, fileData, date: new Date().toISOString().split('T')[0] });
+                        showNotification('Conference report uploaded!');
+                        uploadForm.reset();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
 
             // Advanced Stripe Elements for Payment
             const stripe = Stripe('pk_test_your_publishable_key_here'); // Replace with real key
@@ -1805,8 +1886,42 @@
                 displayError.textContent = event.error ? event.error.message : '';
             });
 
+            // PayPal Button
+            paypal.Buttons({
+                createOrder: function(data, actions) {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: document.getElementById('donationAmount').value || '10.00'
+                            }
+                        }]
+                    });
+                },
+                onApprove: function(data, actions) {
+                    return actions.order.capture().then(function(details) {
+                        console.log('PayPal Payment:', details);
+                        showNotification(`PayPal Payment successful! $${document.getElementById('donationAmount').value} from ${details.payer.name.given_name}. (Demo - Integrate with backend)`);
+                        closePaymentModal();
+                        const today = new Date().toISOString().split('T')[0];
+                        addData('tithes', {
+                            memberName: details.payer.name.given_name || 'PayPal Donor',
+                            type: 'Offering',
+                            amount: document.getElementById('donationAmount').value,
+                            date: today,
+                            branch: 'Online',
+                            paymentMethod: 'PayPal'
+                        });
+                    });
+                },
+                onError: function(err) {
+                    console.error('PayPal Error:', err);
+                    showNotification('PayPal payment failed!', 'error');
+                }
+            }).render('#paypal-button-container');
+
             document.getElementById('paymentForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                if (document.querySelector('input[name="paymentMethod"]:checked').value !== 'stripe') return;
                 const amount = document.getElementById('donationAmount').value * 100; // Cents
                 const recurring = document.querySelector('input[name="recurring"]:checked').value;
                 const donorName = document.getElementById('donorName').value;
@@ -1817,11 +1932,10 @@
                 if (error) {
                     displayError.textContent = error.message;
                 } else {
-                    // Simulate backend call - in real app, send paymentMethod.id and recurring to server for SetupIntent or PaymentIntent
-                    console.log('PaymentMethod:', paymentMethod, 'Recurring:', recurring);
-                    showNotification(`Payment successful! ${recurring} donation of $${document.getElementById('donationAmount').value} processed. Receipt sent to ${donorEmail || 'email'}. (Demo - Integrate with backend for real processing)`);
+                    // Simulate backend call
+                    console.log('Stripe PaymentMethod:', paymentMethod, 'Recurring:', recurring);
+                    showNotification(`Stripe Payment successful! ${recurring} donation of $${document.getElementById('donationAmount').value} processed. Receipt sent to ${donorEmail || 'email'}. (Demo - Integrate with backend)`);
                     closePaymentModal();
-                    // Optionally add to tithes
                     const today = new Date().toISOString().split('T')[0];
                     addData('tithes', {
                         memberName: donorName || 'Online Donor',
@@ -1829,15 +1943,23 @@
                         amount: document.getElementById('donationAmount').value,
                         date: today,
                         branch: 'Online',
-                        recurring: recurring
+                        recurring: recurring,
+                        paymentMethod: 'Stripe'
                     });
                 }
             });
         });
 
+        function togglePaymentMethod() {
+            const selected = document.querySelector('input[name="paymentMethod"]:checked').value;
+            document.getElementById('stripe-payment').classList.toggle('active', selected === 'stripe');
+            document.getElementById('paypal-payment').classList.toggle('active', selected === 'paypal');
+        }
+
         // Enhanced Payment Modal Functions
         function openPaymentModal() {
             document.getElementById('paymentModal').style.display = 'block';
+            togglePaymentMethod(); // Ensure correct display
         }
 
         function closePaymentModal() {
@@ -1846,14 +1968,18 @@
             document.getElementById('card-errors').textContent = '';
         }
 
-        // File Viewer Functions
+        // Enhanced File Viewer Functions
         window.viewConferenceFile = async function(id) {
             const file = conferenceReportFiles.find(f => f.id === id);
             if (!file) return;
             const modal = document.getElementById('fileViewerModal');
             const content = document.getElementById('fileViewerContent');
+            const toolbar = document.getElementById('viewerToolbar');
             content.innerHTML = '<div class="viewer-loading">Loading file...</div>';
+            toolbar.style.display = 'none';
             modal.style.display = 'block';
+            currentScale = 1;
+            document.getElementById('zoomLevel').value = 100;
 
             try {
                 const response = await fetch(file.fileData);
@@ -1861,41 +1987,92 @@
                 const url = URL.createObjectURL(blob);
 
                 if (file.fileType === 'application/pdf') {
-                    // Render PDF
-                    const pdf = await pdfjsLib.getDocument(url).promise;
-                    content.innerHTML = '';
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
-                        const viewport = page.getViewport({ scale: 1.5 });
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
-                        await page.render({ canvasContext: context, viewport }).promise;
-                        content.appendChild(canvas);
-                    }
+                    // Enhanced PDF Rendering
+                    currentPdf = await pdfjsLib.getDocument(url).promise;
+                    totalPages = currentPdf.numPages;
+                    toolbar.style.display = 'flex';
+                    document.getElementById('pdfNav').style.display = 'flex';
+                    renderPdfPage(currentPage);
                 } else if (file.fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                    // Render DOCX
+                    // Enhanced DOCX
                     const arrayBuffer = await blob.arrayBuffer();
                     const result = await mammoth.convertToHtml({ arrayBuffer });
-                    content.innerHTML = result.value;
+                    content.innerHTML = `<div class="docx-content">${result.value}</div>`;
+                    toolbar.style.display = 'flex';
+                    document.getElementById('pdfNav').style.display = 'none';
                 } else if (file.fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-                    // Render XLSX
+                    // Enhanced XLSX
                     const arrayBuffer = await blob.arrayBuffer();
                     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const html = XLSX.utils.sheet_to_html(sheet);
-                    content.innerHTML = html;
+                    const html = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
+                    content.innerHTML = `<div class="xlsx-content">${html}</div>`;
+                    toolbar.style.display = 'flex';
+                    document.getElementById('pdfNav').style.display = 'none';
                 } else {
                     content.innerHTML = '<iframe src="' + url + '" style="width:100%; height:500px;"></iframe>';
+                    toolbar.style.display = 'none';
                 }
             } catch (error) {
                 content.innerHTML = `<p>Error viewing file: ${error.message}</p>`;
             }
         };
 
+        function renderPdfPage(pageNum) {
+            currentPdf.getPage(pageNum).then(page => {
+                const content = document.getElementById('fileViewerContent');
+                const viewport = page.getViewport({ scale: currentScale });
+                const canvas = document.createElement('canvas');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                canvas.className = 'pdf-canvas';
+                const context = canvas.getContext('2d');
+                const renderContext = { canvasContext: context, viewport };
+                page.render(renderContext).promise.then(() => {
+                    content.innerHTML = '';
+                    content.appendChild(canvas);
+                    document.getElementById('pageInfo').textContent = `${pageNum} / ${totalPages}`;
+                });
+            });
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderPdfPage(currentPage);
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderPdfPage(currentPage);
+            }
+        }
+
+        function zoomIn() {
+            currentScale += 0.2;
+            document.getElementById('zoomLevel').value = Math.round(currentScale * 100);
+            renderPdfPage(currentPage);
+        }
+
+        function zoomOut() {
+            if (currentScale > 0.5) {
+                currentScale -= 0.2;
+                document.getElementById('zoomLevel').value = Math.round(currentScale * 100);
+                renderPdfPage(currentPage);
+            }
+        }
+
+        function setZoom(value) {
+            currentScale = value / 100;
+            renderPdfPage(currentPage);
+        }
+
         function closeFileViewer() {
             document.getElementById('fileViewerModal').style.display = 'none';
+            currentPdf = null;
+            currentPage = 1;
+            totalPages = 0;
         }
 
         // Member functions
@@ -2391,7 +2568,7 @@
             showNotification('Conference Report added!');
         });
 
-        // Conference Report Files with Viewer
+        // Conference Report Files with Enhanced Viewer
         function renderConferenceReportFiles() {
             const ul = document.getElementById('conferenceReportFileList');
             if (ul) {
