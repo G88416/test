@@ -498,11 +498,11 @@
         }
         .payment-modal-content {
             background-color: white;
-            margin: 15% auto;
+            margin: 5% auto;
             padding: 20px;
             border-radius: 10px;
             width: 90%;
-            max-width: 400px;
+            max-width: 500px;
         }
         #card-element {
             padding: 10px;
@@ -513,6 +513,9 @@
         #card-errors {
             color: red;
             margin-top: 10px;
+        }
+        .recurring-option {
+            margin: 10px 0;
         }
         .conference-file-upload {
             margin-bottom: 20px;
@@ -527,6 +530,59 @@
         }
         .file-download-link:hover {
             text-decoration: underline;
+        }
+        .view-btn {
+            background-color: #9b59b6;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-right: 5px;
+        }
+        /* File Viewer Modal */
+        #fileViewerModal {
+            display: none;
+            position: fixed;
+            z-index: 2001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            overflow: auto;
+        }
+        .file-viewer-content {
+            background-color: white;
+            margin: 2% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: auto;
+        }
+        .file-viewer-content iframe,
+        .file-viewer-content canvas,
+        .file-viewer-content table {
+            width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+        }
+        .file-viewer-content .close-viewer {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .file-viewer-content .close-viewer:hover {
+            color: black;
+        }
+        .viewer-loading {
+            text-align: center;
+            padding: 50px;
         }
     </style>
 </head>
@@ -1034,8 +1090,8 @@
         </table>
         <div class="total">Total Tithe: $<span id="totalTitheDisplay">0.00</span> | Total Offering: $<span id="totalOfferingDisplay">0.00</span></div>
         <button id="generateTitheReportBtn" class="generate-report-btn">Generate Tithe Report 📊</button>
-        <!-- Payment Gateway Integration -->
-        <button class="generate-report-btn" onclick="openPaymentModal()">Donate Online (Credit Card)</button>
+        <!-- Advanced Payment Gateway Integration -->
+        <button class="generate-report-btn" onclick="openPaymentModal()">Donate Online (Advanced Gateway)</button>
         <div class="folder-actions">
             <button class="print-btn" onclick="printTithes()">Print</button>
             <button class="export-btn" onclick="exportTithes()">Export</button>
@@ -1272,11 +1328,6 @@
                 </details>
             </div>
         </div>
-        <div class="folder-actions">
-            <button class="print-btn" onclick="printAdmin()">Print All</button>
-            <button class="export-btn" onclick="exportAdmin()">Export All</button>
-            <button class="email-btn" onclick="emailAdmin()">Email All</button>
-        </div>
     </div>
 
     <div id="attendance" class="content">
@@ -1292,10 +1343,10 @@
         </div>
         <div class="search-container">
             <h3>Search Attendance</h3>
-            <input type="text" id="attendanceSearch" placeholder="Search by branch or date..." >
+            <input type="text" id="attendanceSearch" placeholder="Search by branch or date...">
         </div>
-        <form id="attendanceForm" class="attendance-form">
-            <select id="attendanceBranch" required>
+        <form class="attendance-form" id="attendanceForm">
+            <select id="attendanceBranch">
                 <option value="">Select Branch</option>
                 <option value="Khutsong">Khutsong</option>
                 <option value="Mamelodi EXT5">Mamelodi EXT5</option>
@@ -1306,11 +1357,11 @@
                 <option value="Nelmaphius ext4">Nelmaphius ext4</option>
                 <option value="Nelmaphius ext 6">Nelmaphius ext 6</option>
             </select>
+            <input type="date" id="attendanceDate" required>
             <input type="number" id="youthAttendance" placeholder="Youth Attendance" min="0">
             <input type="number" id="adultAttendance" placeholder="Adult Attendance" min="0">
             <input type="number" id="sundaySchoolAttendance" placeholder="Sunday School Attendance" min="0">
-            <input type="date" id="attendanceDate" required>
-            <button type="submit">Record Attendance</button>
+            <button type="submit">Log Attendance</button>
         </form>
         <table id="attendanceTable">
             <thead>
@@ -1325,7 +1376,7 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Attendance will be added here -->
+                <!-- Attendance records will be added here -->
             </tbody>
         </table>
     </div>
@@ -1337,7 +1388,7 @@
             <div class="folder-content">
                 <form id="broadcastForm" class="broadcast-form">
                     <select id="broadcastSelect" multiple class="broadcast-select" required></select>
-                    <textarea id="broadcastMessage" placeholder="Broadcast message..." required></textarea>
+                    <textarea id="broadcastMessage" placeholder="Enter broadcast message..." required></textarea>
                     <div class="broadcast-actions">
                         <button type="button" class="broadcast-btn" onclick="sendBroadcast()">Send Now</button>
                         <button type="button" class="broadcast-btn" onclick="scheduleBroadcast()">Schedule</button>
@@ -1352,26 +1403,17 @@
 
     <div id="vault" class="content">
         <h2>Vault</h2>
-        <details id="conference-reports-folder">
-            <summary>Conference Reports Upload</summary>
+        <details id="secure-notes-folder">
+            <summary>Secure Notes</summary>
             <div class="folder-content">
-                <p>Supported: PDF, DOCX, XLSX</p>
-                <div class="conference-file-upload">
-                    <form id="conferenceReportUploadForm">
-                        <input type="text" id="conferenceReportTitle" placeholder="Report Title" required>
-                        <input type="file" id="conferenceReportFile" accept=".pdf,.docx,.xlsx" required>
-                        <button type="submit">Upload Conference Report</button>
-                    </form>
-                </div>
-                <ul id="conferenceReportList" class="report-list">
-                    <!-- Conference reports will be added here -->
+                <form id="vaultForm">
+                    <input type="text" id="vaultTitle" placeholder="Note Title" required>
+                    <textarea id="vaultContent" placeholder="Secure content..." required></textarea>
+                    <button type="submit">Add Secure Note</button>
+                </form>
+                <ul id="vaultList" class="report-list">
+                    <!-- Secure notes will be added here -->
                 </ul>
-                <div class="folder-actions">
-                    <button class="print-btn" onclick="printFolder('conference-reports')">Print</button>
-                    <button class="export-btn" onclick="exportConferenceReports()">Export</button>
-                    <button class="email-btn" onclick="emailConferenceReports()">Email</button>
-                    <button class="minimize-btn" onclick="toggleFolder('conference-reports')">Minimize</button>
-                </div>
             </div>
         </details>
         <details id="conference-reports-folder">
@@ -1379,19 +1421,24 @@
             <div class="folder-content">
                 <form id="conferenceReportForm">
                     <input type="text" id="conferenceReportTitle" placeholder="Report Title" required>
-                    <textarea id="conferenceReportContent" placeholder="Report Content" required></textarea>
-                    <input type="date" id="conferenceReportDate" required>
-                    <button type="submit">Add Conference Report</button>
+                    <textarea id="conferenceReportContent" placeholder="Report Content"></textarea>
+                    <input type="date" id="conferenceReportDate">
+                    <button type="submit">Add Text Report</button>
                 </form>
                 <ul id="conferenceReportList" class="report-list">
-                    <!-- Conference Reports will be added here -->
+                    <!-- Conference reports will be added here -->
                 </ul>
-                <div class="folder-actions">
-                    <button class="print-btn" onclick="printFolder('conference-reports')">Print</button>
-                    <button class="export-btn" onclick="exportConferenceReports()">Export</button>
-                    <button class="email-btn" onclick="emailConferenceReports()">Email</button>
-                    <button class="minimize-btn" onclick="toggleFolder('conference-reports')">Minimize</button>
+                <div class="conference-file-upload">
+                    <h4>Upload File Report</h4>
+                    <form id="conferenceReportUploadForm">
+                        <input type="text" id="conferenceReportTitle" placeholder="File Title" required>
+                        <input type="file" id="conferenceReportFile" accept=".pdf,.docx,.xlsx" required>
+                        <button type="submit">Upload File</button>
+                    </form>
                 </div>
+                <ul id="conferenceReportFileList" class="report-list">
+                    <!-- Conference file reports will be added here -->
+                </ul>
             </div>
         </details>
         <details id="tithe-reports-folder">
@@ -1399,19 +1446,13 @@
             <div class="folder-content">
                 <form id="titheReportForm">
                     <input type="text" id="titheReportTitle" placeholder="Report Title" required>
-                    <textarea id="titheReportContent" placeholder="Report Content" required></textarea>
-                    <input type="date" id="titheReportDate" required>
+                    <textarea id="titheReportContent" placeholder="Report Content"></textarea>
+                    <input type="date" id="titheReportDate">
                     <button type="submit">Add Tithe Report</button>
                 </form>
                 <ul id="titheReportList" class="report-list">
-                    <!-- Tithe Reports will be added here -->
+                    <!-- Tithe reports will be added here -->
                 </ul>
-                <div class="folder-actions">
-                    <button class="print-btn" onclick="printFolder('tithe-reports')">Print</button>
-                    <button class="export-btn" onclick="exportTitheReports()">Export</button>
-                    <button class="email-btn" onclick="emailTitheReports()">Email</button>
-                    <button class="minimize-btn" onclick="toggleFolder('tithe-reports')">Minimize</button>
-                </div>
             </div>
         </details>
         <details id="visitors-reports-folder">
@@ -1419,77 +1460,69 @@
             <div class="folder-content">
                 <form id="visitorsReportForm">
                     <input type="text" id="visitorsReportTitle" placeholder="Report Title" required>
-                    <textarea id="visitorsReportContent" placeholder="Report Content" required></textarea>
-                    <input type="date" id="visitorsReportDate" required>
+                    <textarea id="visitorsReportContent" placeholder="Report Content"></textarea>
+                    <input type="date" id="visitorsReportDate">
                     <button type="submit">Add Visitors Report</button>
                 </form>
                 <ul id="visitorsReportList" class="report-list">
-                    <!-- Visitors Reports will be added here -->
+                    <!-- Visitors reports will be added here -->
                 </ul>
-                <div class="folder-actions">
-                    <button class="print-btn" onclick="printFolder('visitors-reports')">Print</button>
-                    <button class="export-btn" onclick="exportVisitorsReports()">Export</button>
-                    <button class="email-btn" onclick="emailVisitorsReports()">Email</button>
-                    <button class="minimize-btn" onclick="toggleFolder('visitors-reports')">Minimize</button>
-                </div>
             </div>
         </details>
-        <form id="vaultForm">
-            <input type="text" id="vaultTitle" placeholder="Title" required>
-            <textarea id="vaultContent" placeholder="Secure content..." required></textarea>
-            <button type="submit">Add Secure Note</button>
-        </form>
-        <ul id="vaultList" class="report-list">
-            <!-- Vault items will be added here -->
-        </ul>
-        <div class="folder-actions">
-            <button class="print-btn" onclick="printVault()">Print</button>
-            <button class="export-btn" onclick="exportVault()">Export</button>
-        </div>
     </div>
 
-    <!-- Payment Modal -->
-    <div id="paymentModal" class="payment-modal">
+    <!-- Advanced Payment Modal -->
+    <div id="paymentModal">
         <div class="payment-modal-content">
-            <h3>Secure Donation</h3>
+            <span onclick="closePaymentModal()" style="float: right; cursor: pointer; font-size: 24px;">&times;</span>
+            <h3>Secure Online Donation</h3>
             <form id="paymentForm">
-                <input type="number" id="donationAmount" placeholder="Donation Amount ($)" step="0.01" required>
+                <label for="donationAmount">Donation Amount ($):</label>
+                <input type="number" id="donationAmount" placeholder="e.g., 50.00" step="0.01" required>
+                <div class="recurring-option">
+                    <label><input type="radio" name="recurring" value="one-time" checked> One-Time Donation</label>
+                    <label><input type="radio" name="recurring" value="monthly"> Monthly Recurring</label>
+                    <label><input type="radio" name="recurring" value="yearly"> Yearly Recurring</label>
+                </div>
+                <label for="donorName">Donor Name (Optional):</label>
+                <input type="text" id="donorName" placeholder="Your Name">
+                <label for="donorEmail">Donor Email (for receipt):</label>
+                <input type="email" id="donorEmail" placeholder="your@email.com">
                 <div id="card-element"></div>
-                <div id="card-errors" role="alert"></div>
-                <button type="submit">Pay Now</button>
-                <button type="button" onclick="closePaymentModal()">Cancel</button>
+                <div id="card-errors"></div>
+                <button type="submit">Process Secure Payment</button>
             </form>
+            <p><small>Powered by Stripe. Secure and PCI compliant.</small></p>
         </div>
     </div>
 
+    <!-- File Viewer Modal -->
+    <div id="fileViewerModal">
+        <div class="file-viewer-content">
+            <span class="close-viewer" onclick="closeFileViewer()">&times;</span>
+            <div id="fileViewerContent" class="viewer-loading">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Notification -->
     <div id="notification" class="notification"></div>
 
     <script>
-        // Set PDF.js worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
-        // Stripe initialization (Replace 'pk_test_...' with your publishable key)
-        const stripe = Stripe('pk_test_51ABC123...'); // Demo key - replace with real one
-
-        // Enhanced JavaScript with fixes, attendance changes, analytics enhancements, and bulk import with viewer/parser
-        var db;
+        // IndexedDB setup
+        let db;
         const request = indexedDB.open('ChurchDB', 1);
         request.onerror = () => console.error('Database failed to open');
-        request.onsuccess = () => {
-            db = request.result;
-            loadAllData();
-        };
+        request.onsuccess = () => { db = request.result; loadAllData(); };
         request.onupgradeneeded = (e) => {
             db = e.target.result;
-            const stores = ['members', 'visitors', 'followUps', 'reminders', 'tithes', 'attendance', 'events', 'employees', 'assignments', 'leaves', 'leaders', 'pastors', 'cells', 'elders', 'reports', 'whatsappHistory', 'vault', 'ministryLeaders', 'cellLeaders', 'branchCoordinators', 'conferenceReports', 'titheReports', 'visitorsReports', 'conferenceBudgets', 'conferenceReportFiles'];
-            stores.forEach(storeName => {
+            ['members', 'visitors', 'followUps', 'reminders', 'tithes', 'attendance', 'events', 'employees', 'assignments', 'leaves', 'leaders', 'pastors', 'cells', 'elders', 'reports', 'whatsappHistory', 'vault', 'ministryLeaders', 'cellLeaders', 'branchCoordinators', 'conferenceReports', 'titheReports', 'visitorsReports', 'conferenceBudgets', 'conferenceReportFiles'].forEach(storeName => {
                 if (!db.objectStoreNames.contains(storeName)) {
                     db.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
                 }
             });
         };
 
-        // Global data caches
+        // Global data stores
         let members = [], visitors = [], followUps = [], reminders = [], tithes = [], attendance = [], events = [], employees = [], assignments = [], leaves = [], leaders = [], pastors = [], cells = [], elders = [], reports = [], whatsappHistory = [], vault = [], ministryLeaders = [], cellLeaders = [], branchCoordinators = [], conferenceReports = [], titheReports = [], visitorsReports = [], conferenceBudgets = [], conferenceReportFiles = [];
 
         // Debounce utility
@@ -1761,7 +1794,8 @@
                 reader.readAsDataURL(file);
             });
 
-            // Stripe Elements for Payment
+            // Advanced Stripe Elements for Payment
+            const stripe = Stripe('pk_test_your_publishable_key_here'); // Replace with real key
             const elements = stripe.elements();
             const card = elements.create('card', { style: { base: { fontSize: '16px' } } });
             card.mount('#card-element');
@@ -1774,28 +1808,34 @@
             document.getElementById('paymentForm').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const amount = document.getElementById('donationAmount').value * 100; // Cents
-                const { error, paymentMethod } = await stripe.createPaymentMethod('card', card);
+                const recurring = document.querySelector('input[name="recurring"]:checked').value;
+                const donorName = document.getElementById('donorName').value;
+                const donorEmail = document.getElementById('donorEmail').value;
+                const { error, paymentMethod } = await stripe.createPaymentMethod('card', card, {
+                    billing_details: { name: donorName, email: donorEmail }
+                });
                 if (error) {
                     displayError.textContent = error.message;
                 } else {
-                    // Simulate backend call - in real app, send paymentMethod.id to server
-                    console.log('PaymentMethod:', paymentMethod);
-                    showNotification('Payment successful! (Demo - Integrate with backend for real processing)');
+                    // Simulate backend call - in real app, send paymentMethod.id and recurring to server for SetupIntent or PaymentIntent
+                    console.log('PaymentMethod:', paymentMethod, 'Recurring:', recurring);
+                    showNotification(`Payment successful! ${recurring} donation of $${document.getElementById('donationAmount').value} processed. Receipt sent to ${donorEmail || 'email'}. (Demo - Integrate with backend for real processing)`);
                     closePaymentModal();
-                    // Optionally add to tithes as online donation
+                    // Optionally add to tithes
                     const today = new Date().toISOString().split('T')[0];
                     addData('tithes', {
-                        memberName: 'Online Donor',
+                        memberName: donorName || 'Online Donor',
                         type: 'Offering',
                         amount: document.getElementById('donationAmount').value,
                         date: today,
-                        branch: 'Online'
+                        branch: 'Online',
+                        recurring: recurring
                     });
                 }
             });
         });
 
-        // Payment Modal Functions
+        // Enhanced Payment Modal Functions
         function openPaymentModal() {
             document.getElementById('paymentModal').style.display = 'block';
         }
@@ -1804,6 +1844,58 @@
             document.getElementById('paymentModal').style.display = 'none';
             document.getElementById('paymentForm').reset();
             document.getElementById('card-errors').textContent = '';
+        }
+
+        // File Viewer Functions
+        window.viewConferenceFile = async function(id) {
+            const file = conferenceReportFiles.find(f => f.id === id);
+            if (!file) return;
+            const modal = document.getElementById('fileViewerModal');
+            const content = document.getElementById('fileViewerContent');
+            content.innerHTML = '<div class="viewer-loading">Loading file...</div>';
+            modal.style.display = 'block';
+
+            try {
+                const response = await fetch(file.fileData);
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+
+                if (file.fileType === 'application/pdf') {
+                    // Render PDF
+                    const pdf = await pdfjsLib.getDocument(url).promise;
+                    content.innerHTML = '';
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        await page.render({ canvasContext: context, viewport }).promise;
+                        content.appendChild(canvas);
+                    }
+                } else if (file.fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                    // Render DOCX
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const result = await mammoth.convertToHtml({ arrayBuffer });
+                    content.innerHTML = result.value;
+                } else if (file.fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+                    // Render XLSX
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const html = XLSX.utils.sheet_to_html(sheet);
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = '<iframe src="' + url + '" style="width:100%; height:500px;"></iframe>';
+                }
+            } catch (error) {
+                content.innerHTML = `<p>Error viewing file: ${error.message}</p>`;
+            }
+        };
+
+        function closeFileViewer() {
+            document.getElementById('fileViewerModal').style.display = 'none';
         }
 
         // Member functions
@@ -2299,13 +2391,14 @@
             showNotification('Conference Report added!');
         });
 
-        // Conference Report Files
+        // Conference Report Files with Viewer
         function renderConferenceReportFiles() {
-            const ul = document.getElementById('conferenceReportList');
+            const ul = document.getElementById('conferenceReportFileList');
             if (ul) {
                 ul.innerHTML = conferenceReportFiles.map(crf => `
                     <li class="report-item">
                         <strong>${crf.title}</strong> - ${crf.fileName} (${crf.date})<br>
+                        <button class="view-btn" onclick="viewConferenceFile(${crf.id})">View</button>
                         <a href="${crf.fileData}" download="${crf.fileName}" class="file-download-link">Download</a>
                         <button class="delete-btn" onclick="deleteData('conferenceReportFiles', ${crf.id})">Delete</button>
                     </li>
@@ -2377,6 +2470,16 @@
             e.target.reset();
             document.getElementById('visitorsReportDate').value = today;
             showNotification('Visitors Report added!');
+        });
+
+        document.getElementById('generateVisitorReportBtn').addEventListener('click', () => {
+            const report = {
+                title: 'Visitors Report - ' + new Date().toLocaleDateString(),
+                content: `Total Visitors: ${visitors.length}\nConverted: ${visitors.filter(v => v.status === 'Converted').length}`,
+                date: new Date().toISOString().split('T')[0]
+            };
+            addData('visitorsReports', report);
+            showNotification('Visitors Report generated!');
         });
 
         // Attendance functions
@@ -2620,16 +2723,6 @@
                 options: { responsive: true }
             });
         }
-
-        document.getElementById('generateVisitorReportBtn').addEventListener('click', () => {
-            const report = {
-                title: 'Visitors Report - ' + new Date().toLocaleDateString(),
-                content: `Total Visitors: ${visitors.length}\nConverted: ${visitors.filter(v => v.status === 'Converted').length}`,
-                date: new Date().toISOString().split('T')[0]
-            };
-            addData('visitorsReports', report);
-            showNotification('Visitors Report generated!');
-        });
 
         // Search visitors
         document.getElementById('visitorSearch').addEventListener('input', debounce((e) => {
