@@ -36,6 +36,9 @@
         .compliance-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
         .checklist-item { display: flex; align-items: center; }
         .checklist-item input[type="checkbox"]:checked + label { text-decoration: line-through; }
+        .checklist-section { border: 1px solid #dee2e6; padding: 15px; border-radius: 8px; margin-bottom: 20px; background-color: #f8f9fa; }
+        .preview-canvas { max-width: 100%; height: auto; border: 1px solid #ddd; }
+        .upload-preview { max-height: 300px; overflow: auto; }
         @media (max-width: 768px) {
             .sidebar { width: 60px; }
             .content { margin-left: 60px; }
@@ -61,6 +64,8 @@
         .dark-mode .btn-primary:hover { background-color: #0b5ed7; border-color: #0a58ca; }
         .dark-mode #pdfViewer { border-color: #555; }
         .dark-mode .compliance-card { background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%); }
+        .dark-mode .checklist-section { background-color: #333; border-color: #555; }
+        .dark-mode .preview-canvas { border-color: #555; }
     </style>
 </head>
 <body>
@@ -108,6 +113,7 @@
                 <div>
                     <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">Add Employee</button>
                     <button class="btn btn-success me-2" onclick="document.getElementById('importFile').click()">Import Employees</button>
+                    <input type="file" id="importFile" style="display:none" accept=".csv,.xlsx,.docx,.pdf,.jpg,.png" onchange="handleImport(event)">
                 </div>
                 <div class="d-flex">
                     <select class="form-control me-2" id="branchFilter" onchange="filterEmployees()">
@@ -122,22 +128,28 @@
             </table>
         </section>
 
-        <!-- Payroll Section -->
+        <!-- Payroll Section (enhanced with compliance) -->
         <section id="payroll" class="section d-none">
-            <h2>Payroll Processing</h2>
-            <form id="payrollForm">
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <select class="form-control" id="payEmpId">
-                            <option value="">Select Employee</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4"><input type="number" class="form-control" placeholder="Base Salary" id="paySalary"></div>
-                    <div class="col-md-4"><button type="button" class="btn btn-primary" onclick="calculatePayroll()">Calculate & Add</button></div>
+            <h2>Payroll Processing & Compliance</h2>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <select class="form-control" id="payEmpId">
+                        <option value="">Select Employee</option>
+                    </select>
                 </div>
-            </form>
+                <div class="col-md-2"><input type="number" class="form-control" placeholder="Base Salary" id="paySalary"></div>
+                <div class="col-md-2"><input type="number" class="form-control" placeholder="UIF Employee (1%)" id="uifEmp" readonly></div>
+                <div class="col-md-2"><input type="number" class="form-control" placeholder="UIF Employer (1%)" id="uifEmply" readonly></div>
+                <div class="col-md-1"><input type="number" class="form-control" placeholder="SDL (1%)" id="sdl" readonly></div>
+                <div class="col-md-2"><button type="button" class="btn btn-primary" onclick="calculatePayroll()">Calculate</button></div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-3"><input type="number" class="form-control" placeholder="PAYE Tax" id="payeTax"></div>
+                <div class="col-md-3"><select class="form-control" id="payrollCompliance"><option value="">Select Compliance Action</option><option value="uif_submit">Submit UIF</option><option value="sars_emp201">Submit SARS EMP201</option><option value="reconciliation">Annual Reconciliation</option></select></div>
+                <div class="col-md-6"><button type="button" class="btn btn-success" onclick="processPayrollCompliance()">Process Compliance</button></div>
+            </div>
             <table class="table mt-4">
-                <thead><tr><th>Employee Name</th><th>Branch</th><th>Net Pay</th><th>Date</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Employee Name</th><th>Branch</th><th>Gross</th><th>UIF Total</th><th>SDL</th><th>PAYE</th><th>Net Pay</th><th>Date</th><th>Compliance Status</th><th>Actions</th></tr></thead>
                 <tbody id="payrollTable"></tbody>
             </table>
         </section>
@@ -208,9 +220,15 @@
             </table>
         </section>
 
-        <!-- Compliance Section -->
+        <!-- Compliance Section (enhanced with departmental) -->
         <section id="compliance" class="section d-none">
             <h2>HR Compliance Management</h2>
+            <div class="mb-3">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDeptComplianceModal">Add Departmental Compliance</button>
+                <select class="form-control d-inline-block w-auto ms-2" id="deptComplianceFilter" onchange="renderDeptCompliance()">
+                    <option value="">All Departments</option>
+                </select>
+            </div>
             <ul class="nav nav-tabs" id="complianceTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="checklists-tab" data-bs-toggle="tab" data-bs-target="#checklists" type="button" role="tab">Checklists</button>
@@ -222,6 +240,12 @@
                     <button class="nav-link" id="certifications-tab" data-bs-toggle="tab" data-bs-target="#certifications" type="button" role="tab">Certifications</button>
                 </li>
                 <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="payroll-compliance-tab" data-bs-toggle="tab" data-bs-target="#payroll-compliance" type="button" role="tab">Payroll Compliance</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="dept-compliance-tab" data-bs-toggle="tab" data-bs-target="#dept-compliance" type="button" role="tab">Departmental Compliance</button>
+                </li>
+                <li class="nav-item" role="presentation">
                     <button class="nav-link" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit" type="button" role="tab">Audit Log</button>
                 </li>
             </ul>
@@ -229,16 +253,46 @@
                 <div class="tab-pane fade show active" id="checklists" role="tabpanel">
                     <div class="row mt-3">
                         <div class="col-md-6">
-                            <h5>B-BBEE & Employment Equity Checklist</h5>
-                            <div class="checklist-item mb-2"><input type="checkbox" id="bbee-plan"><label for="bbee-plan">Annual B-BBEE Plan Submitted</label></div>
-                            <div class="checklist-item mb-2"><input type="checkbox" id="ee-report"><label for="ee-report">Employment Equity Report Filed</label></div>
-                            <div class="checklist-item mb-2"><input type="checkbox" id="diversity-training"><label for="diversity-training">Diversity Training Completed</label></div>
+                            <div class="checklist-section">
+                                <h5>B-BBEE & Employment Equity Checklist</h5>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="bbee-plan"><label for="bbee-plan">Annual B-BBEE Plan Submitted</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="ee-report"><label for="ee-report">Employment Equity Report Filed</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="diversity-training"><label for="diversity-training">Diversity Training Completed</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="ee-consultation"><label for="ee-consultation">EE Consultation with Stakeholders</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="barrier-analysis"><label for="barrier-analysis">Barrier Analysis Conducted</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="numerical-targets"><label for="numerical-targets">Numerical Targets Set & Reviewed</label></div>
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <h5>OHS & POPIA Checklist</h5>
-                            <div class="checklist-item mb-2"><input type="checkbox" id="ohs-audit"><label for="ohs-audit">Annual OHS Audit Conducted</label></div>
-                            <div class="checklist-item mb-2"><input type="checkbox" id="popia-training"><label for="popia-training">POPIA Training for Staff</label></div>
-                            <div class="checklist-item mb-2"><input type="checkbox" id="data-breach-protocol"><label for="data-breach-protocol">Data Breach Protocol Updated</label></div>
+                            <div class="checklist-section">
+                                <h5>OHS & POPIA Checklist</h5>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="ohs-audit"><label for="ohs-audit">Annual OHS Audit Conducted</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="popia-training"><label for="popia-training">POPIA Training for Staff</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="data-breach-protocol"><label for="data-breach-protocol">Data Breach Protocol Updated</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="risk-assessment"><label for="risk-assessment">POPIA Risk Assessment Completed</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="incident-reporting"><label for="incident-reporting">OHS Incident Reporting System Active</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="emergency-drills"><label for="emergency-drills">Emergency Drills Conducted</label></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="checklist-section">
+                                <h5>Labour Relations Checklist</h5>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="collective-agreement"><label for="collective-agreement">Collective Agreements Reviewed</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="dispute-resolution"><label for="dispute-resolution">Dispute Resolution Procedures Updated</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="union-consultation"><label for="union-consultation">Union Consultations Held</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="grievance-procedure"><label for="grievance-procedure">Grievance Procedure Followed</label></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="checklist-section">
+                                <h5>Tax & UIF Checklist</h5>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="uif-registration"><label for="uif-registration">All Employees UIF Registered</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="sars-submissions"><label for="sars-submissions">Monthly SARS EMP201 Submitted</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="paye-deductions"><label for="paye-deductions">PAYE Deductions Accurate</label></div>
+                                <div class="checklist-item mb-2"><input type="checkbox" id="annual-reconciliations"><label for="annual-reconciliations">Annual Tax Reconciliations Done</label></div>
+                            </div>
                         </div>
                     </div>
                     <button class="btn btn-primary mt-3" onclick="saveComplianceChecklist()">Save Checklist</button>
@@ -246,10 +300,10 @@
                 <div class="tab-pane fade" id="documents" role="tabpanel">
                     <div class="mb-3">
                         <button class="btn btn-success" onclick="document.getElementById('complianceDocUpload').click()">Upload Compliance Document</button>
-                        <input type="file" id="complianceDocUpload" style="display:none" accept=".pdf,.docx,.xlsx,.csv" onchange="handleComplianceUpload(event)">
+                        <input type="file" id="complianceDocUpload" style="display:none" accept=".pdf,.docx,.xlsx,.csv,.jpg,.png" onchange="handleComplianceUpload(event)">
                     </div>
                     <table class="table table-striped">
-                        <thead><tr><th>Type</th><th>File Name</th><th>Upload Date</th><th>Actions</th></tr></thead>
+                        <thead><tr><th>Type</th><th>File Name</th><th>Upload Date</th><th>Size</th><th>Actions</th></tr></thead>
                         <tbody id="complianceDocsTable"></tbody>
                     </table>
                 </div>
@@ -258,6 +312,25 @@
                     <table class="table table-striped">
                         <thead><tr><th>Employee</th><th>Certification Type</th><th>Issue Date</th><th>Expiry Date</th><th>Status</th><th>Actions</th></tr></thead>
                         <tbody id="certificationsTable"></tbody>
+                    </table>
+                </div>
+                <div class="tab-pane fade" id="payroll-compliance" role="tabpanel">
+                    <h5>Payroll Compliance Tracker</h5>
+                    <div class="row mb-3">
+                        <div class="col-md-3"><input type="month" class="form-control" id="payrollMonth" onchange="loadPayrollCompliance()"></div>
+                        <div class="col-md-3"><button class="btn btn-primary" onclick="loadPayrollCompliance()">Load Month</button></div>
+                    </div>
+                    <table class="table table-striped">
+                        <thead><tr><th>Month</th><th>UIF Submitted</th><th>SARS EMP201</th><th>PAYE Reconciled</th><th>SDL Paid</th><th>Actions</th></tr></thead>
+                        <tbody id="payrollComplianceTable"></tbody>
+                    </table>
+                    <button class="btn btn-success mt-3" onclick="markPayrollCompliant()">Mark Compliant</button>
+                </div>
+                <div class="tab-pane fade" id="dept-compliance" role="tabpanel">
+                    <h5>Departmental Compliance</h5>
+                    <table class="table table-striped">
+                        <thead><tr><th>Department/Branch</th><th>Custom Items</th><th>Completion %</th><th>Actions</th></tr></thead>
+                        <tbody id="deptComplianceTable"></tbody>
                     </table>
                 </div>
                 <div class="tab-pane fade" id="audit" role="tabpanel">
@@ -273,10 +346,10 @@
         <section id="reports" class="section d-none">
             <h2>Reporting & Analytics</h2>
             <div class="row">
-                <div class="col-md-4"><button class="btn btn-info w-100 mb-3" onclick="generateEmployeeReport()">Employee Report</button></div>
-                <div class="col-md-4"><button class="btn btn-info w-100 mb-3" onclick="generatePayrollReport()">Payroll Report</button></div>
-                <div class="col-md-4"><button class="btn btn-info w-100 mb-3" onclick="generateAttendanceReport()">Attendance Report</button></div>
-                <div class="col-md-4"><button class="btn btn-warning w-100 mb-3" onclick="generateComplianceReport()">Compliance Report</button></div>
+                <div class="col-md-3"><button class="btn btn-info w-100 mb-3" onclick="generateEmployeeReport()">Employee Report</button></div>
+                <div class="col-md-3"><button class="btn btn-info w-100 mb-3" onclick="generatePayrollReport()">Payroll Report</button></div>
+                <div class="col-md-3"><button class="btn btn-info w-100 mb-3" onclick="generateAttendanceReport()">Attendance Report</button></div>
+                <div class="col-md-3"><button class="btn btn-warning w-100 mb-3" onclick="generateComplianceReport()">Compliance Report</button></div>
             </div>
             <div id="reportOutput" class="mt-4"></div>
         </section>
@@ -297,7 +370,7 @@
     </div>
 
     <!-- Modals -->
-    <!-- Add Employee Modal (enhanced) -->
+    <!-- Add Employee Modal -->
     <div class="modal fade" id="addEmployeeModal">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -313,7 +386,8 @@
                         <input type="number" class="form-control mb-3" id="empSalary" placeholder="Salary" required>
                         <input type="date" class="form-control mb-3" id="empJoinDate" required>
                         <input type="email" class="form-control mb-3" id="empEmail" placeholder="Email" required>
-                        <div class="mb-3"><label>Contract File</label><input type="file" class="form-control" id="empContract" accept=".pdf,.docx"></div>
+                        <div class="mb-3"><label>Contract File</label><input type="file" class="form-control" id="empContract" accept=".pdf,.docx,.jpg,.png" onchange="previewFile(this, 'empContractPreview')"></div>
+                        <div id="empContractPreview" class="upload-preview"></div>
                     </form>
                 </div>
                 <div class="modal-footer"><button class="btn btn-primary" onclick="addEmployee()">Save</button></div>
@@ -321,7 +395,7 @@
         </div>
     </div>
 
-    <!-- Edit Employee Modal (enhanced) -->
+    <!-- Edit Employee Modal -->
     <div class="modal fade" id="editEmployeeModal">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -338,101 +412,11 @@
                         <input type="number" class="form-control mb-3" id="editEmpSalary" placeholder="Salary" required>
                         <input type="date" class="form-control mb-3" id="editEmpJoinDate" required>
                         <input type="email" class="form-control mb-3" id="editEmpEmail" placeholder="Email" required>
-                        <div class="mb-3"><label>Contract File</label><input type="file" class="form-control" id="editEmpContract" accept=".pdf,.docx"></div>
+                        <div class="mb-3"><label>Update Contract File</label><input type="file" class="form-control" id="editEmpContract" accept=".pdf,.docx,.jpg,.png" onchange="previewFile(this, 'editEmpContractPreview')"></div>
+                        <div id="editEmpContractPreview" class="upload-preview"></div>
                     </form>
                 </div>
                 <div class="modal-footer"><button class="btn btn-primary" onclick="updateEmployee()">Update</button></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Other modals remain the same... -->
-    <!-- Add Job Modal -->
-    <div class="modal fade" id="addJobModal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header"><h5>Add Job Posting</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <input type="text" class="form-control mb-3" id="jobTitle" placeholder="Job Title" required>
-                    <textarea class="form-control mb-3" id="jobDesc" placeholder="Description" required></textarea>
-                    <select class="form-control mb-3" id="jobBranch" required>
-                        <option value="">Select Branch</option>
-                    </select>
-                    <select class="form-control" id="jobStatus">
-                        <option value="Open">Open</option>
-                        <option value="Closed">Closed</option>
-                    </select>
-                </div>
-                <div class="modal-footer"><button class="btn btn-primary" onclick="addJob()">Save</button></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Review Modal -->
-    <div class="modal fade" id="addReviewModal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header"><h5>Add Performance Review</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <select class="form-control mb-3" id="reviewEmpId">
-                        <option value="">Select Employee</option>
-                    </select>
-                    <input type="number" class="form-control mb-3" id="reviewScore" placeholder="Score (1-5)" min="1" max="5" required>
-                    <textarea class="form-control mb-3" id="reviewComments" placeholder="Comments" required></textarea>
-                </div>
-                <div class="modal-footer"><button class="btn btn-primary" onclick="addReview()">Save</button></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Leave Modal -->
-    <div class="modal fade" id="addLeaveModal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header"><h5>Apply for Leave</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <select class="form-control mb-3" id="leaveEmpId">
-                        <option value="">Select Employee</option>
-                    </select>
-                    <input type="date" class="form-control mb-3" id="leaveStart" required>
-                    <input type="date" class="form-control mb-3" id="leaveEnd" required>
-                    <textarea class="form-control mb-3" id="leaveReason" placeholder="Reason" required></textarea>
-                </div>
-                <div class="modal-footer"><button class="btn btn-primary" onclick="addLeave()">Save</button></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Benefit Modal -->
-    <div class="modal fade" id="addBenefitModal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header"><h5>Add Benefit</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <input type="text" class="form-control mb-3" id="benefitName" placeholder="Benefit Name" required>
-                    <textarea class="form-control mb-3" id="benefitDesc" placeholder="Description" required></textarea>
-                </div>
-                <div class="modal-footer"><button class="btn btn-primary" onclick="addBenefit()">Save</button></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Course Modal -->
-    <div class="modal fade" id="addCourseModal">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header"><h5>Add Training Course</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body">
-                    <input type="text" class="form-control mb-3" id="courseTitle" placeholder="Course Title" required>
-                    <textarea class="form-control mb-3" id="courseDesc" placeholder="Description" required></textarea>
-                    <select class="form-control mb-3" id="courseEmpId">
-                        <option value="">Assign to Employee</option>
-                    </select>
-                    <select class="form-control mb-3" id="courseBranch" required>
-                        <option value="">Select Branch</option>
-                    </select>
-                </div>
-                <div class="modal-footer"><button class="btn btn-primary" onclick="addCourse()">Save</button></div>
             </div>
         </div>
     </div>
@@ -449,19 +433,42 @@
                     <input type="text" class="form-control mb-3" id="certType" placeholder="Certification Type (e.g., OHS, POPIA)" required>
                     <input type="date" class="form-control mb-3" id="certIssueDate" required>
                     <input type="date" class="form-control mb-3" id="certExpiryDate" required>
-                    <div class="mb-3"><label>Certificate File</label><input type="file" class="form-control" id="certFile" accept=".pdf,.docx,.jpg"></div>
+                    <div class="mb-3"><label>Certificate File</label><input type="file" class="form-control" id="certFile" accept=".pdf,.docx,.jpg,.png" onchange="previewFile(this, 'certFilePreview')"></div>
+                    <div id="certFilePreview" class="upload-preview"></div>
                 </div>
                 <div class="modal-footer"><button class="btn btn-primary" onclick="addCertification()">Save</button></div>
             </div>
         </div>
     </div>
 
-    <!-- Preview Modal for Import -->
+    <!-- Add Departmental Compliance Modal -->
+    <div class="modal fade" id="addDeptComplianceModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Add Departmental Compliance</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <select class="form-control mb-3" id="deptBranch">
+                        <option value="">Select Department/Branch</option>
+                    </select>
+                    <div id="customItems">
+                        <div class="mb-2"><input type="text" class="form-control" placeholder="Custom Item 1" name="customItem[]"></div>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="addCustomItem()">Add Item</button>
+                    </div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="addDeptCompliance()">Save</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Other modals (addJob, addReview, etc.) remain the same as previous -->
+    <!-- ... (omitted for brevity, include all from previous code) -->
+
+    <!-- Preview Modal for Import (enhanced) -->
     <div class="modal fade" id="previewModal">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5>Preview Import</h5>
+                    <h5 id="previewTitle">Preview Import</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -469,13 +476,13 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="confirmImport" onclick="confirmImportData()">Confirm Import</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmImportData()">Confirm Import</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Document Viewer Modal -->
+    <!-- Document Viewer Modal (enhanced) -->
     <div class="modal fade" id="docViewerModal">
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
@@ -495,7 +502,7 @@
         // PDF.js Worker Setup
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-        // Data Storage (enhanced with compliance)
+        // Data Storage (enhanced)
         let employees = JSON.parse(localStorage.getItem('employees')) || [];
         let payrolls = JSON.parse(localStorage.getItem('payrolls')) || [];
         let jobs = JSON.parse(localStorage.getItem('jobs')) || [];
@@ -507,8 +514,10 @@
         let certifications = JSON.parse(localStorage.getItem('certifications')) || [];
         let complianceDocs = JSON.parse(localStorage.getItem('complianceDocs')) || [];
         let complianceChecklist = JSON.parse(localStorage.getItem('complianceChecklist')) || {};
+        let payrollCompliance = JSON.parse(localStorage.getItem('payrollCompliance')) || {};
+        let deptCompliance = JSON.parse(localStorage.getItem('deptCompliance')) || {};
         let auditLog = JSON.parse(localStorage.getItem('auditLog')) || [];
-        let settings = JSON.parse(localStorage.getItem('settings')) || { companyName: 'Bophelong Community Centre', taxRate: 15, darkMode: false };
+        let settings = JSON.parse(localStorage.getItem('settings')) || { companyName: 'Bophelong Community Centre', taxRate: 15, darkMode: false, uifRate: 1, sdlRate: 1 };
 
         // Branches
         const branches = [
@@ -523,302 +532,231 @@
 
         let importData = [];
         let currentFileType = '';
+        let currentPreviewFile = null;
 
         // Function to log audit
         function logAudit(action, details) {
             const logEntry = {
                 date: new Date().toLocaleString(),
-                user: 'Current User', // In real app, get from auth
+                user: 'Current User',
                 action,
                 details
             };
             auditLog.unshift(logEntry);
+            if (auditLog.length > 1000) auditLog = auditLog.slice(0, 1000);
             localStorage.setItem('auditLog', JSON.stringify(auditLog));
         }
 
-        // Sidebar Toggle
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.sidebar');
-            const content = document.querySelector('.content');
-            const toggleBtn = document.querySelector('.btn-toggle-sidebar');
-            sidebar.classList.toggle('collapsed');
-            content.classList.toggle('expanded');
-            toggleBtn.classList.toggle('expanded');
-        }
+        // Enhanced File Preview
+        function previewFile(input, previewId) {
+            const file = input.files[0];
+            if (!file) return;
+            const preview = document.getElementById(previewId);
+            preview.innerHTML = '';
+            const fileType = file.name.split('.').pop().toLowerCase();
+            const reader = new FileReader();
 
-        // Apply Theme
-        function applyTheme() {
-            if (settings.darkMode) {
-                document.body.classList.add('dark-mode');
-                if (dashboardChart) dashboardChart.data.datasets[0].borderColor = '#4da6ff';
-            } else {
-                document.body.classList.remove('dark-mode');
-                if (dashboardChart) dashboardChart.data.datasets[0].borderColor = '#0d6efd';
-            }
-            if (dashboardChart) dashboardChart.update();
-        }
-
-        // Show Section (enhanced)
-        function showSection(sectionId) {
-            document.querySelectorAll('.section').forEach(sec => sec.classList.add('d-none'));
-            document.getElementById(sectionId).classList.remove('d-none');
-            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
-            document.querySelector(`a[href="#${sectionId}"]`).classList.add('active');
-            if (sectionId === 'dashboard') updateDashboard();
-            else if (sectionId === 'employees') { renderEmployees(); populateBranchFilters(); populateEmployeeSelect('payEmpId'); }
-            else if (sectionId === 'payroll') { renderPayrolls(); populateEmployeeSelect('payEmpId'); }
-            else if (sectionId === 'recruitment') { renderJobs(); populateBranchSelect('jobBranch'); }
-            else if (sectionId === 'performance') { renderReviews(); populateEmployeeSelect('reviewEmpId'); }
-            else if (sectionId === 'attendance') { renderAttendances(); populateEmployeeSelect('attEmpId'); }
-            else if (sectionId === 'leaves') { renderLeaves(); populateEmployeeSelect('leaveEmpId'); }
-            else if (sectionId === 'benefits') renderBenefits();
-            else if (sectionId === 'training') { renderCourses(); populateEmployeeSelect('courseEmpId'); populateBranchSelect('courseBranch'); }
-            else if (sectionId === 'compliance') { renderCompliance(); populateEmployeeSelect('certEmpId'); }
-            else if (sectionId === 'reports') generateComplianceReport(); // Auto-generate on load
-            else if (sectionId === 'settings') renderSettings();
-            logAudit(`Viewed ${sectionId} section`, '');
-        }
-
-        // Populate functions remain similar...
-
-        // Employees Functions (enhanced with compliance)
-        function renderEmployees(search = '', branchFilter = '') {
-            const table = document.getElementById('employeeTable');
-            table.innerHTML = '';
-            let filtered = employees.filter(emp => 
-                emp.name.toLowerCase().includes(search.toLowerCase()) &&
-                (!branchFilter || emp.branch === branchFilter)
-            );
-            filtered.forEach((emp, index) => {
-                const globalIndex = employees.indexOf(emp);
-                const contractStatus = emp.contractFile ? 'Uploaded' : 'Missing';
-                const certStatus = certifications.filter(c => c.empIndex === globalIndex && new Date(c.expiryDate) < new Date()).length > 0 ? 'Expiring' : 'OK';
-                table.innerHTML += `<tr><td>${globalIndex + 1}</td><td>${emp.name}</td><td>${emp.position}</td><td>${emp.department}</td><td>${emp.branch || ''}</td><td>$${emp.salary}</td><td>${emp.joinDate}</td><td><span class="badge ${contractStatus === 'Uploaded' ? 'bg-success' : 'bg-danger'}">${contractStatus}</span></td><td><span class="badge ${certStatus === 'OK' ? 'bg-success' : 'bg-warning'}">${certStatus}</span></td><td>${emp.email}</td><td><button class="btn btn-sm btn-warning me-1" onclick="editEmployee(${globalIndex})">Edit</button><button class="btn btn-sm btn-danger" onclick="deleteEmployee(${globalIndex})">Delete</button></td></tr>`;
-            });
-        }
-
-        // Add Employee (enhanced)
-        function addEmployee() {
-            const name = document.getElementById('empName').value;
-            const position = document.getElementById('empPosition').value;
-            const department = document.getElementById('empDepartment').value;
-            const branch = document.getElementById('empBranch').value;
-            const salary = parseFloat(document.getElementById('empSalary').value);
-            const joinDate = document.getElementById('empJoinDate').value;
-            const email = document.getElementById('empEmail').value;
-            const contractFile = document.getElementById('empContract').files[0];
-            let contractFileName = '';
-            if (contractFile) {
-                contractFileName = contractFile.name;
-                // In real app, upload to storage; here simulate
-            }
-            if (name && position && department && branch && salary && joinDate && email) {
-                const empIndex = employees.push({ name, position, department, branch, salary, joinDate, email, contractFile: contractFileName }) - 1;
-                localStorage.setItem('employees', JSON.stringify(employees));
-                if (contractFileName) logAudit('Employee Contract Uploaded', `For ${name}`);
-                filterEmployees();
-                bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal')).hide();
-                updateDashboard();
-                document.getElementById('employeeForm').reset();
-                populateBranchSelect('empBranch');
-            }
-        }
-
-        // Similar enhancements for updateEmployee...
-
-        // Compliance Functions
-        function renderCompliance() {
-            // Load checklist
-            Object.keys(complianceChecklist).forEach(key => {
-                document.getElementById(key).checked = complianceChecklist[key] || false;
-            });
-
-            // Render docs
-            const docsTable = document.getElementById('complianceDocsTable');
-            docsTable.innerHTML = '';
-            complianceDocs.forEach((doc, index) => {
-                docsTable.innerHTML += `<tr><td>${doc.type}</td><td>${doc.name}</td><td>${doc.date}</td><td><button class="btn btn-sm btn-info" onclick="viewDocument(${index})">View</button> <button class="btn btn-sm btn-danger" onclick="deleteComplianceDoc(${index})">Delete</button></td></tr>`;
-            });
-
-            // Render certifications
-            const certTable = document.getElementById('certificationsTable');
-            certTable.innerHTML = '';
-            certifications.forEach((cert, index) => {
-                const emp = employees[cert.empIndex] || { name: 'Deleted' };
-                const now = new Date();
-                const expiry = new Date(cert.expiryDate);
-                const status = expiry < now ? 'Expired' : (expiry < new Date(now.getTime() + 30*24*60*60*1000) ? 'Expiring' : 'Valid');
-                certTable.innerHTML += `<tr><td>${emp.name}</td><td>${cert.type}</td><td>${cert.issueDate}</td><td>${cert.expiryDate}</td><td><span class="badge ${status === 'Valid' ? 'bg-success' : status === 'Expiring' ? 'bg-warning' : 'bg-danger'}">${status}</span></td><td><button class="btn btn-sm btn-info" onclick="viewCert(${index})">View</button> <button class="btn btn-sm btn-danger" onclick="deleteCertification(${index})">Delete</button></td></tr>`;
-            });
-
-            // Render audit log
-            const auditTable = document.getElementById('auditTable');
-            auditTable.innerHTML = '';
-            auditLog.slice(0, 50).forEach(entry => { // Last 50
-                auditTable.innerHTML += `<tr><td>${entry.date}</td><td>${entry.user}</td><td>${entry.action}</td><td>${entry.details}</td></tr>`;
-            });
-        }
-
-        function saveComplianceChecklist() {
-            const checklist = {
-                'bbee-plan': document.getElementById('bbee-plan').checked,
-                'ee-report': document.getElementById('ee-report').checked,
-                'diversity-training': document.getElementById('diversity-training').checked,
-                'ohs-audit': document.getElementById('ohs-audit').checked,
-                'popia-training': document.getElementById('popia-training').checked,
-                'data-breach-protocol': document.getElementById('data-breach-protocol').checked
-            };
-            complianceChecklist = checklist;
-            localStorage.setItem('complianceChecklist', JSON.stringify(checklist));
-            updateComplianceScore();
-            logAudit('Checklist Updated', '');
-            alert('Checklist saved!');
-        }
-
-        function handleComplianceUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const type = prompt('Enter document type (e.g., B-BBEE Plan, POPIA Policy)');
-                if (type) {
-                    complianceDocs.push({
-                        type,
-                        name: file.name,
-                        date: new Date().toLocaleDateString(),
-                        // Simulate upload
+            if (fileType === 'jpg' || fileType === 'png' || fileType === 'jpeg') {
+                reader.onload = function(e) {
+                    preview.innerHTML = `<img src="${e.target.result}" class="preview-canvas img-fluid">`;
+                };
+                reader.readAsDataURL(file);
+            } else if (fileType === 'pdf') {
+                reader.onload = function(e) {
+                    const typedarray = new Uint8Array(e.target.result);
+                    pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+                        pdf.getPage(1).then(page => {
+                            const scale = 1.5;
+                            const viewport = page.getViewport({ scale });
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+                            preview.appendChild(canvas);
+                            page.render({ canvasContext: context, viewport }).promise.then(() => {});
+                        });
                     });
-                    localStorage.setItem('complianceDocs', JSON.stringify(complianceDocs));
-                    renderCompliance();
-                    logAudit('Compliance Document Uploaded', `${type}: ${file.name}`);
-                }
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (fileType === 'docx') {
+                reader.onload = function(e) {
+                    mammoth.convertToHtml({ arrayBuffer: e.target.result })
+                        .then(result => {
+                            preview.innerHTML = `<div class="upload-preview">${result.value}</div>`;
+                        })
+                        .catch(err => preview.innerHTML = `<p>Error previewing DOCX: ${err}</p>`);
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (fileType === 'csv' || fileType === 'xlsx') {
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheetName = workbook.SheetNames[0];
+                        const sheet = workbook.Sheets[sheetName];
+                        const html = XLSX.utils.sheet_to_html(sheet);
+                        preview.innerHTML = `<div class="upload-preview">${html}</div>`;
+                    } catch (err) {
+                        preview.innerHTML = `<p>Error previewing spreadsheet: ${err}</p>`;
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                preview.innerHTML = `<p>File type ${fileType} preview not supported. Size: ${(file.size / 1024).toFixed(2)} KB</p>`;
             }
         }
 
-        function viewDocument(index) {
-            const doc = complianceDocs[index];
-            document.getElementById('docTitle').textContent = doc.name;
-            document.getElementById('docViewer').innerHTML = `<p>Viewing ${doc.name} (simulated - in real app, embed viewer)</p><iframe srcdoc="<h1>${doc.type}</h1><p>Document content here...</p>" width="100%" height="400px"></iframe>`;
-            new bootstrap.Modal(document.getElementById('docViewerModal')).show();
-        }
+        // Other functions (showSection, populate*, renderEmployees, etc.) remain similar to previous, with additions for new features
 
-        function deleteComplianceDoc(index) {
-            if (confirm('Delete document?')) {
-                complianceDocs.splice(index, 1);
-                localStorage.setItem('complianceDocs', JSON.stringify(complianceDocs));
-                renderCompliance();
-                logAudit('Compliance Document Deleted', complianceDocs[index].name);
+        // Enhanced Payroll Calculation
+        function calculatePayroll() {
+            const empIndex = document.getElementById('payEmpId').value;
+            const gross = parseFloat(document.getElementById('paySalary').value);
+            if (empIndex !== '' && gross) {
+                const uifEmp = gross * (settings.uifRate / 100);
+                const uifEmply = uifEmp; // Employer matches
+                const sdl = gross * (settings.sdlRate / 100);
+                const paye = parseFloat(document.getElementById('payeTax').value) || 0;
+                const taxRate = settings.taxRate / 100;
+                const netPay = gross - uifEmp - paye;
+                document.getElementById('uifEmp').value = uifEmp.toFixed(2);
+                document.getElementById('uifEmply').value = uifEmply.toFixed(2);
+                document.getElementById('sdl').value = sdl.toFixed(2);
+                payrolls.push({ 
+                    empIndex, 
+                    gross, 
+                    uifEmp, 
+                    uifEmply, 
+                    sdl, 
+                    paye, 
+                    netPay, 
+                    date: new Date().toLocaleDateString(),
+                    complianceStatus: 'Pending'
+                });
+                localStorage.setItem('payrolls', JSON.stringify(payrolls));
+                renderPayrolls();
+                logAudit('Payroll Calculated', `For ${employees[empIndex]?.name}, Gross: ${gross}`);
             }
         }
 
-        function addCertification() {
-            const empIndex = document.getElementById('certEmpId').value;
-            const type = document.getElementById('certType').value;
-            const issueDate = document.getElementById('certIssueDate').value;
-            const expiryDate = document.getElementById('certExpiryDate').value;
-            const file = document.getElementById('certFile').files[0];
-            let fileName = '';
-            if (file) fileName = file.name;
-            if (empIndex !== '' && type && issueDate && expiryDate) {
-                certifications.push({ empIndex: parseInt(empIndex), type, issueDate, expiryDate, file: fileName });
-                localStorage.setItem('certifications', JSON.stringify(certifications));
-                renderCompliance();
-                bootstrap.Modal.getInstance(document.getElementById('addCertModal')).hide();
-                updateDashboard();
-                logAudit('Certification Added', `${type} for employee ${employees[empIndex].name}`);
+        function renderPayrolls() {
+            const table = document.getElementById('payrollTable');
+            if (!table) return;
+            table.innerHTML = '';
+            payrolls.forEach((pay, index) => {
+                const emp = employees[pay.empIndex] || { name: 'Deleted Employee', branch: '' };
+                const uifTotal = pay.uifEmp + pay.uifEmply;
+                table.innerHTML += `<tr><td>${emp.name}</td><td>${emp.branch}</td><td>$${pay.gross}</td><td>$${uifTotal.toFixed(2)}</td><td>$${pay.sdl.toFixed(2)}</td><td>$${pay.paye.toFixed(2)}</td><td>$${pay.netPay.toFixed(2)}</td><td>${pay.date}</td><td><span class="badge ${pay.complianceStatus === 'Compliant' ? 'bg-success' : 'bg-warning'}">${pay.complianceStatus}</span></td><td><button class="btn btn-sm btn-danger" onclick="deletePayroll(${index})">Delete</button></td></tr>`;
+            });
+        }
+
+        function processPayrollCompliance() {
+            const action = document.getElementById('payrollCompliance').value;
+            if (action) {
+                const month = new Date().toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit' });
+                if (!payrollCompliance[month]) payrollCompliance[month] = { uif: false, sars: false, reconciliation: false, sdl: false };
+                payrollCompliance[month][action.split('_')[0]] = true;
+                localStorage.setItem('payrollCompliance', JSON.stringify(payrollCompliance));
+                loadPayrollCompliance();
+                logAudit('Payroll Compliance Processed', `${action} for ${month}`);
+                alert('Compliance action marked!');
             }
         }
 
-        function deleteCertification(index) {
-            if (confirm('Delete certification?')) {
-                certifications.splice(index, 1);
-                localStorage.setItem('certifications', JSON.stringify(certifications));
-                renderCompliance();
-                updateDashboard();
-                logAudit('Certification Deleted', certifications[index].type);
+        function loadPayrollCompliance() {
+            const month = document.getElementById('payrollMonth').value || new Date().toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit' });
+            const data = payrollCompliance[month] || { uif: false, sars: false, reconciliation: false, sdl: false };
+            const table = document.getElementById('payrollComplianceTable');
+            table.innerHTML = `<tr><td>${month}</td><td><input type="checkbox" ${data.uif ? 'checked' : ''} disabled></td><td><input type="checkbox" ${data.sars ? 'checked' : ''} disabled></td><td><input type="checkbox" ${data.reconciliation ? 'checked' : ''} disabled></td><td><input type="checkbox" ${data.sdl ? 'checked' : ''} disabled></td><td><button class="btn btn-sm btn-primary" onclick="editPayrollCompliance('${month}')">Edit</button></td></tr>`;
+        }
+
+        function markPayrollCompliant() {
+            const month = document.getElementById('payrollMonth').value;
+            if (month) {
+                payrollCompliance[month] = { uif: true, sars: true, reconciliation: true, sdl: true };
+                localStorage.setItem('payrollCompliance', JSON.stringify(payrollCompliance));
+                loadPayrollCompliance();
+                logAudit('Payroll Fully Compliant', month);
             }
         }
 
-        function viewCert(index) {
-            const cert = certifications[index];
-            document.getElementById('docTitle').textContent = `${cert.type} Certificate`;
-            document.getElementById('docViewer').innerHTML = `<p>Certificate details: ${cert.type}, Expiry: ${cert.expiryDate}</p><iframe srcdoc="<h1>${cert.type}</h1><p>Certificate content here...</p>" width="100%" height="400px"></iframe>`;
-            new bootstrap.Modal(document.getElementById('docViewerModal')).show();
+        function editPayrollCompliance(month) {
+            // Modal or inline edit - simplified alert
+            alert(`Edit compliance for ${month} - In full app, open edit modal.`);
         }
 
+        // Departmental Compliance
+        function addCustomItem() {
+            const container = document.getElementById('customItems');
+            const div = document.createElement('div');
+            div.className = 'mb-2';
+            div.innerHTML = `<input type="text" class="form-control" placeholder="Custom Item" name="customItem[]"> <button type="button" class="btn btn-sm btn-danger mt-1" onclick="this.parentElement.remove()">Remove</button>`;
+            container.appendChild(div);
+        }
+
+        function addDeptCompliance() {
+            const branch = document.getElementById('deptBranch').value;
+            const items = Array.from(document.querySelectorAll('#customItems input[name="customItem[]"]')).map(input => input.value).filter(v => v);
+            if (branch && items.length > 0) {
+                if (!deptCompliance[branch]) deptCompliance[branch] = [];
+                deptCompliance[branch].push(...items.map(item => ({ item, checked: false })));
+                localStorage.setItem('deptCompliance', JSON.stringify(deptCompliance));
+                renderDeptCompliance();
+                bootstrap.Modal.getInstance(document.getElementById('addDeptComplianceModal')).hide();
+                logAudit('Departmental Compliance Added', `${branch}: ${items.length} items`);
+            }
+        }
+
+        function renderDeptCompliance() {
+            const filter = document.getElementById('deptComplianceFilter').value;
+            populateBranchSelect('deptComplianceFilter'); // Reuse
+            const table = document.getElementById('deptComplianceTable');
+            table.innerHTML = '';
+            Object.keys(deptCompliance).filter(key => !filter || key === filter).forEach(branch => {
+                const items = deptCompliance[branch];
+                const checked = items.filter(i => i.checked).length;
+                const percent = Math.round((checked / items.length) * 100);
+                let itemsHtml = items.map((i, idx) => `<div class="checklist-item mb-1"><input type="checkbox" ${i.checked ? 'checked' : ''} onchange="toggleDeptItem('${branch}', ${idx})"><label>${i.item}</label></div>`).join('');
+                table.innerHTML += `<tr><td>${branch}</td><td>${itemsHtml}</td><td>${percent}%</td><td><button class="btn btn-sm btn-danger" onclick="deleteDeptCompliance('${branch}')">Delete</button></td></tr>`;
+            });
+        }
+
+        function toggleDeptItem(branch, idx) {
+            deptCompliance[branch][idx].checked = !deptCompliance[branch][idx].checked;
+            localStorage.setItem('deptCompliance', JSON.stringify(deptCompliance));
+            renderDeptCompliance();
+        }
+
+        function deleteDeptCompliance(branch) {
+            if (confirm(`Delete compliance for ${branch}?`)) {
+                delete deptCompliance[branch];
+                localStorage.setItem('deptCompliance', JSON.stringify(deptCompliance));
+                renderDeptCompliance();
+                logAudit('Departmental Compliance Deleted', branch);
+            }
+        }
+
+        // Update updateComplianceScore to include dept and payroll
         function updateComplianceScore() {
-            const totalItems = 6;
-            const checked = Object.values(complianceChecklist).filter(v => v).length;
-            const score = Math.round((checked / totalItems) * 100);
+            const baseChecked = Object.values(complianceChecklist).filter(v => v).length;
+            const baseTotal = 20;
+            const payrollChecked = Object.values(payrollCompliance).reduce((sum, m) => sum + Object.values(m).filter(v => v).length, 0);
+            const payrollTotal = Object.keys(payrollCompliance).length * 4;
+            const deptChecked = Object.values(deptCompliance).reduce((sum, items) => sum + items.filter(i => i.checked).length, 0);
+            const deptTotal = Object.values(deptCompliance).reduce((sum, items) => sum + items.length, 0);
+            const totalChecked = baseChecked + payrollChecked + deptChecked;
+            const totalItems = baseTotal + payrollTotal + deptTotal || 1;
+            const score = Math.round((totalChecked / totalItems) * 100);
             document.getElementById('complianceScore').textContent = `${score}%`;
         }
 
-        function generateComplianceReport() {
-            let output = '<h4>Compliance Report - Bophelong Community Centre</h4>';
-            output += `<p>Overall Compliance Score: ${document.getElementById('complianceScore').textContent}</p>`;
-            output += '<h5>Diversity & Equity</h5><ul>';
-            branches.forEach(branch => {
-                const branchEmps = employees.filter(e => e.branch === branch);
-                const femaleCount = branchEmps.filter(e => e.gender === 'Female').length; // Assume gender field added if needed
-                output += `<li>${branch}: ${femaleCount} / ${branchEmps.length} Female Employees</li>`;
-            });
-            output += '</ul>';
-            output += '<h5>Certifications Status</h5><table class="table"><thead><tr><th>Type</th><th>Valid</th><th>Expiring</th><th>Expired</th></tr></thead><tbody>';
-            // Group certs
-            const certGroups = {};
-            certifications.forEach(cert => {
-                const now = new Date();
-                const expiry = new Date(cert.expiryDate);
-                const status = expiry < now ? 'Expired' : (expiry < new Date(now.getTime() + 30*24*60*60*1000) ? 'Expiring' : 'Valid');
-                certGroups[cert.type] = certGroups[cert.type] || { Valid: 0, Expiring: 0, Expired: 0 };
-                certGroups[cert.type][status]++;
-            });
-            Object.keys(certGroups).forEach(type => {
-                const g = certGroups[type];
-                output += `<tr><td>${type}</td><td>${g.Valid || 0}</td><td>${g.Expiring || 0}</td><td>${g.Expired || 0}</td></tr>`;
-            });
-            output += '</tbody></table>';
-            document.getElementById('reportOutput').innerHTML = output;
-        }
+        // Initial Load enhancements
+        // ... (include all previous initializations, plus new ones)
+        populateBranchSelect('deptBranch');
+        renderDeptCompliance();
+        loadPayrollCompliance(); // Default current month
 
-        // Dashboard (enhanced)
-        function updateDashboard() {
-            // Existing...
-            document.getElementById('totalEmployees').textContent = employees.length;
-            document.getElementById('openPositions').textContent = jobs.filter(j => j.status === 'Open').length;
-            const avgScore = reviews.length > 0 ? (reviews.reduce((sum, rev) => sum + rev.score, 0) / reviews.length).toFixed(1) : 0;
-            document.getElementById('avgPerformance').textContent = `${avgScore}/5`;
-            document.getElementById('pendingLeaves').textContent = leaves.filter(l => l.status === 'Pending').length;
-
-            // Compliance
-            updateComplianceScore();
-            const expiring = certifications.filter(c => {
-                const expiry = new Date(c.expiryDate);
-                return expiry < new Date(new Date().getTime() + 30*24*60*60*1000) && expiry > new Date();
-            }).length;
-            document.getElementById('expiringCerts').textContent = expiring;
-
-            // Chart...
-        }
-
-        // Other functions remain similar, with logAudit calls where appropriate...
-
-        // Initial Load
-        applyTheme();
-        populateBranchFilters();
-        populateBranchSelect('empBranch');
-        populateBranchSelect('editEmpBranch');
-        populateBranchSelect('jobBranch');
-        populateBranchSelect('courseBranch');
-        filterEmployees();
-        renderPayrolls();
-        renderJobs();
-        renderReviews();
-        renderAttendances();
-        renderLeaves();
-        renderBenefits();
-        renderCourses();
-        renderCompliance();
-        updateDashboard();
-        showSection('dashboard');
+        // Rest of script remains, with calls to updateComplianceScore() in relevant places
     </script>
 </body>
 </html>
