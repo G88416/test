@@ -750,13 +750,630 @@
             document.getElementById('complianceScore').textContent = `${score}%`;
         }
 
-        // Initial Load enhancements
-        // ... (include all previous initializations, plus new ones)
-        populateBranchSelect('deptBranch');
-        renderDeptCompliance();
-        loadPayrollCompliance(); // Default current month
+                // Navigation and UI Functions
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(sec => sec.classList.add('d-none'));
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            document.getElementById(sectionId).classList.remove('d-none');
+            event.target.classList.add('active');
+            if (sectionId === 'dashboard') renderDashboard();
+            if (sectionId === 'employees') renderEmployees();
+            if (sectionId === 'payroll') renderPayrolls();
+            if (sectionId === 'recruitment') renderJobs();
+            if (sectionId === 'performance') renderReviews();
+            if (sectionId === 'attendance') renderAttendance();
+            if (sectionId === 'leaves') renderLeaves();
+            if (sectionId === 'benefits') renderBenefits();
+            if (sectionId === 'training') renderCourses();
+            if (sectionId === 'compliance') {
+                renderCompliance();
+                loadPayrollCompliance();
+                renderDeptCompliance();
+                renderCertifications();
+                renderComplianceDocs();
+                renderAuditLog();
+            }
+            if (sectionId === 'reports') renderReports();
+            if (sectionId === 'settings') loadSettings();
+            logAudit('Section Viewed', sectionId);
+        }
 
-        // Rest of script remains, with calls to updateComplianceScore() in relevant places
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const content = document.querySelector('.content');
+            const toggleBtn = document.querySelector('.btn-toggle-sidebar');
+            sidebar.classList.toggle('collapsed');
+            content.classList.toggle('expanded');
+            toggleBtn.classList.toggle('expanded');
+        }
+
+        // Populate Branch Selects
+        function populateBranchSelect(selectId) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            select.innerHTML = '<option value="">Select Branch</option>' + branches.map(b => `<option value="${b}">${b}</option>`).join('');
+        }
+
+        // Employee Management
+        function addEmployee() {
+            const emp = {
+                id: Date.now(),
+                name: document.getElementById('empName').value,
+                position: document.getElementById('empPosition').value,
+                department: document.getElementById('empDepartment').value,
+                branch: document.getElementById('empBranch').value,
+                salary: parseFloat(document.getElementById('empSalary').value),
+                joinDate: document.getElementById('empJoinDate').value,
+                email: document.getElementById('empEmail').value,
+                contractStatus: 'Active',
+                certStatus: 'Pending',
+                contractFile: document.getElementById('empContract').files[0] ? URL.createObjectURL(document.getElementById('empContract').files[0]) : null
+            };
+            employees.push(emp);
+            localStorage.setItem('employees', JSON.stringify(employees));
+            populateEmployeeSelects();
+            renderEmployees();
+            updateDashboard();
+            bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal')).hide();
+            document.getElementById('employeeForm').reset();
+            document.getElementById('empContractPreview').innerHTML = '';
+            logAudit('Employee Added', emp.name);
+        }
+
+        function renderEmployees() {
+            const table = document.getElementById('employeeTable');
+            table.innerHTML = '';
+            employees.forEach((emp, index) => {
+                table.innerHTML += `
+                    <tr>
+                        <td>${emp.id}</td>
+                        <td>${emp.name}</td>
+                        <td>${emp.position}</td>
+                        <td>${emp.department}</td>
+                        <td>${emp.branch}</td>
+                        <td>$${emp.salary}</td>
+                        <td>${emp.joinDate}</td>
+                        <td><span class="badge ${emp.contractStatus === 'Active' ? 'bg-success' : 'bg-warning'}">${emp.contractStatus}</span></td>
+                        <td><span class="badge ${emp.certStatus === 'Compliant' ? 'bg-success' : 'bg-warning'}">${emp.certStatus}</span></td>
+                        <td>${emp.email}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-1" onclick="editEmployee(${index})">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteEmployee(${index})">Delete</button>
+                            ${emp.contractFile ? `<button class="btn btn-sm btn-info" onclick="viewDocument('${emp.contractFile}')">View Contract</button>` : ''}
+                        </td>
+                    </tr>
+                `;
+            });
+            populateBranchFilter();
+        }
+
+        function editEmployee(index) {
+            const emp = employees[index];
+            document.getElementById('editEmpIndex').value = index;
+            document.getElementById('editEmpName').value = emp.name;
+            document.getElementById('editEmpPosition').value = emp.position;
+            document.getElementById('editEmpDepartment').value = emp.department;
+            document.getElementById('editEmpBranch').value = emp.branch;
+            document.getElementById('editEmpSalary').value = emp.salary;
+            document.getElementById('editEmpJoinDate').value = emp.joinDate;
+            document.getElementById('editEmpEmail').value = emp.email;
+            bootstrap.Modal.getInstance(document.getElementById('editEmployeeModal')).show();
+        }
+
+        function updateEmployee() {
+            const index = document.getElementById('editEmpIndex').value;
+            const file = document.getElementById('editEmpContract').files[0];
+            employees[index].name = document.getElementById('editEmpName').value;
+            employees[index].position = document.getElementById('editEmpPosition').value;
+            employees[index].department = document.getElementById('editEmpDepartment').value;
+            employees[index].branch = document.getElementById('editEmpBranch').value;
+            employees[index].salary = parseFloat(document.getElementById('editEmpSalary').value);
+            employees[index].joinDate = document.getElementById('editEmpJoinDate').value;
+            employees[index].email = document.getElementById('editEmpEmail').value;
+            if (file) employees[index].contractFile = URL.createObjectURL(file);
+            localStorage.setItem('employees', JSON.stringify(employees));
+            renderEmployees();
+            updateDashboard();
+            bootstrap.Modal.getInstance(document.getElementById('editEmployeeModal')).hide();
+            logAudit('Employee Updated', employees[index].name);
+        }
+
+        function deleteEmployee(index) {
+            if (confirm('Delete employee?')) {
+                logAudit('Employee Deleted', employees[index].name);
+                employees.splice(index, 1);
+                localStorage.setItem('employees', JSON.stringify(employees));
+                renderEmployees();
+                updateDashboard();
+                populateEmployeeSelects();
+            }
+        }
+
+        function searchEmployees() {
+            const query = document.getElementById('employeeSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#employeeTable tr');
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        function filterEmployees() {
+            const filter = document.getElementById('branchFilter').value;
+            const rows = document.querySelectorAll('#employeeTable tr');
+            rows.forEach(row => {
+                const branch = row.cells[4].textContent;
+                row.style.display = !filter || branch === filter ? '' : 'none';
+            });
+        }
+
+        function populateBranchFilter() {
+            const select = document.getElementById('branchFilter');
+            const uniqueBranches = [...new Set(employees.map(e => e.branch))];
+            select.innerHTML = '<option value="">All Branches</option>' + uniqueBranches.map(b => `<option value="${b}">${b}</option>`).join('');
+        }
+
+        function populateEmployeeSelects() {
+            const selects = ['payEmpId', 'attEmpId', 'certEmpId'];
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                if (select) {
+                    select.innerHTML = '<option value="">Select Employee</option>' + employees.map((emp, idx) => `<option value="${idx}">${emp.name} (${emp.branch})</option>`).join('');
+                }
+            });
+            populateBranchSelect('empBranch');
+            populateBranchSelect('editEmpBranch');
+            populateBranchSelect('deptBranch');
+        }
+
+        // Import Handling (Enhanced for multiple formats)
+        function handleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            currentFileType = file.name.split('.').pop().toLowerCase();
+            const reader = new FileReader();
+            importData = [];
+
+            if (currentFileType === 'csv' || currentFileType === 'xlsx') {
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheetName = workbook.SheetNames[0];
+                        const sheet = workbook.Sheets[sheetName];
+                        const json = XLSX.utils.sheet_to_json(sheet);
+                        importData = json.map(row => ({
+                            name: row.Name || '',
+                            position: row.Position || '',
+                            department: row.Department || '',
+                            branch: row.Branch || '',
+                            salary: parseFloat(row.Salary) || 0,
+                            joinDate: row['Join Date'] || '',
+                            email: row.Email || ''
+                        }));
+                        showPreview('Employee Import Preview', importData, 'employees');
+                    } catch (err) {
+                        alert('Error parsing spreadsheet: ' + err);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (currentFileType === 'pdf' || currentFileType === 'docx') {
+                reader.onload = function(e) {
+                    if (currentFileType === 'pdf') {
+                        const typedarray = new Uint8Array(e.target.result);
+                        pdfjsLib.getDocument(typedarray).promise.then(pdf => {
+                            let fullText = '';
+                            for (let i = 1; i <= pdf.numPages; i++) {
+                                pdf.getPage(i).then(page => {
+                                    page.getTextContent().then(content => {
+                                        fullText += content.items.map(item => item.str).join(' ');
+                                        if (i === pdf.numPages) {
+                                            parseTextToEmployees(fullText);
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                    } else {
+                        mammoth.convertToHtml({ arrayBuffer: e.target.result })
+                            .then(result => parseTextToEmployees(result.value))
+                            .catch(err => alert('Error parsing DOCX: ' + err));
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (currentFileType === 'jpg' || currentFileType === 'png') {
+                // OCR simulation - in real app, integrate Tesseract.js
+                alert('Image OCR not implemented in this demo. Use CSV/XLSX for import.');
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function parseTextToEmployees(text) {
+            // Simple parsing - extract lines assuming format: Name, Position, etc.
+            const lines = text.split('\n').filter(l => l.trim());
+            importData = lines.slice(0, Math.min(lines.length, 10)).map(line => { // Limit for demo
+                const parts = line.split(',');
+                return {
+                    name: parts[0] || '',
+                    position: parts[1] || '',
+                    department: parts[2] || '',
+                    branch: parts[3] || '',
+                    salary: parseFloat(parts[4]) || 0,
+                    joinDate: parts[5] || '',
+                    email: parts[6] || ''
+                };
+            }).filter(emp => emp.name);
+            showPreview('Employee Import Preview from Document', importData, 'employees');
+        }
+
+        function showPreview(title, data, type) {
+            document.getElementById('previewTitle').textContent = title;
+            const content = document.getElementById('previewContent');
+            if (type === 'employees') {
+                content.innerHTML = `<table class="table table-striped" id="previewTable"><thead><tr><th>Name</th><th>Position</th><th>Department</th><th>Branch</th><th>Salary</th><th>Join Date</th><th>Email</th></tr></thead><tbody>${data.map(emp => `<tr><td>${emp.name}</td><td>${emp.position}</td><td>${emp.department}</td><td>${emp.branch}</td><td>$${emp.salary}</td><td>${emp.joinDate}</td><td>${emp.email}</td></tr>`).join('')}</tbody></table>`;
+            }
+            // Add other types if needed
+            bootstrap.Modal.getInstance(document.getElementById('previewModal')).show();
+        }
+
+        function confirmImportData() {
+            if (importData.length > 0) {
+                importData.forEach(emp => {
+                    if (emp.name && emp.branch) { // Basic validation
+                        employees.push({
+                            ...emp,
+                            id: Date.now() + Math.random(),
+                            contractStatus: 'Active',
+                            certStatus: 'Pending',
+                            contractFile: null
+                        });
+                    }
+                });
+                localStorage.setItem('employees', JSON.stringify(employees));
+                renderEmployees();
+                updateDashboard();
+                populateEmployeeSelects();
+                logAudit('Employees Imported', `${importData.length} records`);
+            }
+            bootstrap.Modal.getInstance(document.getElementById('previewModal')).hide();
+            document.getElementById('importFile').value = '';
+        }
+
+        // Document Viewing
+        function viewDocument(url) {
+            document.getElementById('docTitle').textContent = 'Viewing Document';
+            const viewer = document.getElementById('docViewer');
+            viewer.innerHTML = '';
+            if (url.startsWith('data:') || url.includes('.pdf')) {
+                // PDF
+                pdfjsLib.getDocument(url).promise.then(pdf => {
+                    pdf.getPage(1).then(page => {
+                        const scale = 1.5;
+                        const viewport = page.getViewport({ scale });
+                        const canvas = document.createElement('canvas');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        viewer.appendChild(canvas);
+                        page.render({ canvasContext: canvas.getContext('2d'), viewport });
+                    });
+                });
+            } else if (url.includes('.png') || url.includes('.jpg')) {
+                viewer.innerHTML = `<img src="${url}" class="preview-canvas img-fluid">`;
+            }
+            // Add more types
+            bootstrap.Modal.getInstance(document.getElementById('docViewerModal')).show();
+        }
+
+        // Compliance Functions
+        function saveComplianceChecklist() {
+            const checklistItems = [
+                'bbee-plan', 'ee-report', 'diversity-training', 'ee-consultation', 'barrier-analysis', 'numerical-targets',
+                'ohs-audit', 'popia-training', 'data-breach-protocol', 'risk-assessment', 'incident-reporting', 'emergency-drills',
+                'collective-agreement', 'dispute-resolution', 'union-consultation', 'grievance-procedure',
+                'uif-registration', 'sars-submissions', 'paye-deductions', 'annual-reconciliations'
+            ];
+            checklistItems.forEach(id => {
+                complianceChecklist[id] = document.getElementById(id).checked;
+            });
+            localStorage.setItem('complianceChecklist', JSON.stringify(complianceChecklist));
+            updateComplianceScore();
+            logAudit('Checklist Saved', `${Object.values(complianceChecklist).filter(v => v).length} items checked`);
+            alert('Checklist saved!');
+        }
+
+        function renderCompliance() {
+            // Load checklist
+            Object.keys(complianceChecklist).forEach(id => {
+                document.getElementById(id).checked = complianceChecklist[id];
+            });
+        }
+
+        function handleComplianceUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const doc = {
+                    type: 'Compliance Doc',
+                    name: file.name,
+                    date: new Date().toLocaleDateString(),
+                    size: (file.size / 1024).toFixed(2) + ' KB',
+                    file: URL.createObjectURL(file)
+                };
+                complianceDocs.push(doc);
+                localStorage.setItem('complianceDocs', JSON.stringify(complianceDocs.map(d => ({...d, file: d.file})))); // Note: URLs not persisted
+                renderComplianceDocs();
+                logAudit('Compliance Document Uploaded', file.name);
+            }
+        }
+
+        function renderComplianceDocs() {
+            const table = document.getElementById('complianceDocsTable');
+            table.innerHTML = '';
+            complianceDocs.forEach((doc, idx) => {
+                table.innerHTML += `<tr><td>${doc.type}</td><td>${doc.name}</td><td>${doc.date}</td><td>${doc.size}</td><td><button class="btn btn-sm btn-info" onclick="viewDocument('${doc.file}')">View</button> <button class="btn btn-sm btn-danger" onclick="deleteComplianceDoc(${idx})">Delete</button></td></tr>`;
+            });
+        }
+
+        function deleteComplianceDoc(idx) {
+            if (confirm('Delete document?')) {
+                complianceDocs.splice(idx, 1);
+                localStorage.setItem('complianceDocs', JSON.stringify(complianceDocs));
+                renderComplianceDocs();
+            }
+        }
+
+        function addCertification() {
+            const empIndex = document.getElementById('certEmpId').value;
+            const cert = {
+                empIndex,
+                type: document.getElementById('certType').value,
+                issueDate: document.getElementById('certIssueDate').value,
+                expiryDate: document.getElementById('certExpiryDate').value,
+                file: document.getElementById('certFile').files[0] ? URL.createObjectURL(document.getElementById('certFile').files[0]) : null,
+                status: new Date(document.getElementById('certExpiryDate').value) > new Date() ? 'Active' : 'Expired'
+            };
+            certifications.push(cert);
+            employees[empIndex].certStatus = 'Compliant';
+            localStorage.setItem('certifications', JSON.stringify(certifications));
+            localStorage.setItem('employees', JSON.stringify(employees));
+            renderCertifications();
+            updateDashboard();
+            bootstrap.Modal.getInstance(document.getElementById('addCertModal')).hide();
+            logAudit('Certification Added', `${employees[empIndex]?.name}: ${cert.type}`);
+        }
+
+        function renderCertifications() {
+            const table = document.getElementById('certificationsTable');
+            table.innerHTML = '';
+            certifications.forEach((cert, idx) => {
+                const emp = employees[cert.empIndex] || { name: 'Deleted' };
+                const statusBadge = cert.status === 'Active' ? 'bg-success' : 'bg-danger';
+                table.innerHTML += `<tr><td>${emp.name}</td><td>${cert.type}</td><td>${cert.issueDate}</td><td>${cert.expiryDate}</td><td><span class="badge ${statusBadge}">${cert.status}</span></td><td><button class="btn btn-sm btn-danger" onclick="deleteCertification(${idx})">Delete</button> ${cert.file ? `<button class="btn btn-sm btn-info" onclick="viewDocument('${cert.file}')">View</button>` : ''}</td></tr>`;
+            });
+            // Update expiring count
+            const expiring = certifications.filter(c => new Date(c.expiryDate) < new Date(Date.now() + 30*24*60*60*1000)).length;
+            document.getElementById('expiringCerts').textContent = expiring;
+        }
+
+        function deleteCertification(idx) {
+            if (confirm('Delete certification?')) {
+                const cert = certifications[idx];
+                certifications.splice(idx, 1);
+                // Reset employee cert status if no active certs
+                const empActiveCerts = certifications.filter(c => c.empIndex === cert.empIndex && c.status === 'Active').length === 0;
+                if (empActiveCerts) employees[cert.empIndex].certStatus = 'Pending';
+                localStorage.setItem('certifications', JSON.stringify(certifications));
+                localStorage.setItem('employees', JSON.stringify(employees));
+                renderCertifications();
+                updateDashboard();
+            }
+        }
+
+        function renderAuditLog() {
+            const table = document.getElementById('auditTable');
+            table.innerHTML = '';
+            auditLog.slice(0, 50).forEach(entry => { // Last 50
+                table.innerHTML += `<tr><td>${entry.date}</td><td>${entry.user}</td><td>${entry.action}</td><td>${entry.details}</td></tr>`;
+            });
+        }
+
+        // Dashboard Rendering
+        function renderDashboard() {
+            document.getElementById('totalEmployees').textContent = employees.length;
+            document.getElementById('openPositions').textContent = jobs.filter(j => j.status === 'Open').length;
+            const avgPerf = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.score, 0) / reviews.length).toFixed(1) : 0;
+            document.getElementById('avgPerformance').textContent = `${avgPerf}/5`;
+            document.getElementById('pendingLeaves').textContent = leaves.filter(l => l.status === 'Pending').length;
+            updateComplianceScore();
+            // Chart
+            const ctx = document.getElementById('dashboardChart').getContext('2d');
+            if (window.dashboardChart) window.dashboardChart.destroy();
+            window.dashboardChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Employees', 'Open Jobs', 'Pending Leaves', 'Expiring Certs'],
+                    datasets: [{
+                        data: [employees.length, jobs.filter(j => j.status === 'Open').length, leaves.filter(l => l.status === 'Pending').length, document.getElementById('expiringCerts').textContent],
+                        backgroundColor: ['#0d6efd', '#28a745', '#ffc107', '#dc3545']
+                    }]
+                },
+                options: { responsive: true }
+            });
+        }
+
+        function updateDashboard() {
+            renderDashboard();
+        }
+
+        // Other Section Renders (simplified)
+        function renderJobs() {
+            const table = document.getElementById('jobTable');
+            table.innerHTML = jobs.map((job, idx) => `<tr><td>${job.id}</td><td>${job.title}</td><td>${job.description}</td><td>${job.branch}</td><td><span class="badge bg-${job.status === 'Open' ? 'success' : 'secondary'}">${job.status}</span></td><td><button class="btn btn-sm btn-primary" onclick="editJob(${idx})">Edit</button></td></tr>`).join('');
+        }
+
+        function renderReviews() {
+            const table = document.getElementById('performanceTable');
+            table.innerHTML = reviews.map(r => `<tr><td>${r.employee}</td><td>${r.branch}</td><td>${r.score}/5</td><td>${r.comments}</td><td>${r.date}</td><td><button class="btn btn-sm btn-danger" onclick="deleteReview(${reviews.indexOf(r)})">Delete</button></td></tr>`).join('');
+        }
+
+        function renderAttendance() {
+            const table = document.getElementById('attendanceTable');
+            table.innerHTML = attendances.map(a => `<tr><td>${a.employee}</td><td>${a.branch}</td><td>${a.date}</td><td>${a.inTime}</td><td>${a.outTime}</td><td>${a.hours}</td></tr>`).join('');
+        }
+
+        function renderLeaves() {
+            const table = document.getElementById('leavesTable');
+            table.innerHTML = leaves.map(l => `<tr><td>${l.employee}</td><td>${l.branch}</td><td>${l.startDate}</td><td>${l.endDate}</td><td>${l.reason}</td><td><span class="badge bg-${l.status === 'Approved' ? 'success' : 'warning'}">${l.status}</span></td><td><button class="btn btn-sm btn-primary" onclick="approveLeave(${leaves.indexOf(l)})">Approve</button></td></tr>`).join('');
+        }
+
+        function approveLeave(idx) {
+            leaves[idx].status = 'Approved';
+            localStorage.setItem('leaves', JSON.stringify(leaves));
+            renderLeaves();
+        }
+
+        function renderBenefits() {
+            const table = document.getElementById('benefitsTable');
+            table.innerHTML = benefits.map(b => `<tr><td>${b.id}</td><td>${b.name}</td><td>${b.description}</td><td><button class="btn btn-sm btn-danger" onclick="deleteBenefit(${benefits.indexOf(b)})">Delete</button></td></tr>`).join('');
+        }
+
+        function renderCourses() {
+            const table = document.getElementById('trainingTable');
+            table.innerHTML = courses.map(c => `<tr><td>${c.id}</td><td>${c.title}</td><td>${c.description}</td><td>${c.assignedTo}</td><td>${c.branch}</td><td><button class="btn btn-sm btn-danger" onclick="deleteCourse(${courses.indexOf(c)})">Delete</button></td></tr>`).join('');
+        }
+
+        // Reports
+        function generateEmployeeReport() {
+            const report = employees.map(e => `${e.name}, ${e.position}, ${e.branch}, $${e.salary}`).join('\n');
+            downloadReport('employee_report.csv', report);
+        }
+
+        function generatePayrollReport() {
+            const report = payrolls.map(p => `${employees[p.empIndex]?.name}, $${p.gross}, $${p.netPay}, ${p.date}`).join('\n');
+            downloadReport('payroll_report.csv', report);
+        }
+
+        function generateAttendanceReport() {
+            const report = attendances.map(a => `${a.employee}, ${a.date}, ${a.hours}`).join('\n');
+            downloadReport('attendance_report.csv', report);
+        }
+
+        function generateComplianceReport() {
+            const report = `Compliance Score: ${document.getElementById('complianceScore').textContent}\nChecklist: ${JSON.stringify(complianceChecklist, null, 2)}`;
+            downloadReport('compliance_report.txt', report);
+        }
+
+        function downloadReport(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            logAudit('Report Generated', filename);
+        }
+
+        function renderReports() {
+            document.getElementById('reportOutput').innerHTML = '<p>Select a report to generate.</p>';
+        }
+
+        // Settings
+        function loadSettings() {
+            document.getElementById('companyName').value = settings.companyName;
+            document.getElementById('taxRate').value = settings.taxRate;
+            document.getElementById('darkMode').checked = settings.darkMode;
+            applyDarkMode();
+        }
+
+        function saveSettings() {
+            settings.companyName = document.getElementById('companyName').value;
+            settings.taxRate = parseFloat(document.getElementById('taxRate').value);
+            settings.darkMode = document.getElementById('darkMode').checked;
+            localStorage.setItem('settings', JSON.stringify(settings));
+            applyDarkMode();
+            logAudit('Settings Saved', `Dark Mode: ${settings.darkMode}`);
+            alert('Settings saved!');
+        }
+
+        function applyDarkMode() {
+            document.body.classList.toggle('dark-mode', settings.darkMode);
+        }
+
+        // Clock In/Out
+        function clockIn() {
+            const empIndex = document.getElementById('attEmpId').value;
+            if (empIndex !== '') {
+                attendances.push({
+                    empIndex,
+                    employee: employees[empIndex].name,
+                    branch: employees[empIndex].branch,
+                    date: new Date().toLocaleDateString(),
+                    inTime: new Date().toLocaleTimeString(),
+                    outTime: '',
+                    hours: 0
+                });
+                localStorage.setItem('attendances', JSON.stringify(attendances));
+                renderAttendance();
+                logAudit('Clock In', employees[empIndex].name);
+            }
+        }
+
+        function clockOut() {
+            const empIndex = document.getElementById('attEmpId').value;
+            const todayAtt = attendances.filter(a => a.empIndex == empIndex && a.date === new Date().toLocaleDateString() && !a.outTime)[0];
+            if (todayAtt) {
+                todayAtt.outTime = new Date().toLocaleTimeString();
+                const inTime = new Date(`1970-01-01T${todayAtt.inTime}`);
+                const outTime = new Date(`1970-01-01T${todayAtt.outTime}`);
+                todayAtt.hours = ((outTime - inTime) / (1000 * 60 * 60)).toFixed(2);
+                localStorage.setItem('attendances', JSON.stringify(attendances));
+                renderAttendance();
+                logAudit('Clock Out', employees[empIndex].name);
+            }
+        }
+
+        // Logout
+        function logout() {
+            if (confirm('Logout?')) {
+                logAudit('Logout', 'User logged out');
+                // In real app, redirect to login
+                alert('Logged out successfully!');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            populateBranchSelect('empBranch');
+            populateBranchSelect('editEmpBranch');
+            populateEmployeeSelects();
+            populateBranchFilter();
+            renderEmployees();
+            renderPayrolls();
+            renderCompliance();
+            updateDashboard();
+            loadSettings();
+            // Sample data
+            if (employees.length === 0) {
+                employees.push({ id: 1, name: 'John Doe', position: 'Manager', department: 'HR', branch: branches[0], salary: 50000, joinDate: '2023-01-01', email: 'john@bophelong.org', contractStatus: 'Active', certStatus: 'Compliant', contractFile: null });
+                localStorage.setItem('employees', JSON.stringify(employees));
+                renderEmployees();
+                updateDashboard();
+            }
+        });
+
+        // Add other modal handlers for jobs, reviews, etc. (similar pattern)
+        function addJob() { /* Implement */ alert('Add Job - Modal logic'); }
+        function editJob(idx) { /* Implement */ alert('Edit Job'); }
+        function addReview() { /* Implement */ alert('Add Review'); }
+        function deleteReview(idx) { /* Implement */ if (confirm('Delete?')) reviews.splice(idx, 1); localStorage.setItem('reviews', JSON.stringify(reviews)); renderReviews(); }
+        function addLeave() { /* Implement */ alert('Add Leave'); }
+        function addBenefit() { /* Implement */ alert('Add Benefit'); }
+        function deleteBenefit(idx) { /* Implement */ benefits.splice(idx, 1); localStorage.setItem('benefits', JSON.stringify(benefits)); renderBenefits(); }
+        function addCourse() { /* Implement */ alert('Add Course'); }
+        function deleteCourse(idx) { /* Implement */ courses.splice(idx, 1); localStorage.setItem('courses', JSON.stringify(courses)); renderCourses(); }
+        function deletePayroll(idx) { /* Implement */ if (confirm('Delete?')) { payrolls.splice(idx, 1); localStorage.setItem('payrolls', JSON.stringify(payrolls)); renderPayrolls(); } }
+
     </script>
 </body>
 </html>
+    
