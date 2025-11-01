@@ -12,32 +12,32 @@
     <script src="https://cdn.jsdelivr.net/npm/mammoth@1.4.2/mammoth.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #f4f7fa; color: #333; }
-        .sidebar { background-color: #ffffff; border-right: 1px solid #dee2e6; height: 100vh; position: fixed; width: 250px; padding: 20px; overflow-y: auto; transition: width 0.3s ease; z-index: 1000; }
+        body { font-family: 'Poppins', sans-serif; background-color: #f0f8ff; color: #333; } /* Light sky blue background */
+        .sidebar { background-color: #e6f3ff; border-right: 1px solid #87ceeb; height: 100vh; position: fixed; width: 250px; padding: 20px; overflow-y: auto; transition: width 0.3s ease; z-index: 1000; } /* Sky blue tint */
         .sidebar.collapsed { width: 60px; }
         .sidebar.collapsed .nav-text { display: none; }
-        .sidebar .nav-link { color: #495057; font-weight: 500; margin-bottom: 10px; padding: 10px; transition: all 0.2s; }
-        .sidebar .nav-link:hover { color: #0d6efd; background-color: #f8f9fa; border-radius: 5px; }
-        .sidebar .nav-link.active { color: #0d6efd; background-color: #e7f1ff; border-radius: 5px; }
-        .content { margin-left: 250px; padding: 40px; transition: margin-left 0.3s ease; }
+        .sidebar .nav-link { color: #001f3f; font-weight: 500; margin-bottom: 10px; padding: 10px; transition: all 0.2s; } /* Navy blue text */
+        .sidebar .nav-link:hover { color: #4169e1; background-color: #add8e6; border-radius: 5px; } /* Royal blue text, light sky blue bg */
+        .sidebar .nav-link.active { color: #4169e1; background-color: #b0e0e6; border-radius: 5px; } /* Royal blue text, powder blue bg */
+        .content { margin-left: 250px; padding: 40px; transition: margin-left 0.3s ease; background-color: #f8fbff; } /* Very light sky blue */
         .content.expanded { margin-left: 60px; }
-        .card-metric { background-color: #ffffff; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-radius: 10px; transition: transform 0.2s; }
+        .card-metric { background-color: #ffffff; border: 1px solid #add8e6; box-shadow: 0 4px 15px rgba(135,206,235,0.2); border-radius: 10px; transition: transform 0.2s; } /* Sky blue border and shadow */
         .card-metric:hover { transform: translateY(-5px); }
-        .table { background-color: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-radius: 10px; overflow: hidden; }
-        .modal-content { border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        .table { background-color: #ffffff; box-shadow: 0 2px 10px rgba(135,206,235,0.1); border-radius: 10px; overflow: hidden; border: 1px solid #e6f3ff; } /* Sky blue subtle shadow and border */
+        .modal-content { border-radius: 15px; box-shadow: 0 5px 20px rgba(65,105,225,0.2); border: 1px solid #add8e6; } /* Royal blue shadow, sky blue border */
         #dashboardChart { max-height: 400px; }
         .section { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .search-input { max-width: 300px; }
-        .btn-toggle-sidebar { position: fixed; top: 20px; left: 260px; z-index: 1001; transition: left 0.3s ease; }
+        .btn-toggle-sidebar { position: fixed; top: 20px; left: 260px; z-index: 1001; transition: left 0.3s ease; background-color: #4169e1; border-color: #4169e1; } /* Royal blue button */
         .btn-toggle-sidebar.expanded { left: 70px; }
-        #pdfViewer { height: 500px; width: 100%; border: 1px solid #ddd; }
+        #pdfViewer { height: 500px; width: 100%; border: 1px solid #87ceeb; } /* Sky blue border */
         #previewTable { max-height: 400px; overflow-y: auto; }
-        .compliance-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .compliance-card { background: linear-gradient(135deg, #0d6efd 0%, #4169e1 50%, #001f3f 100%); color: white; } /* Gradient: blue to royal to navy */
         .checklist-item { display: flex; align-items: center; }
         .checklist-item input[type="checkbox"]:checked + label { text-decoration: line-through; }
-        .checklist-section { border: 1px solid #dee2e6; padding: 15px; border-radius: 8px; margin-bottom: 20px; background-color: #f8f9fa; }
-        .preview-canvas { max-width: 100%; height: auto; border: 1px solid #ddd; }
+        .checklist-section { border: 1px solid #add8e6; padding: 15px; border-radius: 8px; margin-bottom: 20px; background-color: #f0f8ff; } /* Sky blue border and light bg */
+        .preview-canvas { max-width: 100%; height: auto; border: 1px solid #87ceeb; } /* Sky blue border */
         .upload-preview { max-height: 300px; overflow: auto; }
         @media (max-width: 768px) {
             .sidebar { width: 60px; }
@@ -46,26 +46,26 @@
             .sidebar .nav-text { display: none; }
         }
 
-        /* Dark Mode Styles */
-        .dark-mode { background-color: #121212; color: #e0e0e0; }
-        .dark-mode .sidebar { background-color: #1e1e1e; border-right: 1px solid #333; }
-        .dark-mode .nav-link { color: #bbb; }
-        .dark-mode .nav-link:hover { color: #fff; background-color: #333; }
-        .dark-mode .nav-link.active { color: #0d6efd; background-color: #333; }
-        .dark-mode .content { background-color: #121212; }
-        .dark-mode .card-metric { background-color: #1e1e1e; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .dark-mode .table { background-color: #1e1e1e; color: #e0e0e0; }
-        .dark-mode .table-striped tbody tr:nth-of-type(odd) { background-color: #252525; }
-        .dark-mode .table thead th { background-color: #333; }
-        .dark-mode .modal-content { background-color: #1e1e1e; color: #e0e0e0; }
-        .dark-mode .form-control { background-color: #333; color: #e0e0e0; border: 1px solid #555; }
-        .dark-mode .form-control:focus { background-color: #333; color: #e0e0e0; border-color: #0d6efd; box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25); }
-        .dark-mode .btn-primary { background-color: #0d6efd; border-color: #0d6efd; }
-        .dark-mode .btn-primary:hover { background-color: #0b5ed7; border-color: #0a58ca; }
-        .dark-mode #pdfViewer { border-color: #555; }
-        .dark-mode .compliance-card { background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%); }
-        .dark-mode .checklist-section { background-color: #333; border-color: #555; }
-        .dark-mode .preview-canvas { border-color: #555; }
+        /* Dark Mode Styles (enhanced with blue tones) */
+        .dark-mode { background-color: #001f3f; color: #e0e0e0; } /* Navy blue bg */
+        .dark-mode .sidebar { background-color: #0d1b2a; border-right: 1px solid #4169e1; } /* Dark navy with royal accent */
+        .dark-mode .nav-link { color: #add8e6; } /* Sky blue text */
+        .dark-mode .nav-link:hover { color: #ffffff; background-color: #4169e1; } /* White text, royal blue bg */
+        .dark-mode .nav-link.active { color: #0d6efd; background-color: #4169e1; } /* Blue text, royal bg */
+        .dark-mode .content { background-color: #001f3f; } /* Navy bg */
+        .dark-mode .card-metric { background-color: #0d1b2a; box-shadow: 0 4px 15px rgba(65,105,225,0.3); border: 1px solid #4169e1; } /* Dark with royal shadow/border */
+        .dark-mode .table { background-color: #0d1b2a; color: #e0e0e0; border: 1px solid #add8e6; } /* Dark with sky blue border */
+        .dark-mode .table-striped tbody tr:nth-of-type(odd) { background-color: #1a2b4a; } /* Darker navy */
+        .dark-mode .table thead th { background-color: #4169e1; color: white; } /* Royal blue header */
+        .dark-mode .modal-content { background-color: #0d1b2a; color: #e0e0e0; border: 1px solid #4169e1; } /* Dark with royal border */
+        .dark-mode .form-control { background-color: #1a2b4a; color: #e0e0e0; border: 1px solid #add8e6; } /* Dark navy with sky border */
+        .dark-mode .form-control:focus { background-color: #1a2b4a; color: #e0e0e0; border-color: #0d6efd; box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25); }
+        .dark-mode .btn-primary { background-color: #4169e1; border-color: #4169e1; } /* Royal blue */
+        .dark-mode .btn-primary:hover { background-color: #0d6efd; border-color: #0d6efd; } /* Blue hover */
+        .dark-mode #pdfViewer { border-color: #add8e6; } /* Sky blue */
+        .dark-mode .compliance-card { background: linear-gradient(135deg, #0d6efd 0%, #4169e1 50%, #001f3f 100%); } /* Keep blue gradient */
+        .dark-mode .checklist-section { background-color: #1a2b4a; border-color: #add8e6; } /* Dark navy with sky border */
+        .dark-mode .preview-canvas { border-color: #add8e6; } /* Sky blue */
     </style>
 </head>
 <body>
@@ -1297,7 +1297,7 @@
                     labels: ['Employees', 'Open Jobs', 'Pending Leaves', 'Expiring Certs'],
                     datasets: [{
                         data: [employees.length, jobs.filter(j => j.status === 'Open').length, leaves.filter(l => l.status === 'Pending').length, document.getElementById('expiringCerts').textContent],
-                        backgroundColor: ['#0d6efd', '#28a745', '#ffc107', '#dc3545']
+                        backgroundColor: ['#0d6efd', '#4169e1', '#add8e6', '#001f3f'] /* Enhanced with blues: blue, royal, sky, navy */
                     }]
                 },
                 options: { responsive: true }
