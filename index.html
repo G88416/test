@@ -231,26 +231,26 @@
             </div>
             <ul class="nav nav-tabs" id="complianceTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="checklists-tab" data-bs-toggle="tab" data-bs-target="#checklists" type="button" role="tab">Checklists</button>
+                    <button class="nav-link active" id="checklists-tab" data-bs-toggle="tab" data-bs-target="#checklists" type="button" role="tab" aria-controls="checklists" aria-selected="true">Checklists</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab">Documents</button>
+                    <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab" aria-controls="documents" aria-selected="false">Documents</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="certifications-tab" data-bs-toggle="tab" data-bs-target="#certifications" type="button" role="tab">Certifications</button>
+                    <button class="nav-link" id="certifications-tab" data-bs-toggle="tab" data-bs-target="#certifications" type="button" role="tab" aria-controls="certifications" aria-selected="false">Certifications</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="payroll-compliance-tab" data-bs-toggle="tab" data-bs-target="#payroll-compliance" type="button" role="tab">Payroll Compliance</button>
+                    <button class="nav-link" id="payroll-compliance-tab" data-bs-toggle="tab" data-bs-target="#payroll-compliance" type="button" role="tab" aria-controls="payroll-compliance" aria-selected="false">Payroll Compliance</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="dept-compliance-tab" data-bs-toggle="tab" data-bs-target="#dept-compliance" type="button" role="tab">Departmental Compliance</button>
+                    <button class="nav-link" id="dept-compliance-tab" data-bs-toggle="tab" data-bs-target="#dept-compliance" type="button" role="tab" aria-controls="dept-compliance" aria-selected="false">Departmental Compliance</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit" type="button" role="tab">Audit Log</button>
+                    <button class="nav-link" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit" type="button" role="tab" aria-controls="audit" aria-selected="false">Audit Log</button>
                 </li>
             </ul>
             <div class="tab-content" id="complianceTabContent">
-                <div class="tab-pane fade show active" id="checklists" role="tabpanel">
+                <div class="tab-pane fade show active" id="checklists" role="tabpanel" aria-labelledby="checklists-tab">
                     <div class="row mt-3">
                         <div class="col-md-6">
                             <div class="checklist-section">
@@ -297,7 +297,7 @@
                     </div>
                     <button class="btn btn-primary mt-3" onclick="saveComplianceChecklist()">Save Checklist</button>
                 </div>
-                <div class="tab-pane fade" id="documents" role="tabpanel">
+                <div class="tab-pane fade" id="documents" role="tabpanel" aria-labelledby="documents-tab">
                     <div class="mb-3">
                         <button class="btn btn-success" onclick="document.getElementById('complianceDocUpload').click()">Upload Compliance Document</button>
                         <input type="file" id="complianceDocUpload" style="display:none" accept=".pdf,.docx,.xlsx,.csv,.jpg,.png" onchange="handleComplianceUpload(event)">
@@ -307,14 +307,14 @@
                         <tbody id="complianceDocsTable"></tbody>
                     </table>
                 </div>
-                <div class="tab-pane fade" id="certifications" role="tabpanel">
+                <div class="tab-pane fade" id="certifications" role="tabpanel" aria-labelledby="certifications-tab">
                     <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#addCertModal">Add Certification</button>
                     <table class="table table-striped">
                         <thead><tr><th>Employee</th><th>Certification Type</th><th>Issue Date</th><th>Expiry Date</th><th>Status</th><th>Actions</th></tr></thead>
                         <tbody id="certificationsTable"></tbody>
                     </table>
                 </div>
-                <div class="tab-pane fade" id="payroll-compliance" role="tabpanel">
+                <div class="tab-pane fade" id="payroll-compliance" role="tabpanel" aria-labelledby="payroll-compliance-tab">
                     <h5>Payroll Compliance Tracker</h5>
                     <div class="row mb-3">
                         <div class="col-md-3"><input type="month" class="form-control" id="payrollMonth" onchange="loadPayrollCompliance()"></div>
@@ -326,14 +326,14 @@
                     </table>
                     <button class="btn btn-success mt-3" onclick="markPayrollCompliant()">Mark Compliant</button>
                 </div>
-                <div class="tab-pane fade" id="dept-compliance" role="tabpanel">
+                <div class="tab-pane fade" id="dept-compliance" role="tabpanel" aria-labelledby="dept-compliance-tab">
                     <h5>Departmental Compliance</h5>
                     <table class="table table-striped">
                         <thead><tr><th>Department/Branch</th><th>Custom Items</th><th>Completion %</th><th>Actions</th></tr></thead>
                         <tbody id="deptComplianceTable"></tbody>
                     </table>
                 </div>
-                <div class="tab-pane fade" id="audit" role="tabpanel">
+                <div class="tab-pane fade" id="audit" role="tabpanel" aria-labelledby="audit-tab">
                     <table class="table table-striped">
                         <thead><tr><th>Date</th><th>User</th><th>Action</th><th>Details</th></tr></thead>
                         <tbody id="auditTable"></tbody>
@@ -421,6 +421,104 @@
         </div>
     </div>
 
+    <!-- Add Job Modal -->
+    <div class="modal fade" id="addJobModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Add Job Posting</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <form id="jobForm">
+                        <input type="text" class="form-control mb-3" id="jobTitle" placeholder="Job Title" required>
+                        <textarea class="form-control mb-3" id="jobDescription" placeholder="Description" required></textarea>
+                        <select class="form-control mb-3" id="jobBranch" required>
+                            <option value="">Select Branch</option>
+                        </select>
+                        <div class="mb-3"><label>Job Description File</label><input type="file" class="form-control" id="jobFile" accept=".pdf,.docx,.jpg,.png" onchange="previewFile(this, 'jobFilePreview')"></div>
+                        <div id="jobFilePreview" class="upload-preview"></div>
+                    </form>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="addJob()">Save</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Review Modal -->
+    <div class="modal fade" id="addReviewModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Add Performance Review</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <select class="form-control mb-3" id="reviewEmpId">
+                        <option value="">Select Employee</option>
+                    </select>
+                    <input type="number" class="form-control mb-3" id="reviewScore" min="0" max="5" placeholder="Score (0-5)" required>
+                    <textarea class="form-control mb-3" id="reviewComments" placeholder="Comments"></textarea>
+                    <div class="mb-3"><label>Supporting Document</label><input type="file" class="form-control" id="reviewFile" accept=".pdf,.docx,.jpg,.png" onchange="previewFile(this, 'reviewFilePreview')"></div>
+                    <div id="reviewFilePreview" class="upload-preview"></div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="addReview()">Save</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Leave Modal -->
+    <div class="modal fade" id="addLeaveModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Apply for Leave</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <select class="form-control mb-3" id="leaveEmpId">
+                        <option value="">Select Employee</option>
+                    </select>
+                    <input type="date" class="form-control mb-3" id="leaveStart" required>
+                    <input type="date" class="form-control mb-3" id="leaveEnd" required>
+                    <input type="text" class="form-control mb-3" id="leaveReason" placeholder="Reason" required>
+                    <div class="mb-3"><label>Supporting Document</label><input type="file" class="form-control" id="leaveFile" accept=".pdf,.docx,.jpg,.png" onchange="previewFile(this, 'leaveFilePreview')"></div>
+                    <div id="leaveFilePreview" class="upload-preview"></div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="addLeave()">Save</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Benefit Modal -->
+    <div class="modal fade" id="addBenefitModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Add Benefit</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-3" id="benefitName" placeholder="Benefit Name" required>
+                    <textarea class="form-control mb-3" id="benefitDesc" placeholder="Description"></textarea>
+                    <div class="mb-3"><label>Policy Document</label><input type="file" class="form-control" id="benefitFile" accept=".pdf,.docx,.jpg,.png" onchange="previewFile(this, 'benefitFilePreview')"></div>
+                    <div id="benefitFilePreview" class="upload-preview"></div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="addBenefit()">Save</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Course Modal -->
+    <div class="modal fade" id="addCourseModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5>Add Training Course</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-3" id="courseTitle" placeholder="Title" required>
+                    <textarea class="form-control mb-3" id="courseDesc" placeholder="Description"></textarea>
+                    <select class="form-control mb-3" id="courseAssigned">
+                        <option value="">Select Employee</option>
+                    </select>
+                    <select class="form-control mb-3" id="courseBranch">
+                        <option value="">Select Branch</option>
+                    </select>
+                    <div class="mb-3"><label>Course Material</label><input type="file" class="form-control" id="courseFile" accept=".pdf,.docx,.jpg,.png" onchange="previewFile(this, 'courseFilePreview')"></div>
+                    <div id="courseFilePreview" class="upload-preview"></div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary" onclick="addCourse()">Save</button></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Certification Modal -->
     <div class="modal fade" id="addCertModal">
         <div class="modal-dialog">
@@ -459,9 +557,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Other modals (addJob, addReview, etc.) remain the same as previous -->
-    <!-- ... (omitted for brevity, include all from previous code) -->
 
     <!-- Preview Modal for Import (enhanced) -->
     <div class="modal fade" id="previewModal">
@@ -605,8 +700,6 @@
                 preview.innerHTML = `<p>File type ${fileType} preview not supported. Size: ${(file.size / 1024).toFixed(2)} KB</p>`;
             }
         }
-
-        // Other functions (showSection, populate*, renderEmployees, etc.) remain similar to previous, with additions for new features
 
         // Enhanced Payroll Calculation
         function calculatePayroll() {
@@ -772,6 +865,15 @@
                 renderCertifications();
                 renderComplianceDocs();
                 renderAuditLog();
+                // Ensure tabs are initialized
+                var triggerTabList = [].slice.call(document.querySelectorAll('#complianceTabs button'));
+                triggerTabList.forEach(function (triggerEl) {
+                    var tabTrigger = new bootstrap.Tab(triggerEl);
+                    triggerEl.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        tabTrigger.show();
+                    });
+                });
             }
             if (sectionId === 'reports') renderReports();
             if (sectionId === 'settings') loadSettings();
@@ -914,7 +1016,7 @@
         }
 
         function populateEmployeeSelects() {
-            const selects = ['payEmpId', 'attEmpId', 'certEmpId'];
+            const selects = ['payEmpId', 'attEmpId', 'certEmpId', 'reviewEmpId', 'leaveEmpId', 'courseAssigned'];
             selects.forEach(id => {
                 const select = document.getElementById(id);
                 if (select) {
@@ -924,6 +1026,8 @@
             populateBranchSelect('empBranch');
             populateBranchSelect('editEmpBranch');
             populateBranchSelect('deptBranch');
+            populateBranchSelect('jobBranch');
+            populateBranchSelect('courseBranch');
         }
 
         // Import Handling (Enhanced for multiple formats)
@@ -1204,41 +1308,221 @@
             renderDashboard();
         }
 
-        // Other Section Renders (simplified)
+        // Recruitment
+        function addJob() {
+            const job = {
+                id: Date.now(),
+                title: document.getElementById('jobTitle').value,
+                description: document.getElementById('jobDescription').value,
+                branch: document.getElementById('jobBranch').value,
+                status: 'Open',
+                file: document.getElementById('jobFile').files[0] ? URL.createObjectURL(document.getElementById('jobFile').files[0]) : null
+            };
+            jobs.push(job);
+            localStorage.setItem('jobs', JSON.stringify(jobs));
+            renderJobs();
+            updateDashboard();
+            bootstrap.Modal.getInstance(document.getElementById('addJobModal')).hide();
+            logAudit('Job Added', job.title);
+        }
+
         function renderJobs() {
             const table = document.getElementById('jobTable');
-            table.innerHTML = jobs.map((job, idx) => `<tr><td>${job.id}</td><td>${job.title}</td><td>${job.description}</td><td>${job.branch}</td><td><span class="badge bg-${job.status === 'Open' ? 'success' : 'secondary'}">${job.status}</span></td><td><button class="btn btn-sm btn-primary" onclick="editJob(${idx})">Edit</button></td></tr>`).join('');
+            if (!table) return;
+            table.innerHTML = jobs.map((job, idx) => `
+                <tr>
+                    <td>${job.id}</td>
+                    <td>${job.title}</td>
+                    <td>${job.description}</td>
+                    <td>${job.branch}</td>
+                    <td><span class="badge bg-${job.status === 'Open' ? 'success' : 'secondary'}">${job.status}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-1" onclick="editJob(${idx})">Edit</button>
+                        ${job.file ? `<button class="btn btn-sm btn-info me-1" onclick="viewDocument('${job.file}')">View</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function editJob(idx) {
+            alert('Edit Job - Implement edit modal if needed');
+        }
+
+        // Performance
+        function addReview() {
+            const empIndex = document.getElementById('reviewEmpId').value;
+            if (empIndex === '') return;
+            const review = {
+                employee: employees[empIndex].name,
+                branch: employees[empIndex].branch,
+                score: parseInt(document.getElementById('reviewScore').value),
+                comments: document.getElementById('reviewComments').value,
+                date: new Date().toLocaleDateString(),
+                file: document.getElementById('reviewFile').files[0] ? URL.createObjectURL(document.getElementById('reviewFile').files[0]) : null
+            };
+            reviews.push(review);
+            localStorage.setItem('reviews', JSON.stringify(reviews));
+            renderReviews();
+            updateDashboard();
+            bootstrap.Modal.getInstance(document.getElementById('addReviewModal')).hide();
+            logAudit('Review Added', review.employee);
         }
 
         function renderReviews() {
             const table = document.getElementById('performanceTable');
-            table.innerHTML = reviews.map(r => `<tr><td>${r.employee}</td><td>${r.branch}</td><td>${r.score}/5</td><td>${r.comments}</td><td>${r.date}</td><td><button class="btn btn-sm btn-danger" onclick="deleteReview(${reviews.indexOf(r)})">Delete</button></td></tr>`).join('');
+            if (!table) return;
+            table.innerHTML = reviews.map((r, idx) => `
+                <tr>
+                    <td>${r.employee}</td>
+                    <td>${r.branch}</td>
+                    <td>${r.score}/5</td>
+                    <td>${r.comments}</td>
+                    <td>${r.date}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger me-1" onclick="deleteReview(${idx})">Delete</button>
+                        ${r.file ? `<button class="btn btn-sm btn-info" onclick="viewDocument('${r.file}')">View</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
         }
 
-        function renderAttendance() {
-            const table = document.getElementById('attendanceTable');
-            table.innerHTML = attendances.map(a => `<tr><td>${a.employee}</td><td>${a.branch}</td><td>${a.date}</td><td>${a.inTime}</td><td>${a.outTime}</td><td>${a.hours}</td></tr>`).join('');
+        function deleteReview(idx) {
+            if (confirm('Delete review?')) {
+                reviews.splice(idx, 1);
+                localStorage.setItem('reviews', JSON.stringify(reviews));
+                renderReviews();
+                updateDashboard();
+            }
+        }
+
+        // Leaves
+        function addLeave() {
+            const empIndex = document.getElementById('leaveEmpId').value;
+            if (empIndex === '') return;
+            const leave = {
+                employee: employees[empIndex].name,
+                branch: employees[empIndex].branch,
+                startDate: document.getElementById('leaveStart').value,
+                endDate: document.getElementById('leaveEnd').value,
+                reason: document.getElementById('leaveReason').value,
+                status: 'Pending',
+                file: document.getElementById('leaveFile').files[0] ? URL.createObjectURL(document.getElementById('leaveFile').files[0]) : null
+            };
+            leaves.push(leave);
+            localStorage.setItem('leaves', JSON.stringify(leaves));
+            renderLeaves();
+            updateDashboard();
+            bootstrap.Modal.getInstance(document.getElementById('addLeaveModal')).hide();
+            logAudit('Leave Added', leave.employee);
         }
 
         function renderLeaves() {
             const table = document.getElementById('leavesTable');
-            table.innerHTML = leaves.map(l => `<tr><td>${l.employee}</td><td>${l.branch}</td><td>${l.startDate}</td><td>${l.endDate}</td><td>${l.reason}</td><td><span class="badge bg-${l.status === 'Approved' ? 'success' : 'warning'}">${l.status}</span></td><td><button class="btn btn-sm btn-primary" onclick="approveLeave(${leaves.indexOf(l)})">Approve</button></td></tr>`).join('');
+            if (!table) return;
+            table.innerHTML = leaves.map((l, idx) => `
+                <tr>
+                    <td>${l.employee}</td>
+                    <td>${l.branch}</td>
+                    <td>${l.startDate}</td>
+                    <td>${l.endDate}</td>
+                    <td>${l.reason}</td>
+                    <td><span class="badge bg-${l.status === 'Approved' ? 'success' : 'warning'}">${l.status}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-1" onclick="approveLeave(${idx})">Approve</button>
+                        ${l.file ? `<button class="btn btn-sm btn-info" onclick="viewDocument('${l.file}')">View</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
         }
 
         function approveLeave(idx) {
             leaves[idx].status = 'Approved';
             localStorage.setItem('leaves', JSON.stringify(leaves));
             renderLeaves();
+            updateDashboard();
+        }
+
+        // Benefits
+        function addBenefit() {
+            const benefit = {
+                id: Date.now(),
+                name: document.getElementById('benefitName').value,
+                description: document.getElementById('benefitDesc').value,
+                file: document.getElementById('benefitFile').files[0] ? URL.createObjectURL(document.getElementById('benefitFile').files[0]) : null
+            };
+            benefits.push(benefit);
+            localStorage.setItem('benefits', JSON.stringify(benefits));
+            renderBenefits();
+            bootstrap.Modal.getInstance(document.getElementById('addBenefitModal')).hide();
+            logAudit('Benefit Added', benefit.name);
         }
 
         function renderBenefits() {
             const table = document.getElementById('benefitsTable');
-            table.innerHTML = benefits.map(b => `<tr><td>${b.id}</td><td>${b.name}</td><td>${b.description}</td><td><button class="btn btn-sm btn-danger" onclick="deleteBenefit(${benefits.indexOf(b)})">Delete</button></td></tr>`).join('');
+            if (!table) return;
+            table.innerHTML = benefits.map((b, idx) => `
+                <tr>
+                    <td>${b.id}</td>
+                    <td>${b.name}</td>
+                    <td>${b.description}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger me-1" onclick="deleteBenefit(${idx})">Delete</button>
+                        ${b.file ? `<button class="btn btn-sm btn-info" onclick="viewDocument('${b.file}')">View</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteBenefit(idx) {
+            if (confirm('Delete benefit?')) {
+                benefits.splice(idx, 1);
+                localStorage.setItem('benefits', JSON.stringify(benefits));
+                renderBenefits();
+            }
+        }
+
+        // Training
+        function addCourse() {
+            const assignedIdx = document.getElementById('courseAssigned').value;
+            const course = {
+                id: Date.now(),
+                title: document.getElementById('courseTitle').value,
+                description: document.getElementById('courseDesc').value,
+                assignedTo: employees[assignedIdx]?.name || '',
+                branch: document.getElementById('courseBranch').value,
+                file: document.getElementById('courseFile').files[0] ? URL.createObjectURL(document.getElementById('courseFile').files[0]) : null
+            };
+            courses.push(course);
+            localStorage.setItem('courses', JSON.stringify(courses));
+            renderCourses();
+            bootstrap.Modal.getInstance(document.getElementById('addCourseModal')).hide();
+            logAudit('Course Added', course.title);
         }
 
         function renderCourses() {
             const table = document.getElementById('trainingTable');
-            table.innerHTML = courses.map(c => `<tr><td>${c.id}</td><td>${c.title}</td><td>${c.description}</td><td>${c.assignedTo}</td><td>${c.branch}</td><td><button class="btn btn-sm btn-danger" onclick="deleteCourse(${courses.indexOf(c)})">Delete</button></td></tr>`).join('');
+            if (!table) return;
+            table.innerHTML = courses.map((c, idx) => `
+                <tr>
+                    <td>${c.id}</td>
+                    <td>${c.title}</td>
+                    <td>${c.description}</td>
+                    <td>${c.assignedTo}</td>
+                    <td>${c.branch}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger me-1" onclick="deleteCourse(${idx})">Delete</button>
+                        ${c.file ? `<button class="btn btn-sm btn-info" onclick="viewDocument('${c.file}')">View</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deleteCourse(idx) {
+            if (confirm('Delete course?')) {
+                courses.splice(idx, 1);
+                localStorage.setItem('courses', JSON.stringify(courses));
+                renderCourses();
+            }
         }
 
         // Reports
@@ -1332,6 +1616,21 @@
             }
         }
 
+        function renderAttendance() {
+            const table = document.getElementById('attendanceTable');
+            if (!table) return;
+            table.innerHTML = attendances.map(a => `
+                <tr>
+                    <td>${a.employee}</td>
+                    <td>${a.branch}</td>
+                    <td>${a.date}</td>
+                    <td>${a.inTime}</td>
+                    <td>${a.outTime}</td>
+                    <td>${a.hours}</td>
+                </tr>
+            `).join('');
+        }
+
         // Logout
         function logout() {
             if (confirm('Logout?')) {
@@ -1341,15 +1640,31 @@
             }
         }
 
+        function deletePayroll(idx) {
+            if (confirm('Delete payroll record?')) {
+                payrolls.splice(idx, 1);
+                localStorage.setItem('payrolls', JSON.stringify(payrolls));
+                renderPayrolls();
+            }
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             populateBranchSelect('empBranch');
             populateBranchSelect('editEmpBranch');
+            populateBranchSelect('jobBranch');
+            populateBranchSelect('courseBranch');
             populateEmployeeSelects();
             populateBranchFilter();
             renderEmployees();
             renderPayrolls();
             renderCompliance();
+            renderJobs();
+            renderReviews();
+            renderAttendance();
+            renderLeaves();
+            renderBenefits();
+            renderCourses();
             updateDashboard();
             loadSettings();
             // Sample data
@@ -1361,19 +1676,6 @@
             }
         });
 
-        // Add other modal handlers for jobs, reviews, etc. (similar pattern)
-        function addJob() { /* Implement */ alert('Add Job - Modal logic'); }
-        function editJob(idx) { /* Implement */ alert('Edit Job'); }
-        function addReview() { /* Implement */ alert('Add Review'); }
-        function deleteReview(idx) { /* Implement */ if (confirm('Delete?')) reviews.splice(idx, 1); localStorage.setItem('reviews', JSON.stringify(reviews)); renderReviews(); }
-        function addLeave() { /* Implement */ alert('Add Leave'); }
-        function addBenefit() { /* Implement */ alert('Add Benefit'); }
-        function deleteBenefit(idx) { /* Implement */ benefits.splice(idx, 1); localStorage.setItem('benefits', JSON.stringify(benefits)); renderBenefits(); }
-        function addCourse() { /* Implement */ alert('Add Course'); }
-        function deleteCourse(idx) { /* Implement */ courses.splice(idx, 1); localStorage.setItem('courses', JSON.stringify(courses)); renderCourses(); }
-        function deletePayroll(idx) { /* Implement */ if (confirm('Delete?')) { payrolls.splice(idx, 1); localStorage.setItem('payrolls', JSON.stringify(payrolls)); renderPayrolls(); } }
-
     </script>
 </body>
 </html>
-    
