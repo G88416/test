@@ -89,7 +89,7 @@ echo ""
 
 # Test 6: Verify bulk imports storage rules
 echo -e "${BLUE}Test 6: Bulk imports storage rules${NC}"
-if grep -q "match /bulk-imports/{importType}/{timestamp}/{fileName}" storage.rules && \
+if grep -q "match /bulk-imports/{importType}/{importDate}/{fileName}" storage.rules && \
    grep -q "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" storage.rules; then
     echo -e "${GREEN}✅ PASS: Bulk imports storage rules are present${NC}"
     ((PASSED++))

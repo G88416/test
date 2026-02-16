@@ -82,7 +82,7 @@ match /imports/{importType}/{fileName} {
 
 #### Organized Import Path (with timestamps)
 ```javascript
-match /bulk-imports/{importType}/{timestamp}/{fileName} {
+match /bulk-imports/{importType}/{importDate}/{fileName} {
   allow read: if isAdmin();
   allow write: if isAdmin() && ...
 }
