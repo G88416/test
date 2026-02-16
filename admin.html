@@ -10497,47 +10497,53 @@
             createdAt: window.firebaseServerTimestamp()
           };
           
+          // Store references for later use in Firestore writes
+          let newStudent = null;
+          let newTeacher = null;
+          
           // Add user to local data based on type
           if (userType === 'student') {
             const grade = document.getElementById('new-student-grade').value;
             const parent = document.getElementById('new-student-parent').value;
             const contact = document.getElementById('new-student-contact').value;
             
-            const newStudent = {
-              id: parseInt(userId) || students.length + 1,
+            // Generate numeric ID for display purposes
+            const numericId = students.length ? Math.max(...students.map(s => s.numericId || s.id || 0)) + 1 : 1;
+            
+            newStudent = {
+              numericId: numericId,
               name: userName,
               grade: parseInt(grade) || 10,
               parent: parent || 'N/A',
               contact: contact || 'N/A',
-              classIds: []
+              classIds: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
             };
             
             userProfileData.grade = parseInt(grade) || 10;
             userProfileData.parent = parent || 'N/A';
             userProfileData.contact = contact || 'N/A';
             
-            students.push(newStudent);
-            localStorage.setItem('students', JSON.stringify(students));
-            renderStudents();
-            
           } else if (userType === 'teacher') {
             const subject = document.getElementById('new-teacher-subject').value;
             const qualification = document.getElementById('new-teacher-qualification').value;
             
-            const newTeacher = {
-              id: parseInt(userId) || teachers.length + 1,
+            // Generate numeric ID for display purposes
+            const numericId = teachers.length ? Math.max(...teachers.map(t => t.numericId || t.id || 0)) + 1 : 1;
+            
+            newTeacher = {
+              numericId: numericId,
               name: userName,
               subject: subject || 'General',
               qualification: qualification || 'N/A',
-              status: 'Active'
+              status: 'Active',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
             };
             
             userProfileData.subject = subject || 'General';
             userProfileData.qualification = qualification || 'N/A';
-            
-            teachers.push(newTeacher);
-            localStorage.setItem('teachers', JSON.stringify(teachers));
-            renderTeachers();
             
           } else if (userType === 'parent') {
             // For parent, find the student by ID and associate
@@ -10566,11 +10572,53 @@
             console.log('Creating Firestore profile for new user:', user.uid);
             
             // Now create the profile document while admin is still signed in to main auth
-            return window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, 'users', user.uid), userProfileData);
+            const userProfilePromise = window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, 'users', user.uid), userProfileData);
+            
+            // Also add to teachers or students collection if applicable
+            const collectionPromises = [];
+            
+            if (newTeacher) {
+              console.log('Adding teacher to teachers collection:', newTeacher);
+              const teacherPromise = window.firebaseAddDoc(
+                window.firebaseCollection(window.firebaseDb, "teachers"),
+                newTeacher
+              ).then((docRef) => {
+                console.log("Teacher added to Firestore with ID:", docRef.id);
+                newTeacher.id = docRef.id;
+                // Add to local teachers array
+                teachers.push(newTeacher);
+                localStorage.setItem('teachers', JSON.stringify(teachers));
+                renderTeachers();
+                return docRef;
+              });
+              collectionPromises.push(teacherPromise);
+            }
+            
+            if (newStudent) {
+              console.log('Adding student to students collection:', newStudent);
+              const studentPromise = window.firebaseAddDoc(
+                window.firebaseCollection(window.firebaseDb, "students"),
+                newStudent
+              ).then((docRef) => {
+                console.log("Student added to Firestore with ID:", docRef.id);
+                newStudent.id = docRef.id;
+                // Add to local students array
+                students.push(newStudent);
+                localStorage.setItem('students', JSON.stringify(students));
+                renderStudents();
+                return docRef;
+              });
+              collectionPromises.push(studentPromise);
+            }
+            
+            // Wait for all Firestore operations to complete
+            return Promise.all([userProfilePromise, ...collectionPromises]);
           });
         })
         .then(() => {
           console.log('User profile saved to Firestore');
+          if (newTeacher) console.log('Teacher also saved to teachers collection');
+          if (newStudent) console.log('Student also saved to students collection');
           
           // Close modal and show success message
           const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
