@@ -122,7 +122,7 @@ if (errors.length > 0) {
 // Display statistics
 console.log('📈 Grade Distribution:');
 Object.entries(gradeStats)
-  .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+  .sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10))
   .forEach(([grade, count]) => {
     console.log(`   Grade ${grade}: ${count} students`);
   });
