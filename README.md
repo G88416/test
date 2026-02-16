@@ -38,6 +38,7 @@ node check-firebase-deployment.js
   - Full Firebase authentication with role-based access control
 
 - **Student Management**: Add, edit, search, and export student records
+  - 📥 **Bulk Import**: Import students via CSV - see [STUDENT_DATA_IMPORT_GUIDE.md](STUDENT_DATA_IMPORT_GUIDE.md)
 - **Teacher Management**: Manage teaching staff and class assignments
 - **Class Management**: Create classes, assign teachers, manage enrollment
 - **Attendance Tracking**: Mark attendance, view history, generate reports
