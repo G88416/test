@@ -11163,6 +11163,10 @@
       const password = document.getElementById('new-user-password').value;
       const passwordConfirm = document.getElementById('new-user-password-confirm').value;
       
+      // Store references for later use in Firestore writes
+      let newStudent = null;
+      let newTeacher = null;
+      
       // Validation
       if (!userType) {
         alert('Please select a user type.');
@@ -11224,10 +11228,6 @@
             name: userName || 'N/A',
             createdAt: window.firebaseServerTimestamp()
           };
-          
-          // Store references for later use in Firestore writes
-          let newStudent = null;
-          let newTeacher = null;
           
           // Add user to local data based on type
           if (userType === 'student') {
