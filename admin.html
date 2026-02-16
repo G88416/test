@@ -6078,7 +6078,7 @@
             studentData = {
               surname, 
               firstname, 
-              gender: 'M', // Default gender
+              gender: 'Not specified', // Default for simplified format
               grade: gradeVal, 
               classname, 
               cell: '', 
@@ -6116,7 +6116,11 @@
           errors = [];
           if (!surname) errors.push('Missing surname');
           if (!firstname) errors.push('Missing firstname');
-          if (!genderVal || !['Male', 'Female', 'M', 'F'].includes(genderVal)) errors.push('Invalid gender');
+          // Normalize gender to M/F
+          let normalizedGender = genderVal;
+          if (genderVal === 'Male') normalizedGender = 'M';
+          if (genderVal === 'Female') normalizedGender = 'F';
+          if (!normalizedGender || !['M', 'F'].includes(normalizedGender)) errors.push('Invalid gender');
           if (!gradeVal) errors.push('Missing grade');
 
           const isValid = errors.length === 0;
@@ -6124,7 +6128,7 @@
             validCount++;
             studentData = {
               surname, firstname, 
-              gender: genderVal, 
+              gender: normalizedGender, // Store normalized gender
               grade: gradeVal, 
               classname, 
               cell: cellVal, 
@@ -6144,7 +6148,7 @@
             motherFirstname ? `Mother: ${motherFirstname} ${motherSurname}` : ''
           ].filter(Boolean).join('; ');
           grade = gradeVal;
-          gender = genderVal;
+          gender = normalizedGender === 'M' ? 'Male' : normalizedGender === 'F' ? 'Female' : genderVal;
           cell = cellVal || email || '-';
         } else {
           errorCount++;
@@ -6402,7 +6406,7 @@
           document.getElementById('teacher-password-confirm').value = '';
           toggleTeacherAccountFields();
           
-          alert(`Teacher saved successfully!\n\nLogin Credentials:\nEmail: ${email}\nPassword: ${password}\n\nThe teacher can now log in with these credentials.`);
+          alert(`Teacher saved successfully!\n\nA user account has been created.\nEmail: ${email}\n\nPlease communicate the password to the teacher securely.`);
           
         } catch (error) {
           console.error("Error creating teacher with account: ", error);
@@ -12110,7 +12114,7 @@
       if (textarea && counter) {
         const count = textarea.value.length;
         counter.textContent = `${count} / 500 characters`;
-        counter.className = count > 450 ? 'text-danger' : 'text-muted';
+        counter.className = count > 475 ? 'text-danger' : 'text-muted';
       }
       
       if (preview && textarea) {
