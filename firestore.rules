@@ -120,9 +120,33 @@ service cloud.firestore {
     }
     
     // Students collection
+    // Rules for student records including bulk CSV imports
     match /students/{studentId} {
       allow read: if isAuthenticated();
-      allow create: if isAdmin();
+      allow create: if isAdmin() &&
+                       // Validate required fields for student creation
+                       request.resource.data.keys().hasAll(['name', 'grade']) &&
+                       request.resource.data.name is string &&
+                       request.resource.data.name.size() > 0 &&
+                       request.resource.data.grade is string &&
+                       // Validate timestamps if present
+                       (!request.resource.data.keys().hasAny(['createdAt']) ||
+                        request.resource.data.createdAt is string) &&
+                       (!request.resource.data.keys().hasAny(['updatedAt']) ||
+                        request.resource.data.updatedAt is string) &&
+                       // Validate gender field if present (M or F)
+                       (!request.resource.data.keys().hasAny(['gender']) ||
+                        request.resource.data.gender in ['M', 'F', 'Male', 'Female', 'Not specified']) &&
+                       // Validate email formats if present
+                       (!request.resource.data.keys().hasAny(['learnerEmail']) ||
+                        request.resource.data.learnerEmail is string) &&
+                       (!request.resource.data.keys().hasAny(['fatherEmail']) ||
+                        request.resource.data.fatherEmail is string) &&
+                       (!request.resource.data.keys().hasAny(['motherEmail']) ||
+                        request.resource.data.motherEmail is string) &&
+                       // Validate numeric fields if present
+                       (!request.resource.data.keys().hasAny(['numericId']) ||
+                        request.resource.data.numericId is int);
       allow update: if isAdmin() || isTeacher();
       allow delete: if isAdmin();
     }
@@ -455,6 +479,30 @@ service cloud.firestore {
                        request.resource.data.action is string &&
                        request.resource.data.status in ['SUCCESS', 'FAILURE'];
       allow update, delete: if false; // Audit logs are immutable
+    }
+    
+    // Import Logs collection
+    // Track CSV/bulk imports for students and other data
+    match /importLogs/{importId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && 
+                       request.resource.data.timestamp is timestamp &&
+                       request.resource.data.importType in ['students', 'teachers', 'grades', 'other'] &&
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.status in ['STARTED', 'SUCCESS', 'PARTIAL', 'FAILED'] &&
+                       // Validate counts if present
+                       (!request.resource.data.keys().hasAny(['totalRecords']) ||
+                        request.resource.data.totalRecords is int) &&
+                       (!request.resource.data.keys().hasAny(['successCount']) ||
+                        request.resource.data.successCount is int) &&
+                       (!request.resource.data.keys().hasAny(['failedCount']) ||
+                        request.resource.data.failedCount is int);
+      allow update: if isAdmin() && 
+                       resource.data.userId == request.auth.uid &&
+                       // Only allow updating status and counts, not the core metadata
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['status', 'successCount', 'failedCount', 'completedAt', 'errorDetails', 'updatedAt']);
+      allow delete: if isAdmin();
     }
     
     // Backup Metadata collection
