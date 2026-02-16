@@ -298,6 +298,28 @@ service firebase.storage {
                       request.resource.size < 5 * 1024 * 1024; // Max 5MB for status images
     }
     
+    // CSV Import files - for audit and record-keeping
+    // Stores original CSV files used for bulk imports
+    match /imports/{importType}/{fileName} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && 
+                      (request.resource.contentType.matches('text/csv') ||
+                       request.resource.contentType.matches('application/vnd.ms-excel') ||
+                       request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) &&
+                      request.resource.size < 10 * 1024 * 1024; // Max 10MB for CSV/Excel files
+    }
+    
+    // Bulk data import files (CSV/Excel) organized by type and date
+    match /bulk-imports/{importType}/{timestamp}/{fileName} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && 
+                      (request.resource.contentType.matches('text/csv') ||
+                       request.resource.contentType.matches('application/vnd.ms-excel') ||
+                       request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') ||
+                       request.resource.contentType.matches('text/plain')) &&
+                      request.resource.size < 10 * 1024 * 1024; // Max 10MB for import files
+    }
+    
     // Default deny all other access
     match /{allPaths=**} {
       allow read, write: if false;
