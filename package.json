@@ -7,7 +7,8 @@
     "start": "node server.js",
     "dev": "node server.js",
     "verify": "node verify-deployment.js",
-    "check-deployment": "node check-firebase-deployment.js"
+    "check-deployment": "node check-firebase-deployment.js",
+    "validate-student-csv": "node validate-student-csv.js"
   },
   "keywords": [
     "school",
