@@ -1348,30 +1348,6 @@ function loadResources() {
   document.getElementById('resources-list').innerHTML = resourcesHtml;
 }
 
-function loadMessages() {
-  const messagesHtml = `
-    <div class="list-group">
-      <div class="list-group-item">
-        <div class="d-flex w-100 justify-content-between">
-          <h6 class="mb-1">From: Parent of John Doe</h6>
-          <small>2 hours ago</small>
-        </div>
-        <p class="mb-1">Subject: Question about homework</p>
-        <small class="text-muted">Could you please clarify the instructions for...</small>
-      </div>
-      <div class="list-group-item">
-        <div class="d-flex w-100 justify-content-between">
-          <h6 class="mb-1">From: Jane Smith (Student)</h6>
-          <small>Yesterday</small>
-        </div>
-        <p class="mb-1">Subject: Absent from class</p>
-        <small class="text-muted">I was unable to attend class today due to...</small>
-      </div>
-    </div>
-  `;
-  document.getElementById('messages-list').innerHTML = messagesHtml;
-}
-
 function filterStudentsByClass() {
   displayStudents();
 }
@@ -1400,10 +1376,242 @@ function uploadResource() {
 
 function sendMessage(event) {
   event.preventDefault();
-  alert('Message sent successfully! (This is a demo)');
-  document.getElementById('message-subject').value = '';
-  document.getElementById('message-body').value = '';
+  alert('Please use the Choptso messaging interface in the Messages tab.');
 }
+
+// Choptso Messaging Functions for Teacher Portal
+let teacherCurrentConversation = null;
+let teacherMediaRecorder = null;
+let teacherAudioChunks = [];
+let teacherRecordingStartTime = null;
+let teacherRecordingInterval = null;
+
+function loadTeacherConversation(conversationId, clickEvent) {
+  if (clickEvent) {
+    clickEvent.preventDefault();
+    
+    // Remove active class from all items
+    const items = document.querySelectorAll('#teacher-choptso-contacts .list-group-item');
+    items.forEach(item => item.classList.remove('active'));
+    
+    // Add active class to clicked item
+    clickEvent.currentTarget.classList.add('active');
+  }
+  
+  teacherCurrentConversation = conversationId;
+  
+  // Update chat title
+  const chatTitle = document.getElementById('teacher-choptso-chat-title');
+  const callBtns = ['teacher-voice-call-btn', 'teacher-video-call-btn'];
+  
+  if (conversationId === 'all-students' || conversationId === 'all-parents') {
+    const displayName = conversationId === 'all-students' ? 'All Students' : 'All Parents';
+    chatTitle.innerHTML = `<i class="fas fa-users"></i> ${displayName}`;
+    callBtns.forEach(id => document.getElementById(id).style.display = 'none');
+  } else {
+    chatTitle.innerHTML = `<i class="fas fa-user"></i> ${conversationId}`;
+    callBtns.forEach(id => document.getElementById(id).style.display = 'inline-block');
+  }
+  
+  // Load messages (demo data)
+  loadTeacherMessages(conversationId);
+}
+
+function loadTeacherMessages(conversationId) {
+  const messagesContainer = document.getElementById('teacher-choptso-messages');
+  
+  const demoMessages = `
+    <div class="choptso-message received">
+      <div class="choptso-avatar">S</div>
+      <div class="choptso-message-content">
+        <div class="choptso-message-text">Hello Teacher! I have a question about today's homework.</div>
+        <div class="choptso-message-meta">
+          <span>2:15 PM</span>
+          <span class="choptso-read-receipt"><i class="fas fa-check-double text-primary"></i></span>
+        </div>
+      </div>
+    </div>
+    <div class="choptso-message sent">
+      <div class="choptso-avatar">T</div>
+      <div class="choptso-message-content">
+        <div class="choptso-message-text">Of course! What would you like to know?</div>
+        <div class="choptso-message-meta">
+          <span>2:17 PM</span>
+          <span class="choptso-read-receipt"><i class="fas fa-check-double text-primary"></i></span>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  messagesContainer.innerHTML = demoMessages;
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function refreshTeacherChat() {
+  if (teacherCurrentConversation) {
+    loadTeacherMessages(teacherCurrentConversation);
+  }
+}
+
+function teacherUploadProfilePic() {
+  document.getElementById('teacher-profile-pic-input').click();
+}
+
+function handleTeacherProfilePicUpload() {
+  const fileInput = document.getElementById('teacher-profile-pic-input');
+  const file = fileInput.files[0];
+  
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('teacher-profile-pic').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function updateTeacherStatus(status) {
+  console.log('Teacher status updated to:', status);
+  // In a real implementation, this would update the status in the database
+}
+
+function openTeacherStatusCreator() {
+  alert('Status creator feature coming soon!');
+}
+
+function teacherStartVoiceCall() {
+  if (!teacherCurrentConversation || teacherCurrentConversation.startsWith('all-')) {
+    alert('Please select a specific contact to make a call.');
+    return;
+  }
+  alert(`Starting voice call with ${teacherCurrentConversation}...`);
+}
+
+function teacherStartVideoCall() {
+  if (!teacherCurrentConversation || teacherCurrentConversation.startsWith('all-')) {
+    alert('Please select a specific contact to make a call.');
+    return;
+  }
+  alert(`Starting video call with ${teacherCurrentConversation}...`);
+}
+
+async function toggleTeacherVoiceRecording() {
+  if (teacherMediaRecorder && teacherMediaRecorder.state === 'recording') {
+    stopTeacherVoiceRecording();
+  } else {
+    await startTeacherVoiceRecording();
+  }
+}
+
+async function startTeacherVoiceRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    teacherMediaRecorder = new MediaRecorder(stream);
+    teacherAudioChunks = [];
+    
+    teacherMediaRecorder.ondataavailable = (event) => {
+      teacherAudioChunks.push(event.data);
+    };
+    
+    teacherMediaRecorder.onstop = () => {
+      const audioBlob = new Blob(teacherAudioChunks, { type: 'audio/webm' });
+      sendTeacherVoiceNote(audioBlob);
+      stream.getTracks().forEach(track => track.stop());
+    };
+    
+    teacherMediaRecorder.start();
+    document.getElementById('teacher-voice-recording-indicator').style.display = 'block';
+    
+    teacherRecordingStartTime = Date.now();
+    teacherRecordingInterval = setInterval(updateTeacherRecordingDuration, 1000);
+  } catch (error) {
+    console.error('Error accessing microphone:', error);
+    alert('Unable to access microphone. Please check permissions.');
+  }
+}
+
+function updateTeacherRecordingDuration() {
+  const elapsed = Math.floor((Date.now() - teacherRecordingStartTime) / 1000);
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  document.getElementById('teacher-recording-duration').textContent = 
+    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function stopTeacherVoiceRecording() {
+  if (teacherMediaRecorder && teacherMediaRecorder.state === 'recording') {
+    teacherMediaRecorder.stop();
+    document.getElementById('teacher-voice-recording-indicator').style.display = 'none';
+    clearInterval(teacherRecordingInterval);
+  }
+}
+
+async function sendTeacherVoiceNote(audioBlob) {
+  console.log('Sending voice note:', audioBlob);
+  alert('Voice note sent! (Demo feature)');
+}
+
+// Initialize Choptso messaging
+document.addEventListener('DOMContentLoaded', function() {
+  // Send button handler
+  const sendBtn = document.getElementById('teacher-choptso-send-btn');
+  if (sendBtn) {
+    sendBtn.addEventListener('click', function() {
+      const input = document.getElementById('teacher-choptso-message-input');
+      const message = input.value.trim();
+      
+      if (message && teacherCurrentConversation) {
+        // Add message to chat (demo)
+        const messagesContainer = document.getElementById('teacher-choptso-messages');
+        const messageHtml = `
+          <div class="choptso-message sent">
+            <div class="choptso-avatar">T</div>
+            <div class="choptso-message-content">
+              <div class="choptso-message-text">${message}</div>
+              <div class="choptso-message-meta">
+                <span>${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                <span class="choptso-read-receipt"><i class="fas fa-check"></i></span>
+              </div>
+            </div>
+          </div>
+        `;
+        messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        input.value = '';
+      }
+    });
+  }
+  
+  // Voice note button handler
+  const voiceNoteBtn = document.getElementById('teacher-voice-note-btn');
+  if (voiceNoteBtn) {
+    voiceNoteBtn.addEventListener('click', toggleTeacherVoiceRecording);
+  }
+  
+  // Load contacts (demo data)
+  const contactsList = document.getElementById('teacher-choptso-contacts');
+  if (contactsList) {
+    const demoContacts = `
+      <a href="#" class="list-group-item list-group-item-action" onclick="loadTeacherConversation('John Doe (Student)', event); return false;">
+        <span class="status-indicator status-online"></span>
+        <i class="fas fa-user"></i> John Doe (Student)
+      </a>
+      <a href="#" class="list-group-item list-group-item-action" onclick="loadTeacherConversation('Jane Smith (Student)', event); return false;">
+        <span class="status-indicator status-away"></span>
+        <i class="fas fa-user"></i> Jane Smith (Student)
+      </a>
+      <a href="#" class="list-group-item list-group-item-action" onclick="loadTeacherConversation('Parent of John', event); return false;">
+        <span class="status-indicator status-online"></span>
+        <i class="fas fa-user"></i> Parent of John
+      </a>
+      <a href="#" class="list-group-item list-group-item-action" onclick="loadTeacherConversation('Parent of Jane', event); return false;">
+        <span class="status-indicator status-offline"></span>
+        <i class="fas fa-user"></i> Parent of Jane
+      </a>
+    `;
+    contactsList.insertAdjacentHTML('beforeend', demoContacts);
+  }
+});
 
 // Set default attendance date to today
 document.addEventListener('DOMContentLoaded', function() {
