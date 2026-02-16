@@ -129,16 +129,16 @@ service cloud.firestore {
     
     // Teachers collection
     // 
-    // CURRENT IMPLEMENTATION: Only admins can create and delete; admins and the teacher themselves can update
+    // CURRENT IMPLEMENTATION: Only admins can create, update, and delete teacher records
+    // Note: This collection contains administrative data about teachers (like employee records).
+    // For teacher user profile updates (email, password, etc.), see the 'users' collection.
     // 
     // ALTERNATIVE SIMPLER APPROACH (using email-based checks):
     // allow read: if isSignedIn();
     // allow write: if isSignedIn() && request.auth.token.email.matches('admin@bis\\.local');
     match /teachers/{teacherId} {
       allow read: if isAuthenticated();
-      allow create: if isAdmin();
-      allow update: if isAdmin() || isOwner(teacherId);
-      allow delete: if isAdmin();
+      allow create, update, delete: if isAdmin();
     }
     
     // Classes collection
