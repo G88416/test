@@ -269,6 +269,9 @@
   <!-- Chart.js for simple visuals in reports -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
+  <!-- SheetJS for Excel file support -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  
   <style>
     :root {
       --primary: #28a745;       /* sky blue for fresh feel */
@@ -1919,17 +1922,25 @@
         </div>
         <div class="modal-body">
           <div class="alert alert-info">
-            <h6><i class="fas fa-info-circle"></i> CSV Format Instructions</h6>
-            <p class="mb-2">Upload a CSV file with the following columns (in order):</p>
+            <h6><i class="fas fa-info-circle"></i> File Format Instructions</h6>
+            <p class="mb-2">Upload a CSV or Excel file with student data. Two formats are supported:</p>
+            
+            <h6 class="mt-3">Format 1: Detailed Format (16 columns)</h6>
             <code>surname,firstname,gender,grade,class,cell,email,language,father_firstname,father_surname,father_email,father_cell,mother_firstname,mother_surname,mother_email,mother_cell</code>
             <p class="mt-2 mb-0"><strong>Example:</strong></p>
             <code>Mandela,Nelson,Male,10,10A,0821234567,nelson@example.com,English,John,Mandela,john@example.com,0827654321,Mary,Mandela,mary@example.com,0828765432</code>
-            <p class="mt-2 mb-0"><small><strong>Note:</strong> Gender should be "Male" or "Female". Grade should be 8-12. Language options: English, Afrikaans, Zulu, Xhosa, Sotho</small></p>
+            
+            <h6 class="mt-3">Format 2: Simplified Format (7 columns)</h6>
+            <code>number,grade,accession_no,name,surname,class,teacher</code>
+            <p class="mt-2 mb-0"><strong>Example:</strong></p>
+            <code>1,10,2024001,Nelson,Mandela,10A,Mr. Smith</code>
+            
+            <p class="mt-3 mb-0"><small><strong>Note:</strong> Gender should be "Male" or "Female". Grade should be 1-12 or Grade R-Grade 12.</small></p>
           </div>
           
           <div class="mb-3">
-            <label class="form-label"><i class="fas fa-file-csv"></i> Select CSV File</label>
-            <input type="file" class="form-control" id="bulkImportFile" accept=".csv">
+            <label class="form-label"><i class="fas fa-file-csv"></i> Select CSV or Excel File</label>
+            <input type="file" class="form-control" id="bulkImportFile" accept=".csv,.xlsx,.xls">
           </div>
           
           <div class="mb-3">
@@ -5961,51 +5972,127 @@
     function previewBulkImport() {
       const fileInput = document.getElementById('bulkImportFile');
       if (!fileInput.files || !fileInput.files[0]) {
-        alert('Please select a CSV file first');
+        alert('Please select a CSV or Excel file first');
         return;
       }
 
       const file = fileInput.files[0];
-      const reader = new FileReader();
-
-      reader.onload = function(e) {
-        const csv = e.target.result;
-        const lines = csv.split('\n').filter(line => line.trim());
-        
-        // Skip header row
-        const dataLines = lines.slice(1);
-        
-        bulkImportData = [];
-        let validCount = 0;
-        let errorCount = 0;
-
-        const previewHtml = dataLines.map((line, index) => {
-          const columns = parseCSVLine(line);
+      const fileName = file.name.toLowerCase();
+      const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+      
+      if (isExcel) {
+        // Handle Excel file
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, {type: 'array'});
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
           
-          if (columns.length < 8) {
-            errorCount++;
-            return `<tr class="table-danger">
-              <td><i class="fas fa-times-circle text-danger"></i></td>
-              <td colspan="5">${escapeHtml(line.substring(0, 50))}...</td>
-              <td><span class="badge bg-danger">Invalid format - insufficient columns</span></td>
-            </tr>`;
-          }
+          // Skip header row and process data
+          const dataLines = jsonData.slice(1);
+          processImportData(dataLines, 'excel');
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        // Handle CSV file
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const csv = e.target.result;
+          const lines = csv.split('\n').filter(line => line.trim());
+          
+          // Skip header row
+          const dataLines = lines.slice(1).map(line => parseCSVLine(line));
+          processImportData(dataLines, 'csv');
+        };
+        reader.readAsText(file);
+      }
+    }
+    
+    function processImportData(dataLines, sourceType) {
+      bulkImportData = [];
+      let validCount = 0;
+      let errorCount = 0;
 
-          const [surname, firstname, gender, grade, classname, cell, email, language, 
-                 fatherFirstname, fatherSurname, fatherEmail, fatherCell,
-                 motherFirstname, motherSurname, motherEmail, motherCell] = columns.map(c => c.trim());
-
-          const errors = [];
+      const previewHtml = dataLines.map((columns, index) => {
+        if (!columns || columns.length === 0) {
+          return '';
+        }
+        
+        // Detect format based on column count
+        const isSimplifiedFormat = columns.length >= 7 && columns.length < 10;
+        const isDetailedFormat = columns.length >= 8;
+        
+        let studentData, errors = [], name, parent, grade, gender, cell;
+        
+        if (isSimplifiedFormat && columns.length <= 9) {
+          // Simplified Format: number,grade,accession_no,name,surname,class,teacher
+          const [number, gradeVal, accessionNo, firstname, surname, classname, teacher] = columns.map(c => String(c || '').trim());
+          
+          errors = [];
           if (!surname) errors.push('Missing surname');
           if (!firstname) errors.push('Missing firstname');
-          if (!gender || !['Male', 'Female'].includes(gender)) errors.push('Invalid gender');
-          if (!grade || !['8', '9', '10', '11', '12'].includes(grade)) errors.push('Invalid grade');
+          if (!gradeVal) errors.push('Missing grade');
+          
+          const isValid = errors.length === 0;
+          if (isValid) {
+            validCount++;
+            studentData = {
+              surname, 
+              firstname, 
+              gender: 'M', // Default gender
+              grade: gradeVal, 
+              classname, 
+              cell: '', 
+              email: '', 
+              language: 'English',
+              fatherFirstname: '', 
+              fatherSurname: '', 
+              fatherEmail: '', 
+              fatherCell: '',
+              motherFirstname: '', 
+              motherSurname: '', 
+              motherEmail: '', 
+              motherCell: '',
+              number: number,
+              accessionNo: accessionNo,
+              teacher: teacher
+            };
+            bulkImportData.push(studentData);
+          } else {
+            errorCount++;
+          }
+          
+          name = `${firstname} ${surname}`;
+          parent = teacher ? `Teacher: ${teacher}` : 'N/A';
+          grade = gradeVal;
+          gender = 'Not specified';
+          cell = '-';
+          
+        } else if (isDetailedFormat) {
+          // Detailed Format: surname,firstname,gender,grade,class,cell,email,language,father details, mother details
+          const [surname, firstname, genderVal, gradeVal, classname, cellVal, email, language, 
+                 fatherFirstname, fatherSurname, fatherEmail, fatherCell,
+                 motherFirstname, motherSurname, motherEmail, motherCell] = columns.map(c => String(c || '').trim());
+
+          errors = [];
+          if (!surname) errors.push('Missing surname');
+          if (!firstname) errors.push('Missing firstname');
+          if (!genderVal || !['Male', 'Female', 'M', 'F'].includes(genderVal)) errors.push('Invalid gender');
+          if (!gradeVal) errors.push('Missing grade');
 
           const isValid = errors.length === 0;
           if (isValid) {
             validCount++;
-            const studentData = {
-              surname, firstname, gender, grade, classname, cell, email, language,
+            studentData = {
+              surname, firstname, 
+              gender: genderVal, 
+              grade: gradeVal, 
+              classname, 
+              cell: cellVal, 
+              email, 
+              language,
               fatherFirstname, fatherSurname, fatherEmail, fatherCell,
               motherFirstname, motherSurname, motherEmail, motherCell
             };
@@ -6014,34 +6101,43 @@
             errorCount++;
           }
 
-          const name = `${firstname} ${surname}`;
-          const parent = [
+          name = `${firstname} ${surname}`;
+          parent = [
             fatherFirstname ? `Father: ${fatherFirstname} ${fatherSurname}` : '',
             motherFirstname ? `Mother: ${motherFirstname} ${motherSurname}` : ''
           ].filter(Boolean).join('; ');
-
-          return `<tr class="${isValid ? 'table-success' : 'table-danger'}">
-            <td><i class="fas fa-${isValid ? 'check-circle text-success' : 'times-circle text-danger'}"></i></td>
-            <td>${escapeHtml(name)}</td>
-            <td>${escapeHtml(grade)}</td>
-            <td>${escapeHtml(gender)}</td>
-            <td>${escapeHtml(cell || email || '-')}</td>
-            <td>${escapeHtml(parent || 'N/A')}</td>
-            <td>${isValid ? '<span class="badge bg-success">Valid</span>' : `<span class="badge bg-danger">${errors.join(', ')}</span>`}</td>
+          grade = gradeVal;
+          gender = genderVal;
+          cell = cellVal || email || '-';
+        } else {
+          errorCount++;
+          return `<tr class="table-danger">
+            <td><i class="fas fa-times-circle text-danger"></i></td>
+            <td colspan="5">Invalid row with ${columns.length} columns</td>
+            <td><span class="badge bg-danger">Invalid format - expected 7 or 16 columns</span></td>
           </tr>`;
-        }).join('');
+        }
 
-        document.getElementById('bulkImportPreviewTable').innerHTML = previewHtml;
-        document.getElementById('bulkImportStats').innerHTML = `
-          <strong>Total rows:</strong> ${dataLines.length} | 
-          <strong class="text-success">Valid:</strong> ${validCount} | 
-          <strong class="text-danger">Errors:</strong> ${errorCount}
-        `;
-        document.getElementById('bulkImportPreview').style.display = 'block';
-        document.getElementById('confirmBulkImportBtn').disabled = validCount === 0;
-      };
+        const isValid = errors.length === 0;
+        return `<tr class="${isValid ? 'table-success' : 'table-danger'}">
+          <td><i class="fas fa-${isValid ? 'check-circle text-success' : 'times-circle text-danger'}"></i></td>
+          <td>${escapeHtml(name)}</td>
+          <td>${escapeHtml(grade)}</td>
+          <td>${escapeHtml(gender)}</td>
+          <td>${escapeHtml(cell)}</td>
+          <td>${escapeHtml(parent || 'N/A')}</td>
+          <td>${isValid ? '<span class="badge bg-success">Valid</span>' : `<span class="badge bg-danger">${errors.join(', ')}</span>`}</td>
+        </tr>`;
+      }).filter(Boolean).join('');
 
-      reader.readAsText(file);
+      document.getElementById('bulkImportPreviewTable').innerHTML = previewHtml;
+      document.getElementById('bulkImportStats').innerHTML = `
+        <strong>Total rows:</strong> ${dataLines.length} | 
+        <strong class="text-success">Valid:</strong> ${validCount} | 
+        <strong class="text-danger">Errors:</strong> ${errorCount}
+      `;
+      document.getElementById('bulkImportPreview').style.display = 'block';
+      document.getElementById('confirmBulkImportBtn').disabled = validCount === 0;
     }
 
     function parseCSVLine(line) {
