@@ -1684,6 +1684,231 @@
     </div>
   </div>
 
+  <!-- Edit Student Modal -->
+  <div class="modal fade" id="editStudentModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Student</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editStudentForm">
+            <input type="hidden" id="edit-student-id">
+            
+            <!-- Learner Details Section -->
+            <div class="section-header">
+              <i class="fas fa-child"></i> LEARNER DETAILS
+            </div>
+            <div class="form-section">
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <label class="form-label">Surname <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="edit-learner-surname" required>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">First Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="edit-learner-firstname" required>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Gender <span class="text-danger">*</span></label>
+                  <select class="form-select" id="edit-learner-gender" required>
+                    <option value="">Select</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Grade <span class="text-danger">*</span></label>
+                  <select class="form-select" id="edit-learner-grade" required>
+                    <option value="">Select</option>
+                    <option value="Grade R">Grade R</option>
+                    <option value="Grade 01">Grade 01</option>
+                    <option value="Grade 02">Grade 02</option>
+                    <option value="Grade 03">Grade 03</option>
+                    <option value="Grade 04">Grade 04</option>
+                    <option value="Grade 05">Grade 05</option>
+                    <option value="Grade 06">Grade 06</option>
+                    <option value="Grade 07">Grade 07</option>
+                    <option value="Grade 08">Grade 08</option>
+                    <option value="Grade 09">Grade 09</option>
+                    <option value="Grade 10">Grade 10</option>
+                    <option value="Grade 11">Grade 11</option>
+                    <option value="Grade 12">Grade 12</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Class</label>
+                  <input type="text" class="form-control" id="edit-learner-class" placeholder="e.g. 10A">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Learner Cell #</label>
+                  <input type="tel" class="form-control" id="edit-learner-cell">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Learner Email</label>
+                  <input type="email" class="form-control" id="edit-learner-email">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Home Language</label>
+                  <select class="form-select" id="edit-learner-language">
+                    <option value="">Select</option>
+                    <option value="English">English</option>
+                    <option value="Afrikaans">Afrikaans</option>
+                    <option value="isiZulu">isiZulu</option>
+                    <option value="Sepedi">Sepedi</option>
+                    <option value="Setswana">Setswana</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Father Details Section -->
+            <div class="section-header">
+              <i class="fas fa-male"></i> FATHER / GUARDIAN DETAILS
+            </div>
+            <div class="form-section">
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <label class="form-label">First Name</label>
+                  <input type="text" class="form-control" id="edit-father-firstname">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Surname</label>
+                  <input type="text" class="form-control" id="edit-father-surname">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Email</label>
+                  <input type="email" class="form-control" id="edit-father-email">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Cell #</label>
+                  <input type="tel" class="form-control" id="edit-father-cell">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Mother Details Section -->
+            <div class="section-header">
+              <i class="fas fa-female"></i> MOTHER / GUARDIAN DETAILS
+            </div>
+            <div class="form-section">
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <label class="form-label">First Name</label>
+                  <input type="text" class="form-control" id="edit-mother-firstname">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Surname</label>
+                  <input type="text" class="form-control" id="edit-mother-surname">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Email</label>
+                  <input type="email" class="form-control" id="edit-mother-email">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Cell #</label>
+                  <input type="tel" class="form-control" id="edit-mother-cell">
+                </div>
+              </div>
+            </div>
+            
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Cancel</button>
+          <button type="button" class="btn btn-success" onclick="saveStudentEdit()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Teacher Modal -->
+  <div class="modal fade" id="editTeacherModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Teacher</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editTeacherForm">
+            <input type="hidden" id="edit-teacher-id">
+            <div class="mb-3">
+              <label class="form-label">Teacher Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="edit-teacher-name" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Subject <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="edit-teacher-subject" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Qualification</label>
+              <input type="text" class="form-control" id="edit-teacher-qualification">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Status</label>
+              <select class="form-select" id="edit-teacher-status">
+                <option value="Active">Active</option>
+                <option value="On Leave">On Leave</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Cancel</button>
+          <button type="button" class="btn btn-success" onclick="saveTeacherEdit()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Class Modal -->
+  <div class="modal fade" id="editClassModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Class</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editClassForm">
+            <input type="hidden" id="edit-class-id">
+            <div class="mb-3">
+              <label class="form-label">Class Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="edit-class-name" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Grade <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="edit-class-grade" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Capacity</label>
+              <input type="number" class="form-control" id="edit-class-capacity" value="30">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Schedule</label>
+              <input type="text" class="form-control" id="edit-class-schedule" placeholder="e.g. Mon-Fri 08:00-14:00">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Assigned Teacher</label>
+              <select class="form-select" id="edit-class-teacher">
+                <option value="">No Teacher</option>
+                <!-- Populated dynamically from teachers -->
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Cancel</button>
+          <button type="button" class="btn btn-success" onclick="saveClassEdit()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bulk Import Students Modal -->
   <div class="modal fade" id="bulkImportStudentsModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
@@ -3659,6 +3884,7 @@
       const reportClassSelect = document.getElementById('report-class');
       const studentClassSelect = document.getElementById('student-class');
       const classTeacherSelect = document.getElementById('class-teacher');
+      const editClassTeacherSelect = document.getElementById('edit-class-teacher');
 
       // Clear and populate class selects
       [attendanceSelect, historyClassSelect, reportClassSelect, studentClassSelect].forEach(select => {
@@ -3672,16 +3898,18 @@
         });
       });
 
-      // Populate teacher select for new class
-      if (classTeacherSelect) {
-        classTeacherSelect.innerHTML = '<option value="">No Teacher</option>';
-        teachers.forEach(tea => {
-          const opt = document.createElement('option');
-          opt.value = tea.id;
-          opt.textContent = tea.name;
-          classTeacherSelect.appendChild(opt);
-        });
-      }
+      // Populate teacher select for new class and edit class
+      [classTeacherSelect, editClassTeacherSelect].forEach(select => {
+        if (select) {
+          select.innerHTML = '<option value="">No Teacher</option>';
+          teachers.forEach(tea => {
+            const opt = document.createElement('option');
+            opt.value = tea.id;
+            opt.textContent = tea.name;
+            select.appendChild(opt);
+          });
+        }
+      });
       
       // Set today's date for attendance
       const dateInput = document.getElementById('attendance-date');
@@ -3744,6 +3972,7 @@
               <td>
                 <button class="btn btn-sm btn-primary" onclick="viewCompleteStudentInfo('${student.id}')" title="View Complete Registration"><i class="fas fa-id-card"></i></button>
                 <button class="btn btn-sm btn-info" onclick="viewStudentDetails('${student.id}')"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-sm btn-warning" onclick="editStudent('${student.id}')" title="Edit Student"><i class="fas fa-edit"></i></button>
                 <button class="btn btn-sm btn-danger" onclick="deleteStudent('${student.id}')"><i class="fas fa-trash"></i></button>
               </td>
             `;
@@ -3793,6 +4022,7 @@
               <td>${assignedClasses}</td>
               <td>
                 <button class="btn btn-sm btn-info" onclick="viewTeacherDetails('${teacher.id}')"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-sm btn-warning" onclick="editTeacher('${teacher.id}')" title="Edit Teacher"><i class="fas fa-edit"></i></button>
                 <button class="btn btn-sm btn-danger" onclick="deleteTeacher('${teacher.id}')"><i class="fas fa-trash"></i></button>
               </td>
             `;
@@ -3840,6 +4070,7 @@
           <td>
             <button class="btn btn-sm btn-primary" onclick="viewCompleteStudentInfo('${stu.id}')" title="View Complete Registration"><i class="fas fa-id-card"></i></button>
             <button class="btn btn-sm btn-info" onclick="viewStudentDetails('${stu.id}')"><i class="fas fa-eye"></i></button>
+            <button class="btn btn-sm btn-warning" onclick="editStudent('${stu.id}')" title="Edit Student"><i class="fas fa-edit"></i></button>
             <button class="btn btn-sm btn-danger" onclick="deleteStudent('${stu.id}')"><i class="fas fa-trash"></i></button>
           </td>
         </tr>`;
@@ -3878,6 +4109,7 @@
           <td>${assignedClasses}</td>
           <td>
             <button class="btn btn-sm btn-info" onclick="viewTeacherDetails(${tea.id})"><i class="fas fa-eye"></i></button>
+            <button class="btn btn-sm btn-warning" onclick="editTeacher(${tea.id})" title="Edit Teacher"><i class="fas fa-edit"></i></button>
             <button class="btn btn-sm btn-danger" onclick="deleteTeacher(${tea.id})"><i class="fas fa-trash"></i></button>
           </td>
         </tr>`;
@@ -3920,6 +4152,7 @@
           <td><small>${cls.schedule || 'Not set'}</small></td>
           <td>
             <button class="btn btn-sm btn-info" onclick="viewClassDetails(${cls.id})"><i class="fas fa-eye"></i></button>
+            <button class="btn btn-sm btn-warning" onclick="editClass(${cls.id})" title="Edit Class"><i class="fas fa-edit"></i></button>
             <button class="btn btn-sm btn-danger" onclick="deleteClass(${cls.id})"><i class="fas fa-trash"></i></button>
           </td>
         </tr>`;
@@ -6146,6 +6379,219 @@
       renderStudents();
       populateClassSelects();
       updateDashboardStats();
+    }
+
+    // Edit functions
+    function editStudent(id) {
+      const student = students.find(s => s.id === id);
+      if (!student) {
+        alert('Student not found');
+        return;
+      }
+      
+      // Populate the edit modal with student data
+      document.getElementById('edit-student-id').value = student.id;
+      document.getElementById('edit-learner-surname').value = student.surname || '';
+      document.getElementById('edit-learner-firstname').value = student.firstname || '';
+      document.getElementById('edit-learner-gender').value = student.gender || '';
+      document.getElementById('edit-learner-grade').value = student.grade || '';
+      document.getElementById('edit-learner-class').value = student.classname || '';
+      document.getElementById('edit-learner-cell').value = student.learnerCell || '';
+      document.getElementById('edit-learner-email').value = student.learnerEmail || '';
+      document.getElementById('edit-learner-language').value = student.language || '';
+      
+      // Father details
+      document.getElementById('edit-father-firstname').value = student.fatherFirstname || '';
+      document.getElementById('edit-father-surname').value = student.fatherSurname || '';
+      document.getElementById('edit-father-email').value = student.fatherEmail || '';
+      document.getElementById('edit-father-cell').value = student.fatherCell || '';
+      
+      // Mother details
+      document.getElementById('edit-mother-firstname').value = student.motherFirstname || '';
+      document.getElementById('edit-mother-surname').value = student.motherSurname || '';
+      document.getElementById('edit-mother-email').value = student.motherEmail || '';
+      document.getElementById('edit-mother-cell').value = student.motherCell || '';
+      
+      // Show the modal
+      const modal = new bootstrap.Modal(document.getElementById('editStudentModal'));
+      modal.show();
+    }
+    
+    async function saveStudentEdit() {
+      const id = document.getElementById('edit-student-id').value;
+      const student = students.find(s => s.id === id);
+      if (!student) {
+        alert('Student not found');
+        return;
+      }
+      
+      // Update student data
+      student.surname = document.getElementById('edit-learner-surname').value.trim();
+      student.firstname = document.getElementById('edit-learner-firstname').value.trim();
+      student.name = `${student.firstname} ${student.surname}`;
+      student.gender = document.getElementById('edit-learner-gender').value;
+      student.grade = document.getElementById('edit-learner-grade').value;
+      student.classname = document.getElementById('edit-learner-class').value.trim();
+      student.learnerCell = document.getElementById('edit-learner-cell').value.trim();
+      student.learnerEmail = document.getElementById('edit-learner-email').value.trim();
+      student.language = document.getElementById('edit-learner-language').value;
+      
+      // Father details
+      student.fatherFirstname = document.getElementById('edit-father-firstname').value.trim();
+      student.fatherSurname = document.getElementById('edit-father-surname').value.trim();
+      student.fatherEmail = document.getElementById('edit-father-email').value.trim();
+      student.fatherCell = document.getElementById('edit-father-cell').value.trim();
+      
+      // Mother details
+      student.motherFirstname = document.getElementById('edit-mother-firstname').value.trim();
+      student.motherSurname = document.getElementById('edit-mother-surname').value.trim();
+      student.motherEmail = document.getElementById('edit-mother-email').value.trim();
+      student.motherCell = document.getElementById('edit-mother-cell').value.trim();
+      
+      // Update parent field (concatenated)
+      const fatherName = student.fatherFirstname || student.fatherSurname ? `${student.fatherFirstname} ${student.fatherSurname}`.trim() : '';
+      const motherName = student.motherFirstname || student.motherSurname ? `${student.motherFirstname} ${student.motherSurname}`.trim() : '';
+      student.parent = [fatherName, motherName].filter(n => n).join(' / ') || 'N/A';
+      
+      // Update contact (prefer father cell, then mother cell, then learner cell)
+      student.contact = student.fatherCell || student.motherCell || student.learnerCell || 'N/A';
+      
+      student.updatedAt = new Date().toISOString();
+      
+      try {
+        // Update in Firestore
+        const studentDocRef = window.firebaseDoc(window.firebaseDb, 'students', String(id));
+        await window.firebaseUpdateDoc(studentDocRef, student);
+        
+        // Update in localStorage
+        localStorage.setItem('students', JSON.stringify(students));
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editStudentModal'));
+        modal.hide();
+        
+        // Refresh display
+        renderStudents();
+        
+        alert('Student updated successfully!');
+      } catch (error) {
+        console.error('Error updating student:', error);
+        alert('Failed to update student: ' + error.message);
+      }
+    }
+    
+    function editTeacher(id) {
+      const teacher = teachers.find(t => t.id === id);
+      if (!teacher) {
+        alert('Teacher not found');
+        return;
+      }
+      
+      // Populate the edit modal with teacher data
+      document.getElementById('edit-teacher-id').value = teacher.id;
+      document.getElementById('edit-teacher-name').value = teacher.name || '';
+      document.getElementById('edit-teacher-subject').value = teacher.subject || '';
+      document.getElementById('edit-teacher-qualification').value = teacher.qualification || '';
+      document.getElementById('edit-teacher-status').value = teacher.status || 'Active';
+      
+      // Show the modal
+      const modal = new bootstrap.Modal(document.getElementById('editTeacherModal'));
+      modal.show();
+    }
+    
+    async function saveTeacherEdit() {
+      const id = document.getElementById('edit-teacher-id').value;
+      const teacher = teachers.find(t => t.id === id);
+      if (!teacher) {
+        alert('Teacher not found');
+        return;
+      }
+      
+      // Update teacher data
+      teacher.name = document.getElementById('edit-teacher-name').value.trim();
+      teacher.subject = document.getElementById('edit-teacher-subject').value.trim();
+      teacher.qualification = document.getElementById('edit-teacher-qualification').value.trim();
+      teacher.status = document.getElementById('edit-teacher-status').value;
+      teacher.updatedAt = new Date().toISOString();
+      
+      try {
+        // Update in Firestore
+        const teacherDocRef = window.firebaseDoc(window.firebaseDb, 'teachers', String(id));
+        await window.firebaseUpdateDoc(teacherDocRef, teacher);
+        
+        // Update in localStorage
+        localStorage.setItem('teachers', JSON.stringify(teachers));
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editTeacherModal'));
+        modal.hide();
+        
+        // Refresh display
+        renderTeachers();
+        
+        alert('Teacher updated successfully!');
+      } catch (error) {
+        console.error('Error updating teacher:', error);
+        alert('Failed to update teacher: ' + error.message);
+      }
+    }
+    
+    function editClass(id) {
+      const cls = classes.find(c => c.id === id);
+      if (!cls) {
+        alert('Class not found');
+        return;
+      }
+      
+      // Populate the edit modal with class data
+      document.getElementById('edit-class-id').value = cls.id;
+      document.getElementById('edit-class-name').value = cls.name || '';
+      document.getElementById('edit-class-grade').value = cls.grade || '';
+      document.getElementById('edit-class-capacity').value = cls.capacity || 30;
+      document.getElementById('edit-class-schedule').value = cls.schedule || '';
+      document.getElementById('edit-class-teacher').value = cls.teacherId || '';
+      
+      // Show the modal
+      const modal = new bootstrap.Modal(document.getElementById('editClassModal'));
+      modal.show();
+    }
+    
+    async function saveClassEdit() {
+      const id = document.getElementById('edit-class-id').value;
+      const cls = classes.find(c => c.id === id);
+      if (!cls) {
+        alert('Class not found');
+        return;
+      }
+      
+      // Update class data
+      cls.name = document.getElementById('edit-class-name').value.trim();
+      cls.grade = document.getElementById('edit-class-grade').value.trim();
+      cls.capacity = parseInt(document.getElementById('edit-class-capacity').value) || 30;
+      cls.schedule = document.getElementById('edit-class-schedule').value.trim();
+      cls.teacherId = document.getElementById('edit-class-teacher').value || null;
+      cls.updatedAt = new Date().toISOString();
+      
+      try {
+        // Update in Firestore
+        const classDocRef = window.firebaseDoc(window.firebaseDb, 'classes', String(id));
+        await window.firebaseUpdateDoc(classDocRef, cls);
+        
+        // Update in localStorage
+        localStorage.setItem('classes', JSON.stringify(classes));
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editClassModal'));
+        modal.hide();
+        
+        // Refresh display
+        renderClasses();
+        
+        alert('Class updated successfully!');
+      } catch (error) {
+        console.error('Error updating class:', error);
+        alert('Failed to update class: ' + error.message);
+      }
     }
 
     function removeStudentFromClass(classId, studentId) {
