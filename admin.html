@@ -269,6 +269,9 @@
   <!-- Chart.js for simple visuals in reports -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
+  <!-- SheetJS for Excel file support -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  
   <style>
     :root {
       --primary: #28a745;       /* sky blue for fresh feel */
@@ -1684,6 +1687,231 @@
     </div>
   </div>
 
+  <!-- Edit Student Modal -->
+  <div class="modal fade" id="editStudentModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Student</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editStudentForm">
+            <input type="hidden" id="edit-student-id">
+            
+            <!-- Learner Details Section -->
+            <div class="section-header">
+              <i class="fas fa-child"></i> LEARNER DETAILS
+            </div>
+            <div class="form-section">
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <label class="form-label">Surname <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="edit-learner-surname" required>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">First Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="edit-learner-firstname" required>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Gender <span class="text-danger">*</span></label>
+                  <select class="form-select" id="edit-learner-gender" required>
+                    <option value="">Select</option>
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Grade <span class="text-danger">*</span></label>
+                  <select class="form-select" id="edit-learner-grade" required>
+                    <option value="">Select</option>
+                    <option value="Grade R">Grade R</option>
+                    <option value="Grade 01">Grade 01</option>
+                    <option value="Grade 02">Grade 02</option>
+                    <option value="Grade 03">Grade 03</option>
+                    <option value="Grade 04">Grade 04</option>
+                    <option value="Grade 05">Grade 05</option>
+                    <option value="Grade 06">Grade 06</option>
+                    <option value="Grade 07">Grade 07</option>
+                    <option value="Grade 08">Grade 08</option>
+                    <option value="Grade 09">Grade 09</option>
+                    <option value="Grade 10">Grade 10</option>
+                    <option value="Grade 11">Grade 11</option>
+                    <option value="Grade 12">Grade 12</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Class</label>
+                  <input type="text" class="form-control" id="edit-learner-class" placeholder="e.g. 10A">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Learner Cell #</label>
+                  <input type="tel" class="form-control" id="edit-learner-cell">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Learner Email</label>
+                  <input type="email" class="form-control" id="edit-learner-email">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Home Language</label>
+                  <select class="form-select" id="edit-learner-language">
+                    <option value="">Select</option>
+                    <option value="English">English</option>
+                    <option value="Afrikaans">Afrikaans</option>
+                    <option value="isiZulu">isiZulu</option>
+                    <option value="Sepedi">Sepedi</option>
+                    <option value="Setswana">Setswana</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Father Details Section -->
+            <div class="section-header">
+              <i class="fas fa-male"></i> FATHER / GUARDIAN DETAILS
+            </div>
+            <div class="form-section">
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <label class="form-label">First Name</label>
+                  <input type="text" class="form-control" id="edit-father-firstname">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Surname</label>
+                  <input type="text" class="form-control" id="edit-father-surname">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Email</label>
+                  <input type="email" class="form-control" id="edit-father-email">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Cell #</label>
+                  <input type="tel" class="form-control" id="edit-father-cell">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Mother Details Section -->
+            <div class="section-header">
+              <i class="fas fa-female"></i> MOTHER / GUARDIAN DETAILS
+            </div>
+            <div class="form-section">
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <label class="form-label">First Name</label>
+                  <input type="text" class="form-control" id="edit-mother-firstname">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Surname</label>
+                  <input type="text" class="form-control" id="edit-mother-surname">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Email</label>
+                  <input type="email" class="form-control" id="edit-mother-email">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Cell #</label>
+                  <input type="tel" class="form-control" id="edit-mother-cell">
+                </div>
+              </div>
+            </div>
+            
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Cancel</button>
+          <button type="button" class="btn btn-success" onclick="saveStudentEdit()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Teacher Modal -->
+  <div class="modal fade" id="editTeacherModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Teacher</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editTeacherForm">
+            <input type="hidden" id="edit-teacher-id">
+            <div class="mb-3">
+              <label class="form-label">Teacher Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="edit-teacher-name" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Subject <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="edit-teacher-subject" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Qualification</label>
+              <input type="text" class="form-control" id="edit-teacher-qualification">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Status</label>
+              <select class="form-select" id="edit-teacher-status">
+                <option value="Active">Active</option>
+                <option value="On Leave">On Leave</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Cancel</button>
+          <button type="button" class="btn btn-success" onclick="saveTeacherEdit()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Class Modal -->
+  <div class="modal fade" id="editClassModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Class</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editClassForm">
+            <input type="hidden" id="edit-class-id">
+            <div class="mb-3">
+              <label class="form-label">Class Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="edit-class-name" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Grade <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="edit-class-grade" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Capacity</label>
+              <input type="number" class="form-control" id="edit-class-capacity" value="30">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Schedule</label>
+              <input type="text" class="form-control" id="edit-class-schedule" placeholder="e.g. Mon-Fri 08:00-14:00">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Assigned Teacher</label>
+              <select class="form-select" id="edit-class-teacher">
+                <option value="">No Teacher</option>
+                <!-- Populated dynamically from teachers -->
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times"></i> Cancel</button>
+          <button type="button" class="btn btn-success" onclick="saveClassEdit()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bulk Import Students Modal -->
   <div class="modal fade" id="bulkImportStudentsModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
@@ -1694,17 +1922,25 @@
         </div>
         <div class="modal-body">
           <div class="alert alert-info">
-            <h6><i class="fas fa-info-circle"></i> CSV Format Instructions</h6>
-            <p class="mb-2">Upload a CSV file with the following columns (in order):</p>
+            <h6><i class="fas fa-info-circle"></i> File Format Instructions</h6>
+            <p class="mb-2">Upload a CSV or Excel file with student data. Two formats are supported:</p>
+            
+            <h6 class="mt-3">Format 1: Detailed Format (16 columns)</h6>
             <code>surname,firstname,gender,grade,class,cell,email,language,father_firstname,father_surname,father_email,father_cell,mother_firstname,mother_surname,mother_email,mother_cell</code>
             <p class="mt-2 mb-0"><strong>Example:</strong></p>
             <code>Mandela,Nelson,Male,10,10A,0821234567,nelson@example.com,English,John,Mandela,john@example.com,0827654321,Mary,Mandela,mary@example.com,0828765432</code>
-            <p class="mt-2 mb-0"><small><strong>Note:</strong> Gender should be "Male" or "Female". Grade should be 8-12. Language options: English, Afrikaans, Zulu, Xhosa, Sotho</small></p>
+            
+            <h6 class="mt-3">Format 2: Simplified Format (7 columns)</h6>
+            <code>number,grade,accession_no,name,surname,class,teacher</code>
+            <p class="mt-2 mb-0"><strong>Example:</strong></p>
+            <code>1,10,2024001,Nelson,Mandela,10A,Mr. Smith</code>
+            
+            <p class="mt-3 mb-0"><small><strong>Note:</strong> Gender should be "Male" or "Female". Grade should be 1-12 or Grade R-Grade 12.</small></p>
           </div>
           
           <div class="mb-3">
-            <label class="form-label"><i class="fas fa-file-csv"></i> Select CSV File</label>
-            <input type="file" class="form-control" id="bulkImportFile" accept=".csv">
+            <label class="form-label"><i class="fas fa-file-csv"></i> Select CSV or Excel File</label>
+            <input type="file" class="form-control" id="bulkImportFile" accept=".csv,.xlsx,.xls">
           </div>
           
           <div class="mb-3">
@@ -1866,13 +2102,30 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <input type="text" class="form-control mb-2" id="teacher-name" placeholder="Full Name">
-          <input type="text" class="form-control mb-2" id="teacher-subject" placeholder="Main Subject">
+          <input type="text" class="form-control mb-2" id="teacher-name" placeholder="Full Name" required>
+          <input type="text" class="form-control mb-2" id="teacher-subject" placeholder="Main Subject" required>
           <input type="text" class="form-control mb-2" id="teacher-qualification" placeholder="Qualification (e.g., B.Ed, M.Sc)">
           <select class="form-select mb-2" id="teacher-status">
             <option value="Active">Active</option>
             <option value="On Leave">On Leave</option>
           </select>
+          
+          <hr class="my-3">
+          <h6 class="text-muted mb-2"><i class="fas fa-user-lock"></i> Login Credentials (Optional)</h6>
+          <small class="text-muted d-block mb-2">Create a user account so the teacher can log in to the system</small>
+          
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="teacher-create-account" onchange="toggleTeacherAccountFields()">
+            <label class="form-check-label" for="teacher-create-account">
+              Create user account for this teacher
+            </label>
+          </div>
+          
+          <div id="teacher-account-fields" style="display: none;">
+            <input type="email" class="form-control mb-2" id="teacher-email" placeholder="Email for login">
+            <input type="password" class="form-control mb-2" id="teacher-password" placeholder="Password (min 6 characters)">
+            <input type="password" class="form-control mb-2" id="teacher-password-confirm" placeholder="Confirm Password">
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -2433,18 +2686,55 @@
             <div class="tab-pane fade show active" id="status-text-tab">
               <div class="mb-3">
                 <label class="form-label">Status Text</label>
-                <textarea class="form-control" id="status-text-input" rows="4" placeholder="What's on your mind?" maxlength="500"></textarea>
-                <small class="text-muted">Max 500 characters</small>
+                <textarea class="form-control" id="status-text-input" rows="4" placeholder="What's on your mind?" maxlength="500" oninput="updateCharCount()"></textarea>
+                <div class="d-flex justify-content-between align-items-center">
+                  <small class="text-muted" id="char-count">0 / 500 characters</small>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="showEmojiPicker()">
+                    <i class="fas fa-smile"></i> Add Emoji
+                  </button>
+                </div>
+                <div id="emoji-picker" class="border rounded p-2 mt-2" style="display: none;">
+                  <div class="d-flex flex-wrap gap-1">
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('😊')">😊</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('😂')">😂</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('❤️')">❤️</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('👍')">👍</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('🎉')">🎉</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('🔥')">🔥</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('💯')">💯</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('✨')">✨</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('🎓')">🎓</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('📚')">📚</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('✏️')">✏️</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('🏫')">🏫</button>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Text Size</label>
+                <select class="form-select" id="status-text-size">
+                  <option value="normal">Normal</option>
+                  <option value="large" selected>Large</option>
+                  <option value="xlarge">Extra Large</option>
+                </select>
               </div>
               <div class="mb-3">
                 <label class="form-label">Background Color</label>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-primary" onclick="setStatusBgColor('#007bff')" style="background: #007bff; border: none; width: 40px; height: 40px;"></button>
-                  <button class="btn btn-success" onclick="setStatusBgColor('#28a745')" style="background: #28a745; border: none; width: 40px; height: 40px;"></button>
-                  <button class="btn btn-danger" onclick="setStatusBgColor('#dc3545')" style="background: #dc3545; border: none; width: 40px; height: 40px;"></button>
-                  <button class="btn btn-warning" onclick="setStatusBgColor('#ffc107')" style="background: #ffc107; border: none; width: 40px; height: 40px;"></button>
-                  <button class="btn btn-info" onclick="setStatusBgColor('#17a2b8')" style="background: #17a2b8; border: none; width: 40px; height: 40px;"></button>
-                  <button class="btn btn-dark" onclick="setStatusBgColor('#343a40')" style="background: #343a40; border: none; width: 40px; height: 40px;"></button>
+                <div class="d-flex gap-2 flex-wrap">
+                  <button class="btn btn-primary" onclick="setStatusBgColor('#007bff')" style="background: #007bff; border: none; width: 45px; height: 45px;" title="Blue"></button>
+                  <button class="btn btn-success" onclick="setStatusBgColor('#28a745')" style="background: #28a745; border: none; width: 45px; height: 45px;" title="Green"></button>
+                  <button class="btn btn-danger" onclick="setStatusBgColor('#dc3545')" style="background: #dc3545; border: none; width: 45px; height: 45px;" title="Red"></button>
+                  <button class="btn btn-warning" onclick="setStatusBgColor('#ffc107')" style="background: #ffc107; border: none; width: 45px; height: 45px;" title="Yellow"></button>
+                  <button class="btn btn-info" onclick="setStatusBgColor('#17a2b8')" style="background: #17a2b8; border: none; width: 45px; height: 45px;" title="Cyan"></button>
+                  <button class="btn btn-dark" onclick="setStatusBgColor('#343a40')" style="background: #343a40; border: none; width: 45px; height: 45px;" title="Dark"></button>
+                  <button class="btn" onclick="setStatusBgColor('#6f42c1')" style="background: #6f42c1; border: none; width: 45px; height: 45px;" title="Purple"></button>
+                  <button class="btn" onclick="setStatusBgColor('#fd7e14')" style="background: #fd7e14; border: none; width: 45px; height: 45px;" title="Orange"></button>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Preview</label>
+                <div id="status-preview" class="border rounded p-4 text-center" style="min-height: 150px; background: #007bff; color: white; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">
+                  <span id="status-preview-text">Your status will appear here...</span>
                 </div>
               </div>
             </div>
@@ -3659,6 +3949,7 @@
       const reportClassSelect = document.getElementById('report-class');
       const studentClassSelect = document.getElementById('student-class');
       const classTeacherSelect = document.getElementById('class-teacher');
+      const editClassTeacherSelect = document.getElementById('edit-class-teacher');
 
       // Clear and populate class selects
       [attendanceSelect, historyClassSelect, reportClassSelect, studentClassSelect].forEach(select => {
@@ -3672,16 +3963,18 @@
         });
       });
 
-      // Populate teacher select for new class
-      if (classTeacherSelect) {
-        classTeacherSelect.innerHTML = '<option value="">No Teacher</option>';
-        teachers.forEach(tea => {
-          const opt = document.createElement('option');
-          opt.value = tea.id;
-          opt.textContent = tea.name;
-          classTeacherSelect.appendChild(opt);
-        });
-      }
+      // Populate teacher select for new class and edit class
+      [classTeacherSelect, editClassTeacherSelect].forEach(select => {
+        if (select) {
+          select.innerHTML = '<option value="">No Teacher</option>';
+          teachers.forEach(tea => {
+            const opt = document.createElement('option');
+            opt.value = tea.id;
+            opt.textContent = tea.name;
+            select.appendChild(opt);
+          });
+        }
+      });
       
       // Set today's date for attendance
       const dateInput = document.getElementById('attendance-date');
@@ -3744,6 +4037,7 @@
               <td>
                 <button class="btn btn-sm btn-primary" onclick="viewCompleteStudentInfo('${student.id}')" title="View Complete Registration"><i class="fas fa-id-card"></i></button>
                 <button class="btn btn-sm btn-info" onclick="viewStudentDetails('${student.id}')"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-sm btn-warning" onclick="editStudent('${student.id}')" title="Edit Student"><i class="fas fa-edit"></i></button>
                 <button class="btn btn-sm btn-danger" onclick="deleteStudent('${student.id}')"><i class="fas fa-trash"></i></button>
               </td>
             `;
@@ -3793,6 +4087,7 @@
               <td>${assignedClasses}</td>
               <td>
                 <button class="btn btn-sm btn-info" onclick="viewTeacherDetails('${teacher.id}')"><i class="fas fa-eye"></i></button>
+                <button class="btn btn-sm btn-warning" onclick="editTeacher('${teacher.id}')" title="Edit Teacher"><i class="fas fa-edit"></i></button>
                 <button class="btn btn-sm btn-danger" onclick="deleteTeacher('${teacher.id}')"><i class="fas fa-trash"></i></button>
               </td>
             `;
@@ -3840,6 +4135,7 @@
           <td>
             <button class="btn btn-sm btn-primary" onclick="viewCompleteStudentInfo('${stu.id}')" title="View Complete Registration"><i class="fas fa-id-card"></i></button>
             <button class="btn btn-sm btn-info" onclick="viewStudentDetails('${stu.id}')"><i class="fas fa-eye"></i></button>
+            <button class="btn btn-sm btn-warning" onclick="editStudent('${stu.id}')" title="Edit Student"><i class="fas fa-edit"></i></button>
             <button class="btn btn-sm btn-danger" onclick="deleteStudent('${stu.id}')"><i class="fas fa-trash"></i></button>
           </td>
         </tr>`;
@@ -3878,6 +4174,7 @@
           <td>${assignedClasses}</td>
           <td>
             <button class="btn btn-sm btn-info" onclick="viewTeacherDetails(${tea.id})"><i class="fas fa-eye"></i></button>
+            <button class="btn btn-sm btn-warning" onclick="editTeacher(${tea.id})" title="Edit Teacher"><i class="fas fa-edit"></i></button>
             <button class="btn btn-sm btn-danger" onclick="deleteTeacher(${tea.id})"><i class="fas fa-trash"></i></button>
           </td>
         </tr>`;
@@ -3920,6 +4217,7 @@
           <td><small>${cls.schedule || 'Not set'}</small></td>
           <td>
             <button class="btn btn-sm btn-info" onclick="viewClassDetails(${cls.id})"><i class="fas fa-eye"></i></button>
+            <button class="btn btn-sm btn-warning" onclick="editClass(${cls.id})" title="Edit Class"><i class="fas fa-edit"></i></button>
             <button class="btn btn-sm btn-danger" onclick="deleteClass(${cls.id})"><i class="fas fa-trash"></i></button>
           </td>
         </tr>`;
@@ -5711,51 +6009,131 @@
     function previewBulkImport() {
       const fileInput = document.getElementById('bulkImportFile');
       if (!fileInput.files || !fileInput.files[0]) {
-        alert('Please select a CSV file first');
+        alert('Please select a CSV or Excel file first');
         return;
       }
 
       const file = fileInput.files[0];
-      const reader = new FileReader();
-
-      reader.onload = function(e) {
-        const csv = e.target.result;
-        const lines = csv.split('\n').filter(line => line.trim());
-        
-        // Skip header row
-        const dataLines = lines.slice(1);
-        
-        bulkImportData = [];
-        let validCount = 0;
-        let errorCount = 0;
-
-        const previewHtml = dataLines.map((line, index) => {
-          const columns = parseCSVLine(line);
+      const fileName = file.name.toLowerCase();
+      const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+      
+      if (isExcel) {
+        // Handle Excel file
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, {type: 'array'});
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
           
-          if (columns.length < 8) {
-            errorCount++;
-            return `<tr class="table-danger">
-              <td><i class="fas fa-times-circle text-danger"></i></td>
-              <td colspan="5">${escapeHtml(line.substring(0, 50))}...</td>
-              <td><span class="badge bg-danger">Invalid format - insufficient columns</span></td>
-            </tr>`;
-          }
+          // Skip header row and process data
+          const dataLines = jsonData.slice(1);
+          processImportData(dataLines, 'excel');
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        // Handle CSV file
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const csv = e.target.result;
+          const lines = csv.split('\n').filter(line => line.trim());
+          
+          // Skip header row
+          const dataLines = lines.slice(1).map(line => parseCSVLine(line));
+          processImportData(dataLines, 'csv');
+        };
+        reader.readAsText(file);
+      }
+    }
+    
+    function processImportData(dataLines, sourceType) {
+      bulkImportData = [];
+      let validCount = 0;
+      let errorCount = 0;
 
-          const [surname, firstname, gender, grade, classname, cell, email, language, 
-                 fatherFirstname, fatherSurname, fatherEmail, fatherCell,
-                 motherFirstname, motherSurname, motherEmail, motherCell] = columns.map(c => c.trim());
-
-          const errors = [];
+      const previewHtml = dataLines.map((columns, index) => {
+        if (!columns || columns.length === 0) {
+          return '';
+        }
+        
+        // Detect format based on column count
+        const isSimplifiedFormat = columns.length >= 7 && columns.length < 10;
+        const isDetailedFormat = columns.length >= 8;
+        
+        let studentData, errors = [], name, parent, grade, gender, cell;
+        
+        if (isSimplifiedFormat && columns.length <= 9) {
+          // Simplified Format: number,grade,accession_no,name,surname,class,teacher
+          const [number, gradeVal, accessionNo, firstname, surname, classname, teacher] = columns.map(c => String(c || '').trim());
+          
+          errors = [];
           if (!surname) errors.push('Missing surname');
           if (!firstname) errors.push('Missing firstname');
-          if (!gender || !['Male', 'Female'].includes(gender)) errors.push('Invalid gender');
-          if (!grade || !['8', '9', '10', '11', '12'].includes(grade)) errors.push('Invalid grade');
+          if (!gradeVal) errors.push('Missing grade');
+          
+          const isValid = errors.length === 0;
+          if (isValid) {
+            validCount++;
+            studentData = {
+              surname, 
+              firstname, 
+              gender: 'Not specified', // Default for simplified format
+              grade: gradeVal, 
+              classname, 
+              cell: '', 
+              email: '', 
+              language: 'English',
+              fatherFirstname: '', 
+              fatherSurname: '', 
+              fatherEmail: '', 
+              fatherCell: '',
+              motherFirstname: '', 
+              motherSurname: '', 
+              motherEmail: '', 
+              motherCell: '',
+              number: number,
+              accessionNo: accessionNo,
+              teacher: teacher
+            };
+            bulkImportData.push(studentData);
+          } else {
+            errorCount++;
+          }
+          
+          name = `${firstname} ${surname}`;
+          parent = teacher ? `Teacher: ${teacher}` : 'N/A';
+          grade = gradeVal;
+          gender = 'Not specified';
+          cell = '-';
+          
+        } else if (isDetailedFormat) {
+          // Detailed Format: surname,firstname,gender,grade,class,cell,email,language,father details, mother details
+          const [surname, firstname, genderVal, gradeVal, classname, cellVal, email, language, 
+                 fatherFirstname, fatherSurname, fatherEmail, fatherCell,
+                 motherFirstname, motherSurname, motherEmail, motherCell] = columns.map(c => String(c || '').trim());
+
+          errors = [];
+          if (!surname) errors.push('Missing surname');
+          if (!firstname) errors.push('Missing firstname');
+          // Normalize gender to M/F
+          let normalizedGender = genderVal;
+          if (genderVal === 'Male') normalizedGender = 'M';
+          if (genderVal === 'Female') normalizedGender = 'F';
+          if (!normalizedGender || !['M', 'F'].includes(normalizedGender)) errors.push('Invalid gender');
+          if (!gradeVal) errors.push('Missing grade');
 
           const isValid = errors.length === 0;
           if (isValid) {
             validCount++;
-            const studentData = {
-              surname, firstname, gender, grade, classname, cell, email, language,
+            studentData = {
+              surname, firstname, 
+              gender: normalizedGender, // Store normalized gender
+              grade: gradeVal, 
+              classname, 
+              cell: cellVal, 
+              email, 
+              language,
               fatherFirstname, fatherSurname, fatherEmail, fatherCell,
               motherFirstname, motherSurname, motherEmail, motherCell
             };
@@ -5764,34 +6142,43 @@
             errorCount++;
           }
 
-          const name = `${firstname} ${surname}`;
-          const parent = [
+          name = `${firstname} ${surname}`;
+          parent = [
             fatherFirstname ? `Father: ${fatherFirstname} ${fatherSurname}` : '',
             motherFirstname ? `Mother: ${motherFirstname} ${motherSurname}` : ''
           ].filter(Boolean).join('; ');
-
-          return `<tr class="${isValid ? 'table-success' : 'table-danger'}">
-            <td><i class="fas fa-${isValid ? 'check-circle text-success' : 'times-circle text-danger'}"></i></td>
-            <td>${escapeHtml(name)}</td>
-            <td>${escapeHtml(grade)}</td>
-            <td>${escapeHtml(gender)}</td>
-            <td>${escapeHtml(cell || email || '-')}</td>
-            <td>${escapeHtml(parent || 'N/A')}</td>
-            <td>${isValid ? '<span class="badge bg-success">Valid</span>' : `<span class="badge bg-danger">${errors.join(', ')}</span>`}</td>
+          grade = gradeVal;
+          gender = normalizedGender === 'M' ? 'Male' : normalizedGender === 'F' ? 'Female' : genderVal;
+          cell = cellVal || email || '-';
+        } else {
+          errorCount++;
+          return `<tr class="table-danger">
+            <td><i class="fas fa-times-circle text-danger"></i></td>
+            <td colspan="5">Invalid row with ${columns.length} columns</td>
+            <td><span class="badge bg-danger">Invalid format - expected 7 or 16 columns</span></td>
           </tr>`;
-        }).join('');
+        }
 
-        document.getElementById('bulkImportPreviewTable').innerHTML = previewHtml;
-        document.getElementById('bulkImportStats').innerHTML = `
-          <strong>Total rows:</strong> ${dataLines.length} | 
-          <strong class="text-success">Valid:</strong> ${validCount} | 
-          <strong class="text-danger">Errors:</strong> ${errorCount}
-        `;
-        document.getElementById('bulkImportPreview').style.display = 'block';
-        document.getElementById('confirmBulkImportBtn').disabled = validCount === 0;
-      };
+        const isValid = errors.length === 0;
+        return `<tr class="${isValid ? 'table-success' : 'table-danger'}">
+          <td><i class="fas fa-${isValid ? 'check-circle text-success' : 'times-circle text-danger'}"></i></td>
+          <td>${escapeHtml(name)}</td>
+          <td>${escapeHtml(grade)}</td>
+          <td>${escapeHtml(gender)}</td>
+          <td>${escapeHtml(cell)}</td>
+          <td>${escapeHtml(parent || 'N/A')}</td>
+          <td>${isValid ? '<span class="badge bg-success">Valid</span>' : `<span class="badge bg-danger">${errors.join(', ')}</span>`}</td>
+        </tr>`;
+      }).filter(Boolean).join('');
 
-      reader.readAsText(file);
+      document.getElementById('bulkImportPreviewTable').innerHTML = previewHtml;
+      document.getElementById('bulkImportStats').innerHTML = `
+        <strong>Total rows:</strong> ${dataLines.length} | 
+        <strong class="text-success">Valid:</strong> ${validCount} | 
+        <strong class="text-danger">Errors:</strong> ${errorCount}
+      `;
+      document.getElementById('bulkImportPreview').style.display = 'block';
+      document.getElementById('confirmBulkImportBtn').disabled = validCount === 0;
     }
 
     function parseCSVLine(line) {
@@ -5912,23 +6299,147 @@
       const subject = document.getElementById('teacher-subject').value.trim();
       const qualification = document.getElementById('teacher-qualification').value.trim();
       const status = document.getElementById('teacher-status').value;
+      const createAccount = document.getElementById('teacher-create-account').checked;
       
       // Validate required fields
-      if (name && subject) {
-        // Generate numeric ID for display purposes
-        const numericId = teachers.length ? Math.max(...teachers.map(t => t.numericId || 0)) + 1 : 1;
+      if (!name || !subject) {
+        alert('Please fill in all required fields (Name and Subject)');
+        return;
+      }
+      
+      // If creating account, validate email and password
+      if (createAccount) {
+        const email = document.getElementById('teacher-email').value.trim();
+        const password = document.getElementById('teacher-password').value;
+        const passwordConfirm = document.getElementById('teacher-password-confirm').value;
         
-        const newTeacher = { 
-          numericId: numericId,
-          name, 
-          subject, 
-          qualification, 
-          status,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+        if (!email || !password) {
+          alert('Please enter email and password to create user account');
+          return;
+        }
         
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          alert('Please enter a valid email address');
+          return;
+        }
+        
+        if (password !== passwordConfirm) {
+          alert('Passwords do not match');
+          return;
+        }
+        
+        if (password.length < 6) {
+          alert('Password must be at least 6 characters long');
+          return;
+        }
+        
+        // Create user account first, then teacher record
         try {
+          const currentAdminUser = window.firebaseAuth.currentUser;
+          if (!currentAdminUser) {
+            alert('Error: You must be logged in as an admin to create users.');
+            return;
+          }
+          
+          // Create user in Firebase Authentication
+          const userCredential = await window.firebaseCreateUser(window.firebaseSecondaryAuth, email, password);
+          const user = userCredential.user;
+          console.log('Teacher user created in Firebase Auth:', user.uid);
+          
+          // Sign out from secondary auth immediately
+          await window.firebaseSecondaryAuth.signOut();
+          
+          // Generate numeric ID for display purposes
+          const numericId = teachers.length ? Math.max(...teachers.map(t => t.numericId || 0)) + 1 : 1;
+          
+          const newTeacher = { 
+            numericId: numericId,
+            name, 
+            subject, 
+            qualification, 
+            status,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
+          // Create user profile in Firestore
+          const userProfileData = {
+            email: email,
+            role: 'teacher',
+            userType: 'teacher',
+            userId: user.uid,
+            name: name,
+            subject: subject,
+            qualification: qualification || 'N/A',
+            createdAt: window.firebaseServerTimestamp()
+          };
+          
+          await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, 'users', user.uid), userProfileData);
+          console.log('Teacher user profile created in users collection');
+          
+          // Save teacher to Firestore
+          const docRef = await window.firebaseAddDoc(
+            window.firebaseCollection(window.firebaseDb, "teachers"),
+            newTeacher
+          );
+          
+          console.log("Teacher added with ID: ", docRef.id);
+          newTeacher.id = docRef.id;
+          
+          // Add to local teachers array
+          teachers.push(newTeacher);
+          localStorage.setItem('teachers', JSON.stringify(teachers));
+          
+          renderTeachers();
+          populateClassSelects();
+          updateDashboardStats();
+          
+          // Clear form
+          document.getElementById('teacher-name').value = '';
+          document.getElementById('teacher-subject').value = '';
+          document.getElementById('teacher-qualification').value = '';
+          document.getElementById('teacher-status').value = 'Active';
+          document.getElementById('teacher-create-account').checked = false;
+          document.getElementById('teacher-email').value = '';
+          document.getElementById('teacher-password').value = '';
+          document.getElementById('teacher-password-confirm').value = '';
+          toggleTeacherAccountFields();
+          
+          alert(`Teacher saved successfully!\n\nA user account has been created.\nEmail: ${email}\n\nPlease communicate the password to the teacher securely.`);
+          
+        } catch (error) {
+          console.error("Error creating teacher with account: ", error);
+          
+          let errorMessage = 'Failed to create teacher: ';
+          if (error.code === 'auth/email-already-in-use') {
+            errorMessage += 'This email is already in use.';
+          } else if (error.code === 'auth/invalid-email') {
+            errorMessage += 'Invalid email format.';
+          } else if (error.code === 'auth/weak-password') {
+            errorMessage += 'Password is too weak.';
+          } else {
+            errorMessage += error.message;
+          }
+          
+          alert(errorMessage);
+        }
+      } else {
+        // Create teacher record only (no user account)
+        try {
+          // Generate numeric ID for display purposes
+          const numericId = teachers.length ? Math.max(...teachers.map(t => t.numericId || 0)) + 1 : 1;
+          
+          const newTeacher = { 
+            numericId: numericId,
+            name, 
+            subject, 
+            qualification, 
+            status,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
           // Debug admin status before save
           await window.debugAdmin();
           
@@ -5966,9 +6477,13 @@
           console.error("Error saving teacher: ", error);
           alert("Failed to save teacher: " + error.message);
         }
-      } else {
-        alert('Please fill in all required fields (Name and Subject)');
       }
+    }
+    
+    function toggleTeacherAccountFields() {
+      const checkbox = document.getElementById('teacher-create-account');
+      const fields = document.getElementById('teacher-account-fields');
+      fields.style.display = checkbox.checked ? 'block' : 'none';
     }
 
     async function addClass() {
@@ -6146,6 +6661,219 @@
       renderStudents();
       populateClassSelects();
       updateDashboardStats();
+    }
+
+    // Edit functions
+    function editStudent(id) {
+      const student = students.find(s => s.id === id);
+      if (!student) {
+        alert('Student not found');
+        return;
+      }
+      
+      // Populate the edit modal with student data
+      document.getElementById('edit-student-id').value = student.id;
+      document.getElementById('edit-learner-surname').value = student.surname || '';
+      document.getElementById('edit-learner-firstname').value = student.firstname || '';
+      document.getElementById('edit-learner-gender').value = student.gender || '';
+      document.getElementById('edit-learner-grade').value = student.grade || '';
+      document.getElementById('edit-learner-class').value = student.classname || '';
+      document.getElementById('edit-learner-cell').value = student.learnerCell || '';
+      document.getElementById('edit-learner-email').value = student.learnerEmail || '';
+      document.getElementById('edit-learner-language').value = student.language || '';
+      
+      // Father details
+      document.getElementById('edit-father-firstname').value = student.fatherFirstname || '';
+      document.getElementById('edit-father-surname').value = student.fatherSurname || '';
+      document.getElementById('edit-father-email').value = student.fatherEmail || '';
+      document.getElementById('edit-father-cell').value = student.fatherCell || '';
+      
+      // Mother details
+      document.getElementById('edit-mother-firstname').value = student.motherFirstname || '';
+      document.getElementById('edit-mother-surname').value = student.motherSurname || '';
+      document.getElementById('edit-mother-email').value = student.motherEmail || '';
+      document.getElementById('edit-mother-cell').value = student.motherCell || '';
+      
+      // Show the modal
+      const modal = new bootstrap.Modal(document.getElementById('editStudentModal'));
+      modal.show();
+    }
+    
+    async function saveStudentEdit() {
+      const id = document.getElementById('edit-student-id').value;
+      const student = students.find(s => s.id === id);
+      if (!student) {
+        alert('Student not found');
+        return;
+      }
+      
+      // Update student data
+      student.surname = document.getElementById('edit-learner-surname').value.trim();
+      student.firstname = document.getElementById('edit-learner-firstname').value.trim();
+      student.name = `${student.firstname} ${student.surname}`;
+      student.gender = document.getElementById('edit-learner-gender').value;
+      student.grade = document.getElementById('edit-learner-grade').value;
+      student.classname = document.getElementById('edit-learner-class').value.trim();
+      student.learnerCell = document.getElementById('edit-learner-cell').value.trim();
+      student.learnerEmail = document.getElementById('edit-learner-email').value.trim();
+      student.language = document.getElementById('edit-learner-language').value;
+      
+      // Father details
+      student.fatherFirstname = document.getElementById('edit-father-firstname').value.trim();
+      student.fatherSurname = document.getElementById('edit-father-surname').value.trim();
+      student.fatherEmail = document.getElementById('edit-father-email').value.trim();
+      student.fatherCell = document.getElementById('edit-father-cell').value.trim();
+      
+      // Mother details
+      student.motherFirstname = document.getElementById('edit-mother-firstname').value.trim();
+      student.motherSurname = document.getElementById('edit-mother-surname').value.trim();
+      student.motherEmail = document.getElementById('edit-mother-email').value.trim();
+      student.motherCell = document.getElementById('edit-mother-cell').value.trim();
+      
+      // Update parent field (concatenated)
+      const fatherName = student.fatherFirstname || student.fatherSurname ? `${student.fatherFirstname} ${student.fatherSurname}`.trim() : '';
+      const motherName = student.motherFirstname || student.motherSurname ? `${student.motherFirstname} ${student.motherSurname}`.trim() : '';
+      student.parent = [fatherName, motherName].filter(n => n).join(' / ') || 'N/A';
+      
+      // Update contact (prefer father cell, then mother cell, then learner cell)
+      student.contact = student.fatherCell || student.motherCell || student.learnerCell || 'N/A';
+      
+      student.updatedAt = new Date().toISOString();
+      
+      try {
+        // Update in Firestore
+        const studentDocRef = window.firebaseDoc(window.firebaseDb, 'students', String(id));
+        await window.firebaseUpdateDoc(studentDocRef, student);
+        
+        // Update in localStorage
+        localStorage.setItem('students', JSON.stringify(students));
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editStudentModal'));
+        modal.hide();
+        
+        // Refresh display
+        renderStudents();
+        
+        alert('Student updated successfully!');
+      } catch (error) {
+        console.error('Error updating student:', error);
+        alert('Failed to update student: ' + error.message);
+      }
+    }
+    
+    function editTeacher(id) {
+      const teacher = teachers.find(t => t.id === id);
+      if (!teacher) {
+        alert('Teacher not found');
+        return;
+      }
+      
+      // Populate the edit modal with teacher data
+      document.getElementById('edit-teacher-id').value = teacher.id;
+      document.getElementById('edit-teacher-name').value = teacher.name || '';
+      document.getElementById('edit-teacher-subject').value = teacher.subject || '';
+      document.getElementById('edit-teacher-qualification').value = teacher.qualification || '';
+      document.getElementById('edit-teacher-status').value = teacher.status || 'Active';
+      
+      // Show the modal
+      const modal = new bootstrap.Modal(document.getElementById('editTeacherModal'));
+      modal.show();
+    }
+    
+    async function saveTeacherEdit() {
+      const id = document.getElementById('edit-teacher-id').value;
+      const teacher = teachers.find(t => t.id === id);
+      if (!teacher) {
+        alert('Teacher not found');
+        return;
+      }
+      
+      // Update teacher data
+      teacher.name = document.getElementById('edit-teacher-name').value.trim();
+      teacher.subject = document.getElementById('edit-teacher-subject').value.trim();
+      teacher.qualification = document.getElementById('edit-teacher-qualification').value.trim();
+      teacher.status = document.getElementById('edit-teacher-status').value;
+      teacher.updatedAt = new Date().toISOString();
+      
+      try {
+        // Update in Firestore
+        const teacherDocRef = window.firebaseDoc(window.firebaseDb, 'teachers', String(id));
+        await window.firebaseUpdateDoc(teacherDocRef, teacher);
+        
+        // Update in localStorage
+        localStorage.setItem('teachers', JSON.stringify(teachers));
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editTeacherModal'));
+        modal.hide();
+        
+        // Refresh display
+        renderTeachers();
+        
+        alert('Teacher updated successfully!');
+      } catch (error) {
+        console.error('Error updating teacher:', error);
+        alert('Failed to update teacher: ' + error.message);
+      }
+    }
+    
+    function editClass(id) {
+      const cls = classes.find(c => c.id === id);
+      if (!cls) {
+        alert('Class not found');
+        return;
+      }
+      
+      // Populate the edit modal with class data
+      document.getElementById('edit-class-id').value = cls.id;
+      document.getElementById('edit-class-name').value = cls.name || '';
+      document.getElementById('edit-class-grade').value = cls.grade || '';
+      document.getElementById('edit-class-capacity').value = cls.capacity || 30;
+      document.getElementById('edit-class-schedule').value = cls.schedule || '';
+      document.getElementById('edit-class-teacher').value = cls.teacherId || '';
+      
+      // Show the modal
+      const modal = new bootstrap.Modal(document.getElementById('editClassModal'));
+      modal.show();
+    }
+    
+    async function saveClassEdit() {
+      const id = document.getElementById('edit-class-id').value;
+      const cls = classes.find(c => c.id === id);
+      if (!cls) {
+        alert('Class not found');
+        return;
+      }
+      
+      // Update class data
+      cls.name = document.getElementById('edit-class-name').value.trim();
+      cls.grade = document.getElementById('edit-class-grade').value.trim();
+      cls.capacity = parseInt(document.getElementById('edit-class-capacity').value) || 30;
+      cls.schedule = document.getElementById('edit-class-schedule').value.trim();
+      cls.teacherId = document.getElementById('edit-class-teacher').value || null;
+      cls.updatedAt = new Date().toISOString();
+      
+      try {
+        // Update in Firestore
+        const classDocRef = window.firebaseDoc(window.firebaseDb, 'classes', String(id));
+        await window.firebaseUpdateDoc(classDocRef, cls);
+        
+        // Update in localStorage
+        localStorage.setItem('classes', JSON.stringify(classes));
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editClassModal'));
+        modal.hide();
+        
+        // Refresh display
+        renderClasses();
+        
+        alert('Class updated successfully!');
+      } catch (error) {
+        console.error('Error updating class:', error);
+        alert('Failed to update class: ' + error.message);
+      }
     }
 
     function removeStudentFromClass(classId, studentId) {
@@ -11309,8 +12037,16 @@
       const modal = new bootstrap.Modal(document.getElementById('statusCreatorModal'));
       modal.show();
       
-      // Initialize canvas after modal is shown
+      // Reset and initialize preview
       setTimeout(() => {
+        updateCharCount();
+        
+        // Add listener for text size changes
+        const sizeSelect = document.getElementById('status-text-size');
+        if (sizeSelect) {
+          sizeSelect.addEventListener('change', updateCharCount);
+        }
+        
         const canvas = document.getElementById('status-canvas');
         if (canvas) {
           // Always reinitialize context for new modal session
@@ -11349,6 +12085,73 @@
 
     function setStatusBgColor(color) {
       statusBgColor = color;
+      // Update preview
+      const preview = document.getElementById('status-preview');
+      if (preview) {
+        preview.style.background = color;
+        // Adjust text color for better contrast
+        const brightness = getBrightness(color);
+        preview.style.color = brightness > 128 ? '#000' : '#fff';
+      }
+    }
+    
+    function getBrightness(hexColor) {
+      // Convert hex to RGB
+      const hex = hexColor.replace('#', '');
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      // Calculate brightness
+      return (r * 299 + g * 587 + b * 114) / 1000;
+    }
+    
+    function updateCharCount() {
+      const textarea = document.getElementById('status-text-input');
+      const counter = document.getElementById('char-count');
+      const preview = document.getElementById('status-preview-text');
+      const size = document.getElementById('status-text-size');
+      
+      if (textarea && counter) {
+        const count = textarea.value.length;
+        counter.textContent = `${count} / 500 characters`;
+        counter.className = count > 475 ? 'text-danger' : 'text-muted';
+      }
+      
+      if (preview && textarea) {
+        const text = textarea.value || 'Your status will appear here...';
+        preview.textContent = text;
+        
+        // Update preview font size
+        if (size) {
+          const sizeValue = size.value;
+          preview.style.fontSize = sizeValue === 'normal' ? '1rem' : sizeValue === 'large' ? '1.5rem' : '2rem';
+        }
+      }
+    }
+    
+    function showEmojiPicker() {
+      const picker = document.getElementById('emoji-picker');
+      if (picker) {
+        picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+      }
+    }
+    
+    function insertEmoji(emoji) {
+      const textarea = document.getElementById('status-text-input');
+      if (textarea) {
+        const cursorPos = textarea.selectionStart;
+        const textBefore = textarea.value.substring(0, cursorPos);
+        const textAfter = textarea.value.substring(cursorPos);
+        textarea.value = textBefore + emoji + textAfter;
+        textarea.selectionStart = textarea.selectionEnd = cursorPos + emoji.length;
+        textarea.focus();
+        updateCharCount();
+      }
+      // Hide emoji picker after insertion
+      const picker = document.getElementById('emoji-picker');
+      if (picker) {
+        picker.style.display = 'none';
+      }
     }
 
     function setCanvasColor(color) {
