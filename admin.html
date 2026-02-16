@@ -2091,13 +2091,30 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <input type="text" class="form-control mb-2" id="teacher-name" placeholder="Full Name">
-          <input type="text" class="form-control mb-2" id="teacher-subject" placeholder="Main Subject">
+          <input type="text" class="form-control mb-2" id="teacher-name" placeholder="Full Name" required>
+          <input type="text" class="form-control mb-2" id="teacher-subject" placeholder="Main Subject" required>
           <input type="text" class="form-control mb-2" id="teacher-qualification" placeholder="Qualification (e.g., B.Ed, M.Sc)">
           <select class="form-select mb-2" id="teacher-status">
             <option value="Active">Active</option>
             <option value="On Leave">On Leave</option>
           </select>
+          
+          <hr class="my-3">
+          <h6 class="text-muted mb-2"><i class="fas fa-user-lock"></i> Login Credentials (Optional)</h6>
+          <small class="text-muted d-block mb-2">Create a user account so the teacher can log in to the system</small>
+          
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="teacher-create-account" onchange="toggleTeacherAccountFields()">
+            <label class="form-check-label" for="teacher-create-account">
+              Create user account for this teacher
+            </label>
+          </div>
+          
+          <div id="teacher-account-fields" style="display: none;">
+            <input type="email" class="form-control mb-2" id="teacher-email" placeholder="Email for login">
+            <input type="password" class="form-control mb-2" id="teacher-password" placeholder="Password (min 6 characters)">
+            <input type="password" class="form-control mb-2" id="teacher-password-confirm" placeholder="Confirm Password">
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -6145,23 +6162,147 @@
       const subject = document.getElementById('teacher-subject').value.trim();
       const qualification = document.getElementById('teacher-qualification').value.trim();
       const status = document.getElementById('teacher-status').value;
+      const createAccount = document.getElementById('teacher-create-account').checked;
       
       // Validate required fields
-      if (name && subject) {
-        // Generate numeric ID for display purposes
-        const numericId = teachers.length ? Math.max(...teachers.map(t => t.numericId || 0)) + 1 : 1;
+      if (!name || !subject) {
+        alert('Please fill in all required fields (Name and Subject)');
+        return;
+      }
+      
+      // If creating account, validate email and password
+      if (createAccount) {
+        const email = document.getElementById('teacher-email').value.trim();
+        const password = document.getElementById('teacher-password').value;
+        const passwordConfirm = document.getElementById('teacher-password-confirm').value;
         
-        const newTeacher = { 
-          numericId: numericId,
-          name, 
-          subject, 
-          qualification, 
-          status,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+        if (!email || !password) {
+          alert('Please enter email and password to create user account');
+          return;
+        }
         
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          alert('Please enter a valid email address');
+          return;
+        }
+        
+        if (password !== passwordConfirm) {
+          alert('Passwords do not match');
+          return;
+        }
+        
+        if (password.length < 6) {
+          alert('Password must be at least 6 characters long');
+          return;
+        }
+        
+        // Create user account first, then teacher record
         try {
+          const currentAdminUser = window.firebaseAuth.currentUser;
+          if (!currentAdminUser) {
+            alert('Error: You must be logged in as an admin to create users.');
+            return;
+          }
+          
+          // Create user in Firebase Authentication
+          const userCredential = await window.firebaseCreateUser(window.firebaseSecondaryAuth, email, password);
+          const user = userCredential.user;
+          console.log('Teacher user created in Firebase Auth:', user.uid);
+          
+          // Sign out from secondary auth immediately
+          await window.firebaseSecondaryAuth.signOut();
+          
+          // Generate numeric ID for display purposes
+          const numericId = teachers.length ? Math.max(...teachers.map(t => t.numericId || 0)) + 1 : 1;
+          
+          const newTeacher = { 
+            numericId: numericId,
+            name, 
+            subject, 
+            qualification, 
+            status,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
+          // Create user profile in Firestore
+          const userProfileData = {
+            email: email,
+            role: 'teacher',
+            userType: 'teacher',
+            userId: user.uid,
+            name: name,
+            subject: subject,
+            qualification: qualification || 'N/A',
+            createdAt: window.firebaseServerTimestamp()
+          };
+          
+          await window.firebaseSetDoc(window.firebaseDoc(window.firebaseDb, 'users', user.uid), userProfileData);
+          console.log('Teacher user profile created in users collection');
+          
+          // Save teacher to Firestore
+          const docRef = await window.firebaseAddDoc(
+            window.firebaseCollection(window.firebaseDb, "teachers"),
+            newTeacher
+          );
+          
+          console.log("Teacher added with ID: ", docRef.id);
+          newTeacher.id = docRef.id;
+          
+          // Add to local teachers array
+          teachers.push(newTeacher);
+          localStorage.setItem('teachers', JSON.stringify(teachers));
+          
+          renderTeachers();
+          populateClassSelects();
+          updateDashboardStats();
+          
+          // Clear form
+          document.getElementById('teacher-name').value = '';
+          document.getElementById('teacher-subject').value = '';
+          document.getElementById('teacher-qualification').value = '';
+          document.getElementById('teacher-status').value = 'Active';
+          document.getElementById('teacher-create-account').checked = false;
+          document.getElementById('teacher-email').value = '';
+          document.getElementById('teacher-password').value = '';
+          document.getElementById('teacher-password-confirm').value = '';
+          toggleTeacherAccountFields();
+          
+          alert(`Teacher saved successfully!\n\nLogin Credentials:\nEmail: ${email}\nPassword: ${password}\n\nThe teacher can now log in with these credentials.`);
+          
+        } catch (error) {
+          console.error("Error creating teacher with account: ", error);
+          
+          let errorMessage = 'Failed to create teacher: ';
+          if (error.code === 'auth/email-already-in-use') {
+            errorMessage += 'This email is already in use.';
+          } else if (error.code === 'auth/invalid-email') {
+            errorMessage += 'Invalid email format.';
+          } else if (error.code === 'auth/weak-password') {
+            errorMessage += 'Password is too weak.';
+          } else {
+            errorMessage += error.message;
+          }
+          
+          alert(errorMessage);
+        }
+      } else {
+        // Create teacher record only (no user account)
+        try {
+          // Generate numeric ID for display purposes
+          const numericId = teachers.length ? Math.max(...teachers.map(t => t.numericId || 0)) + 1 : 1;
+          
+          const newTeacher = { 
+            numericId: numericId,
+            name, 
+            subject, 
+            qualification, 
+            status,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
           // Debug admin status before save
           await window.debugAdmin();
           
@@ -6199,9 +6340,13 @@
           console.error("Error saving teacher: ", error);
           alert("Failed to save teacher: " + error.message);
         }
-      } else {
-        alert('Please fill in all required fields (Name and Subject)');
       }
+    }
+    
+    function toggleTeacherAccountFields() {
+      const checkbox = document.getElementById('teacher-create-account');
+      const fields = document.getElementById('teacher-account-fields');
+      fields.style.display = checkbox.checked ? 'block' : 'none';
     }
 
     async function addClass() {
