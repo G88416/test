@@ -217,6 +217,150 @@
         background: white;
       }
     }
+    
+    /* Choptso Messaging Styles */
+    .choptso-container {
+      margin-top: 20px;
+    }
+    
+    .choptso-sidebar {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    
+    .choptso-chat-card {
+      height: 600px;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .choptso-messages {
+      flex: 1;
+      overflow-y: auto;
+      background: #f8f9fa;
+      padding: 15px;
+      max-height: 450px;
+    }
+    
+    .choptso-message {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: flex-start;
+    }
+    
+    .choptso-message.sent {
+      flex-direction: row-reverse;
+    }
+    
+    .choptso-message-content {
+      max-width: 70%;
+      padding: 10px 15px;
+      border-radius: 15px;
+      position: relative;
+    }
+    
+    .choptso-message.received .choptso-message-content {
+      background: white;
+      border: 1px solid #dee2e6;
+    }
+    
+    .choptso-message.sent .choptso-message-content {
+      background: #28a745;
+      color: white;
+    }
+    
+    .choptso-message-meta {
+      font-size: 0.75rem;
+      margin-top: 5px;
+      opacity: 0.7;
+    }
+    
+    .choptso-message.sent .choptso-message-meta {
+      text-align: right;
+    }
+    
+    .choptso-avatar {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: #007bff;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin: 0 10px;
+      flex-shrink: 0;
+    }
+    
+    .choptso-attachment {
+      margin-top: 8px;
+      padding: 8px;
+      background: rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    
+    .choptso-attachment img {
+      max-width: 200px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    
+    .choptso-file-badge {
+      display: inline-block;
+      padding: 5px 10px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 5px;
+      margin-top: 5px;
+    }
+    
+    .choptso-read-receipt {
+      margin-left: 5px;
+      font-size: 0.85rem;
+    }
+    
+    .choptso-unread-badge {
+      position: absolute;
+      top: 5px;
+      right: 10px;
+      background: #28a745;
+      color: white;
+      border-radius: 10px;
+      padding: 2px 7px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+    
+    #teacher-choptso-contacts .list-group-item {
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.2s;
+      position: relative;
+    }
+    
+    #teacher-choptso-contacts .list-group-item:hover {
+      background: #f8f9fa;
+      border-left-color: #28a745;
+    }
+    
+    #teacher-choptso-contacts .list-group-item.active {
+      background: #e7f5e9;
+      border-left-color: #28a745;
+      color: #28a745;
+    }
+    
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    
+    .status-online { background-color: #28a745; }
+    .status-away { background-color: #ffc107; }
+    .status-busy { background-color: #dc3545; }
+    .status-offline { background-color: #6c757d; }
   </style>
 </head>
 <body>
@@ -583,55 +727,127 @@
           </div>
         </div>
         
-        <!-- Messages Tab -->
+        <!-- Messages Tab - Choptso Messaging -->
         <div class="tab-pane fade" id="messages" role="tabpanel">
-          <h5 class="mb-3">Communication Center</h5>
-          <div class="row">
-            <div class="col-md-4">
-              <div class="card">
-                <div class="card-body">
-                  <h6 class="card-title">Send Message</h6>
-                  <form onsubmit="sendMessage(event)">
-                    <div class="mb-3">
-                      <label class="form-label">To</label>
-                      <select class="form-select" id="message-recipient-type">
-                        <option value="student">Student</option>
-                        <option value="parent">Parent</option>
-                        <option value="class">Entire Class</option>
-                      </select>
-                    </div>
-                    <div class="mb-3">
-                      <label class="form-label">Recipient</label>
-                      <select class="form-select" id="message-recipient">
-                        <option value="">Select recipient</option>
-                      </select>
-                    </div>
-                    <div class="mb-3">
-                      <label class="form-label">Subject</label>
-                      <input type="text" class="form-control" id="message-subject" required>
-                    </div>
-                    <div class="mb-3">
-                      <label class="form-label">Message</label>
-                      <textarea class="form-control" id="message-body" rows="4" required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">
-                      <i class="fas fa-paper-plane"></i> Send Message
+          <h5 class="mb-3"><i class="fas fa-comments"></i> Choptso - School Messaging</h5>
+          
+          <!-- Teacher Profile & Status Section -->
+          <div class="row mb-3">
+            <div class="col-12">
+              <div class="card bg-light">
+                <div class="card-body d-flex align-items-center">
+                  <div class="position-relative me-3">
+                    <img id="teacher-profile-pic" src="https://via.placeholder.com/60" class="rounded-circle" width="60" height="60" alt="Profile">
+                    <button class="btn btn-sm btn-light position-absolute bottom-0 end-0 rounded-circle" onclick="teacherUploadProfilePic()" title="Change profile picture">
+                      <i class="fas fa-camera"></i>
                     </button>
-                  </form>
+                    <input type="file" id="teacher-profile-pic-input" style="display: none;" accept="image/*" onchange="handleTeacherProfilePicUpload()">
+                  </div>
+                  <div class="flex-grow-1">
+                    <h6 class="mb-1" id="teacher-choptso-name">Teacher</h6>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <input type="radio" class="btn-check" name="teacher-status" id="teacher-status-online" autocomplete="off" checked onchange="updateTeacherStatus('online')">
+                      <label class="btn btn-outline-success" for="teacher-status-online"><i class="fas fa-circle"></i> Online</label>
+                      
+                      <input type="radio" class="btn-check" name="teacher-status" id="teacher-status-away" autocomplete="off" onchange="updateTeacherStatus('away')">
+                      <label class="btn btn-outline-warning" for="teacher-status-away"><i class="fas fa-circle"></i> Away</label>
+                      
+                      <input type="radio" class="btn-check" name="teacher-status" id="teacher-status-busy" autocomplete="off" onchange="updateTeacherStatus('busy')">
+                      <label class="btn btn-outline-danger" for="teacher-status-busy"><i class="fas fa-circle"></i> Busy</label>
+                      
+                      <input type="radio" class="btn-check" name="teacher-status" id="teacher-status-offline" autocomplete="off" onchange="updateTeacherStatus('offline')">
+                      <label class="btn btn-outline-secondary" for="teacher-status-offline"><i class="fas fa-circle"></i> Offline</label>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary btn-sm me-2" onclick="openTeacherStatusCreator()" title="Create Status">
+                    <i class="fas fa-plus-circle"></i> Create Status
+                  </button>
+                  <button class="btn btn-info btn-sm" onclick="viewAllStatuses()" title="View Statuses">
+                    <i class="fas fa-eye"></i> View Statuses
+                  </button>
                 </div>
               </div>
             </div>
-            <div class="col-md-8">
-              <div class="card">
-                <div class="card-body">
-                  <h6 class="card-title">Recent Messages</h6>
-                  <div id="messages-list">
-                    <p class="text-muted">Loading messages...</p>
+          </div>
+          
+          <div class="choptso-container">
+            <div class="row">
+              <!-- Contacts/Users List -->
+              <div class="col-md-4 choptso-sidebar">
+                <div class="card">
+                  <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-users"></i> Contacts</h6>
+                  </div>
+                  <div class="card-body p-0">
+                    <div class="p-2 border-bottom bg-light">
+                      <input type="text" class="form-control form-control-sm" id="teacher-contact-search" placeholder="Search contacts..." oninput="filterContacts('teacher-contact-search', 'teacher-choptso-contacts')">
+                    </div>
+                    <div class="list-group list-group-flush" id="teacher-choptso-contacts">
+                      <a href="#" class="list-group-item list-group-item-action" onclick="loadTeacherConversation('all-students', event); return false;">
+                        <i class="fas fa-users"></i> All Students
+                      </a>
+                      <a href="#" class="list-group-item list-group-item-action" onclick="loadTeacherConversation('all-parents', event); return false;">
+                        <i class="fas fa-users"></i> All Parents
+                      </a>
+                      <!-- Dynamic contacts will be loaded here -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Chat Window -->
+              <div class="col-md-8">
+                <div class="card choptso-chat-card">
+                  <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0" id="teacher-choptso-chat-title"><i class="fas fa-comment-dots"></i> Select a contact</h6>
+                    <div>
+                      <button class="btn btn-sm btn-light me-1" onclick="teacherStartVoiceCall()" title="Voice Call" id="teacher-voice-call-btn" style="display: none;">
+                        <i class="fas fa-phone"></i>
+                      </button>
+                      <button class="btn btn-sm btn-light me-1" onclick="teacherStartVideoCall()" title="Video Call" id="teacher-video-call-btn" style="display: none;">
+                        <i class="fas fa-video"></i>
+                      </button>
+                      <button class="btn btn-sm btn-light" onclick="refreshTeacherChat()" title="Refresh">
+                        <i class="fas fa-sync-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="card-body choptso-messages" id="teacher-choptso-messages">
+                    <div class="text-center text-muted py-5">
+                      <i class="fas fa-comments fa-3x mb-3"></i>
+                      <p>Select a contact to start chatting</p>
+                    </div>
+                  </div>
+                  <div class="card-footer">
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="teacher-choptso-message-input" placeholder="Type your message...">
+                      <input type="file" id="teacher-choptso-file-input" style="display: none;" accept="image/*,.pdf,.doc,.docx,.txt">
+                      <button class="btn btn-outline-secondary" type="button" id="teacher-choptso-attach-btn" title="Attach file">
+                        <i class="fas fa-paperclip"></i>
+                      </button>
+                      <button class="btn btn-outline-secondary" type="button" id="teacher-voice-note-btn" title="Voice Note">
+                        <i class="fas fa-microphone"></i>
+                      </button>
+                      <button class="btn btn-success" type="button" id="teacher-choptso-send-btn">
+                        <i class="fas fa-paper-plane"></i> Send
+                      </button>
+                    </div>
+                    <div id="teacher-choptso-file-preview" class="mt-2"></div>
+                    <div id="teacher-voice-recording-indicator" class="mt-2" style="display: none;">
+                      <div class="alert alert-info d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        <span>Recording... <span id="teacher-recording-duration">0:00</span></span>
+                        <button class="btn btn-sm btn-danger ms-auto" onclick="stopTeacherVoiceRecording()">
+                          <i class="fas fa-stop"></i> Stop
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
         </div>
         
       </div>
