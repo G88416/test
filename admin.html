@@ -1956,11 +1956,13 @@
                 <thead class="table-light sticky-top">
                   <tr>
                     <th>Status</th>
-                    <th>Name</th>
                     <th>Grade</th>
-                    <th>Gender</th>
-                    <th>Contact</th>
-                    <th>Parent Info</th>
+                    <th>Class</th>
+                    <th>Teacher</th>
+                    <th>No</th>
+                    <th>AccessionN</th>
+                    <th>Surname</th>
+                    <th>First Name</th>
                     <th>Validation</th>
                   </tr>
                 </thead>
@@ -6154,19 +6156,29 @@
           errorCount++;
           return `<tr class="table-danger">
             <td><i class="fas fa-times-circle text-danger"></i></td>
-            <td colspan="5">Invalid row with ${columns.length} columns</td>
+            <td colspan="7">Invalid row with ${columns.length} columns</td>
             <td><span class="badge bg-danger">Invalid format - expected 7 or 16 columns</span></td>
           </tr>`;
         }
 
         const isValid = errors.length === 0;
+        // Extract values for new format
+        const studentNumber = studentData ? (studentData.number || '-') : '-';
+        const accessionNo = studentData ? (studentData.accessionNo || '-') : '-';
+        const teacher = studentData ? (studentData.teacher || '-') : '-';
+        const classname = studentData ? (studentData.classname || '-') : '-';
+        const surname = studentData ? studentData.surname : columns[0] || '';
+        const firstname = studentData ? studentData.firstname : columns[1] || '';
+        
         return `<tr class="${isValid ? 'table-success' : 'table-danger'}">
           <td><i class="fas fa-${isValid ? 'check-circle text-success' : 'times-circle text-danger'}"></i></td>
-          <td>${escapeHtml(name)}</td>
           <td>${escapeHtml(grade)}</td>
-          <td>${escapeHtml(gender)}</td>
-          <td>${escapeHtml(cell)}</td>
-          <td>${escapeHtml(parent || 'N/A')}</td>
+          <td>${escapeHtml(classname)}</td>
+          <td>${escapeHtml(teacher)}</td>
+          <td>${escapeHtml(studentNumber)}</td>
+          <td>${escapeHtml(accessionNo)}</td>
+          <td>${escapeHtml(surname)}</td>
+          <td>${escapeHtml(firstname)}</td>
           <td>${isValid ? '<span class="badge bg-success">Valid</span>' : `<span class="badge bg-danger">${errors.join(', ')}</span>`}</td>
         </tr>`;
       }).filter(Boolean).join('');
