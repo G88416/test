@@ -1457,12 +1457,11 @@
                   <th>ID</th>
                   <th>Name</th>
                   <th>Email/USERNAME</th>
-                  <th>Password</th>
                   <th class="no-print">Action</th>
                 </tr>
               </thead>
               <tbody id="admin-users-table">
-                <tr><td colspan="5" class="text-center text-muted">Loading users...</td></tr>
+                <tr><td colspan="4" class="text-center text-muted">Loading users...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1477,12 +1476,11 @@
                   <th>ID</th>
                   <th>Name</th>
                   <th>Email/USERNAME</th>
-                  <th>Password</th>
                   <th class="no-print">Action</th>
                 </tr>
               </thead>
               <tbody id="teacher-users-table">
-                <tr><td colspan="5" class="text-center text-muted">Loading users...</td></tr>
+                <tr><td colspan="4" class="text-center text-muted">Loading users...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1497,12 +1495,11 @@
                   <th>ID</th>
                   <th>Name</th>
                   <th>Email/USERNAME</th>
-                  <th>Password</th>
                   <th class="no-print">Action</th>
                 </tr>
               </thead>
               <tbody id="student-users-table">
-                <tr><td colspan="5" class="text-center text-muted">Loading users...</td></tr>
+                <tr><td colspan="4" class="text-center text-muted">Loading users...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1517,12 +1514,11 @@
                   <th>ID</th>
                   <th>Name</th>
                   <th>Email/USERNAME</th>
-                  <th>Password</th>
                   <th class="no-print">Action</th>
                 </tr>
               </thead>
               <tbody id="parent-users-table">
-                <tr><td colspan="5" class="text-center text-muted">Loading users...</td></tr>
+                <tr><td colspan="4" class="text-center text-muted">Loading users...</td></tr>
               </tbody>
             </table>
           </div>
@@ -11406,7 +11402,7 @@
       tables.forEach(tableId => {
         const tbody = document.getElementById(tableId);
         if (tbody) {
-          tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">User list requires Firebase Admin SDK to query all users. Users you create will appear here after refresh.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">User list requires Firebase Admin SDK to query all users. Users you create will appear here after refresh.</td></tr>';
         }
       });
       
@@ -11424,7 +11420,6 @@
             <td>${teacher.id}</td>
             <td>${teacher.name}</td>
             <td>${teacher.email || teacher.username || 'N/A'}</td>
-            <td>••••••••</td>
             <td>
               <button class="btn btn-sm btn-primary me-1" onclick="editUser('${teacher.id}', 'teacher')" title="Edit">
                 <i class="fas fa-edit"></i> Edit
@@ -11447,7 +11442,6 @@
             <td>${student.id}</td>
             <td>${student.name}</td>
             <td>${student.email || student.username || 'N/A'}</td>
-            <td>••••••••</td>
             <td>
               <button class="btn btn-sm btn-primary me-1" onclick="editUser('${student.id}', 'student')" title="Edit">
                 <i class="fas fa-edit"></i> Edit
@@ -11468,7 +11462,6 @@
           <td>admin-001</td>
           <td>Administrator</td>
           <td>admin@bis-sms.com</td>
-          <td>••••••••</td>
           <td><span class="badge bg-success">Protected</span></td>
         </tr>`;
       }
@@ -11482,7 +11475,6 @@
             <td>${parent.id}</td>
             <td>${parent.name || 'Parent'}</td>
             <td>${parent.email || parent.username || 'N/A'}</td>
-            <td>••••••••</td>
             <td>
               <button class="btn btn-sm btn-primary me-1" onclick="editUser('${parent.id}', 'parent')" title="Edit">
                 <i class="fas fa-edit"></i> Edit
@@ -11499,9 +11491,9 @@
     
     // Edit user function
     function editUser(userId, userType) {
-      alert(`Edit user ${userId} (${userType}). This feature allows you to modify user details.`);
+      alert(`Edit user ${userId} (${userType}). This feature allows you to modify user details. Passwords can be reset through a secure password reset mechanism.`);
       // In a real implementation, this would open a modal with the user's current data
-      // and allow editing of name, email, and password
+      // and allow editing of name and email. Password reset would be a separate action.
     }
     
     // Delete user function

@@ -1110,6 +1110,13 @@ let parentAudioChunks = [];
 let parentRecordingStartTime = null;
 let parentRecordingInterval = null;
 
+// Sanitize user input to prevent XSS
+function sanitizeHTML(str) {
+  const temp = document.createElement('div');
+  temp.textContent = str;
+  return temp.innerHTML;
+}
+
 function filterContacts(searchInputId, contactsListId) {
   const searchTerm = document.getElementById(searchInputId).value.toLowerCase();
   const contactsList = document.getElementById(contactsListId);
@@ -1305,11 +1312,12 @@ document.addEventListener('DOMContentLoaded', function() {
       if (message && parentCurrentConversation) {
         // Add message to chat (demo)
         const messagesContainer = document.getElementById('parent-choptso-messages');
+        const sanitizedMessage = sanitizeHTML(message);
         const messageHtml = `
           <div class="choptso-message sent">
             <div class="choptso-avatar">P</div>
             <div class="choptso-message-content">
-              <div class="choptso-message-text">${message}</div>
+              <div class="choptso-message-text">${sanitizedMessage}</div>
               <div class="choptso-message-meta">
                 <span>${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                 <span class="choptso-read-receipt"><i class="fas fa-check"></i></span>

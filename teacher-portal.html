@@ -1386,6 +1386,13 @@ let teacherAudioChunks = [];
 let teacherRecordingStartTime = null;
 let teacherRecordingInterval = null;
 
+// Sanitize user input to prevent XSS
+function sanitizeHTML(str) {
+  const temp = document.createElement('div');
+  temp.textContent = str;
+  return temp.innerHTML;
+}
+
 function loadTeacherConversation(conversationId, clickEvent) {
   if (clickEvent) {
     clickEvent.preventDefault();
@@ -1563,11 +1570,12 @@ document.addEventListener('DOMContentLoaded', function() {
       if (message && teacherCurrentConversation) {
         // Add message to chat (demo)
         const messagesContainer = document.getElementById('teacher-choptso-messages');
+        const sanitizedMessage = sanitizeHTML(message);
         const messageHtml = `
           <div class="choptso-message sent">
             <div class="choptso-avatar">T</div>
             <div class="choptso-message-content">
-              <div class="choptso-message-text">${message}</div>
+              <div class="choptso-message-text">${sanitizedMessage}</div>
               <div class="choptso-message-meta">
                 <span>${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                 <span class="choptso-read-receipt"><i class="fas fa-check"></i></span>
