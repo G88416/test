@@ -6208,75 +6208,124 @@
       return result;
     }
 
-    function confirmBulkImport() {
+    async function confirmBulkImport() {
       if (bulkImportData.length === 0) {
         alert('No valid students to import');
         return;
       }
 
+      // Check auth mode before allowing write operations
+      const authMode = sessionStorage.getItem('authMode');
+      
+      // Only allow writes if explicitly using Firebase auth mode
+      if (authMode !== 'firebase') {
+        alert("You are using DEMO mode → Firestore writes are blocked!\nPlease login with real credentials to import students.");
+        return;
+      }
+
       let importedCount = 0;
-      let currentMaxId = students.length ? Math.max(...students.map(s => s.id)) : 0;
+      let failedCount = 0;
+      let currentMaxNumericId = students.length ? Math.max(...students.map(s => s.numericId || s.id || 0)) : 0;
 
-      bulkImportData.forEach(studentData => {
-        currentMaxId++;
-        const id = currentMaxId;
+      // Disable the import button and show progress
+      const importBtn = document.getElementById('confirmBulkImportBtn');
+      if (importBtn) {
+        importBtn.disabled = true;
+        importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+      }
 
-        const name = `${studentData.firstname} ${studentData.surname}`;
-        
-        let parent = '';
-        let contact = '';
-        
-        if (studentData.fatherFirstname || studentData.fatherSurname) {
-          const fatherName = [studentData.fatherFirstname, studentData.fatherSurname].filter(Boolean).join(' ');
-          if (fatherName) {
-            parent = `Father: ${fatherName}`;
-            contact = studentData.fatherCell || studentData.fatherEmail;
+      for (const studentData of bulkImportData) {
+        try {
+          currentMaxNumericId++;
+          const numericId = currentMaxNumericId;
+
+          const name = `${studentData.firstname || ''} ${studentData.surname || ''}`.trim();
+          
+          let parent = '';
+          let contact = '';
+          
+          if (studentData.fatherFirstname || studentData.fatherSurname) {
+            const fatherName = [studentData.fatherFirstname, studentData.fatherSurname].filter(Boolean).join(' ');
+            if (fatherName) {
+              parent = `Father: ${fatherName}`;
+              contact = studentData.fatherCell || studentData.fatherEmail;
+            }
           }
-        }
-        if (studentData.motherFirstname || studentData.motherSurname) {
-          const motherName = [studentData.motherFirstname, studentData.motherSurname].filter(Boolean).join(' ');
-          if (motherName) {
-            if (parent) parent += '; ';
-            parent += `Mother: ${motherName}`;
-            if (!contact) contact = studentData.motherCell || studentData.motherEmail;
+          if (studentData.motherFirstname || studentData.motherSurname) {
+            const motherName = [studentData.motherFirstname, studentData.motherSurname].filter(Boolean).join(' ');
+            if (motherName) {
+              if (parent) parent += '; ';
+              parent += `Mother: ${motherName}`;
+              if (!contact) contact = studentData.motherCell || studentData.motherEmail;
+            }
           }
+
+          const newStudent = {
+            numericId: numericId,
+            name,
+            grade: studentData.grade,
+            parent,
+            contact,
+            classIds: [],
+            surname: studentData.surname || '',
+            firstname: studentData.firstname || '',
+            gender: studentData.gender,
+            classname: studentData.classname,
+            accessionNo: studentData.accessionNo || '',
+            learnerCell: studentData.cell || '',
+            learnerEmail: studentData.email || '',
+            language: studentData.language,
+            fatherFirstname: studentData.fatherFirstname || '',
+            fatherSurname: studentData.fatherSurname || '',
+            fatherEmail: studentData.fatherEmail || '',
+            fatherCell: studentData.fatherCell || '',
+            motherFirstname: studentData.motherFirstname || '',
+            motherSurname: studentData.motherSurname || '',
+            motherEmail: studentData.motherEmail || '',
+            motherCell: studentData.motherCell || '',
+            teacher: studentData.teacher || '',
+            number: studentData.number || '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+
+          // Save to Firestore
+          const docRef = await window.firebaseAddDoc(
+            window.firebaseCollection(window.firebaseDb, "students"),
+            newStudent
+          );
+
+          // Update the student object with the Firestore-generated ID
+          newStudent.id = docRef.id;
+
+          // Add to local students array
+          students.push(newStudent);
+          importedCount++;
+
+        } catch (error) {
+          console.error("Error importing student: ", error);
+          failedCount++;
         }
+      }
 
-        const newStudent = {
-          id,
-          name,
-          grade: studentData.grade,
-          parent,
-          contact,
-          classIds: [],
-          surname: studentData.surname,
-          firstname: studentData.firstname,
-          gender: studentData.gender,
-          classname: studentData.classname,
-          learnerCell: studentData.cell,
-          learnerEmail: studentData.email,
-          language: studentData.language,
-          fatherFirstname: studentData.fatherFirstname,
-          fatherSurname: studentData.fatherSurname,
-          fatherEmail: studentData.fatherEmail,
-          fatherCell: studentData.fatherCell,
-          motherFirstname: studentData.motherFirstname,
-          motherSurname: studentData.motherSurname,
-          motherEmail: studentData.motherEmail,
-          motherCell: studentData.motherCell
-        };
-
-        students.push(newStudent);
-        importedCount++;
-      });
-
+      // Save to localStorage (for offline support)
       localStorage.setItem('students', JSON.stringify(students));
       renderStudents();
       updateDashboardStats();
 
-      alert(`Successfully imported ${importedCount} student(s)!`);
+      // Show result message
+      if (failedCount > 0) {
+        alert(`Import complete!\nSuccessfully imported: ${importedCount} student(s)\nFailed: ${failedCount} student(s)\nCheck console for details.`);
+      } else {
+        alert(`Successfully imported ${importedCount} student(s)!`);
+      }
       
-      // Reset and close
+      // Reset button and close
+      if (importBtn) {
+        importBtn.disabled = false;
+        importBtn.innerHTML = '<i class="fas fa-check"></i> Import Students';
+      }
+      
       bulkImportData = [];
       document.getElementById('bulkImportFile').value = '';
       document.getElementById('bulkImportPreview').style.display = 'none';

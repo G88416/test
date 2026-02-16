@@ -87,12 +87,17 @@ number,grade,accession_no,firstname,surname,class,teacher
 ### Step 5: Confirm and Import
 
 1. Review all students in the preview
-2. If everything looks correct, click **"Import Students"**
-3. The system will:
-   - Create student records in Firestore
-   - Assign students to classes
+2. **IMPORTANT**: Ensure you are logged in with Firebase credentials (not demo mode)
+   - The system will check your authentication mode
+   - If in demo mode, you'll be prompted to log in with real credentials
+3. If everything looks correct, click **"Import Students"**
+4. The system will:
+   - Show a progress indicator during import
+   - Create student records in Firestore (cloud database)
+   - Save to localStorage for offline access
+   - Assign students to classes (if applicable)
    - Set up teacher assignments
-   - Generate unique student IDs if needed
+   - Generate unique student IDs
 
 ### Step 6: Verify Import
 
@@ -151,6 +156,16 @@ After successfully importing students, you should:
 5. **Update Missing Names**: Fill in any missing first names or surnames
 
 ## Troubleshooting
+
+### Authentication Required
+
+**Error: "You are using DEMO mode → Firestore writes are blocked!"**
+
+Solution:
+1. Log out of demo mode
+2. Log in with real Firebase credentials
+3. Ensure you have administrator access
+4. Try the import again
 
 ### Import Fails
 
