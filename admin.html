@@ -2686,18 +2686,55 @@
             <div class="tab-pane fade show active" id="status-text-tab">
               <div class="mb-3">
                 <label class="form-label">Status Text</label>
-                <textarea class="form-control" id="status-text-input" rows="4" placeholder="What's on your mind?" maxlength="500"></textarea>
-                <small class="text-muted">Max 500 characters</small>
+                <textarea class="form-control" id="status-text-input" rows="4" placeholder="What's on your mind?" maxlength="500" oninput="updateCharCount()"></textarea>
+                <div class="d-flex justify-content-between align-items-center">
+                  <small class="text-muted" id="char-count">0 / 500 characters</small>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="showEmojiPicker()">
+                    <i class="fas fa-smile"></i> Add Emoji
+                  </button>
+                </div>
+                <div id="emoji-picker" class="border rounded p-2 mt-2" style="display: none;">
+                  <div class="d-flex flex-wrap gap-1">
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('😊')">😊</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('😂')">😂</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('❤️')">❤️</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('👍')">👍</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('🎉')">🎉</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('🔥')">🔥</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('💯')">💯</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('✨')">✨</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('🎓')">🎓</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('📚')">📚</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('✏️')">✏️</button>
+                    <button type="button" class="btn btn-sm btn-light" onclick="insertEmoji('🏫')">🏫</button>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Text Size</label>
+                <select class="form-select" id="status-text-size">
+                  <option value="normal">Normal</option>
+                  <option value="large" selected>Large</option>
+                  <option value="xlarge">Extra Large</option>
+                </select>
               </div>
               <div class="mb-3">
                 <label class="form-label">Background Color</label>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-primary" onclick="setStatusBgColor('#007bff')" style="background: #007bff; border: none; width: 40px; height: 40px;"></button>
-                  <button class="btn btn-success" onclick="setStatusBgColor('#28a745')" style="background: #28a745; border: none; width: 40px; height: 40px;"></button>
-                  <button class="btn btn-danger" onclick="setStatusBgColor('#dc3545')" style="background: #dc3545; border: none; width: 40px; height: 40px;"></button>
-                  <button class="btn btn-warning" onclick="setStatusBgColor('#ffc107')" style="background: #ffc107; border: none; width: 40px; height: 40px;"></button>
-                  <button class="btn btn-info" onclick="setStatusBgColor('#17a2b8')" style="background: #17a2b8; border: none; width: 40px; height: 40px;"></button>
-                  <button class="btn btn-dark" onclick="setStatusBgColor('#343a40')" style="background: #343a40; border: none; width: 40px; height: 40px;"></button>
+                <div class="d-flex gap-2 flex-wrap">
+                  <button class="btn btn-primary" onclick="setStatusBgColor('#007bff')" style="background: #007bff; border: none; width: 45px; height: 45px;" title="Blue"></button>
+                  <button class="btn btn-success" onclick="setStatusBgColor('#28a745')" style="background: #28a745; border: none; width: 45px; height: 45px;" title="Green"></button>
+                  <button class="btn btn-danger" onclick="setStatusBgColor('#dc3545')" style="background: #dc3545; border: none; width: 45px; height: 45px;" title="Red"></button>
+                  <button class="btn btn-warning" onclick="setStatusBgColor('#ffc107')" style="background: #ffc107; border: none; width: 45px; height: 45px;" title="Yellow"></button>
+                  <button class="btn btn-info" onclick="setStatusBgColor('#17a2b8')" style="background: #17a2b8; border: none; width: 45px; height: 45px;" title="Cyan"></button>
+                  <button class="btn btn-dark" onclick="setStatusBgColor('#343a40')" style="background: #343a40; border: none; width: 45px; height: 45px;" title="Dark"></button>
+                  <button class="btn" onclick="setStatusBgColor('#6f42c1')" style="background: #6f42c1; border: none; width: 45px; height: 45px;" title="Purple"></button>
+                  <button class="btn" onclick="setStatusBgColor('#fd7e14')" style="background: #fd7e14; border: none; width: 45px; height: 45px;" title="Orange"></button>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Preview</label>
+                <div id="status-preview" class="border rounded p-4 text-center" style="min-height: 150px; background: #007bff; color: white; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">
+                  <span id="status-preview-text">Your status will appear here...</span>
                 </div>
               </div>
             </div>
@@ -11996,8 +12033,16 @@
       const modal = new bootstrap.Modal(document.getElementById('statusCreatorModal'));
       modal.show();
       
-      // Initialize canvas after modal is shown
+      // Reset and initialize preview
       setTimeout(() => {
+        updateCharCount();
+        
+        // Add listener for text size changes
+        const sizeSelect = document.getElementById('status-text-size');
+        if (sizeSelect) {
+          sizeSelect.addEventListener('change', updateCharCount);
+        }
+        
         const canvas = document.getElementById('status-canvas');
         if (canvas) {
           // Always reinitialize context for new modal session
@@ -12036,6 +12081,73 @@
 
     function setStatusBgColor(color) {
       statusBgColor = color;
+      // Update preview
+      const preview = document.getElementById('status-preview');
+      if (preview) {
+        preview.style.background = color;
+        // Adjust text color for better contrast
+        const brightness = getBrightness(color);
+        preview.style.color = brightness > 128 ? '#000' : '#fff';
+      }
+    }
+    
+    function getBrightness(hexColor) {
+      // Convert hex to RGB
+      const hex = hexColor.replace('#', '');
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      // Calculate brightness
+      return (r * 299 + g * 587 + b * 114) / 1000;
+    }
+    
+    function updateCharCount() {
+      const textarea = document.getElementById('status-text-input');
+      const counter = document.getElementById('char-count');
+      const preview = document.getElementById('status-preview-text');
+      const size = document.getElementById('status-text-size');
+      
+      if (textarea && counter) {
+        const count = textarea.value.length;
+        counter.textContent = `${count} / 500 characters`;
+        counter.className = count > 450 ? 'text-danger' : 'text-muted';
+      }
+      
+      if (preview && textarea) {
+        const text = textarea.value || 'Your status will appear here...';
+        preview.textContent = text;
+        
+        // Update preview font size
+        if (size) {
+          const sizeValue = size.value;
+          preview.style.fontSize = sizeValue === 'normal' ? '1rem' : sizeValue === 'large' ? '1.5rem' : '2rem';
+        }
+      }
+    }
+    
+    function showEmojiPicker() {
+      const picker = document.getElementById('emoji-picker');
+      if (picker) {
+        picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+      }
+    }
+    
+    function insertEmoji(emoji) {
+      const textarea = document.getElementById('status-text-input');
+      if (textarea) {
+        const cursorPos = textarea.selectionStart;
+        const textBefore = textarea.value.substring(0, cursorPos);
+        const textAfter = textarea.value.substring(cursorPos);
+        textarea.value = textBefore + emoji + textAfter;
+        textarea.selectionStart = textarea.selectionEnd = cursorPos + emoji.length;
+        textarea.focus();
+        updateCharCount();
+      }
+      // Hide emoji picker after insertion
+      const picker = document.getElementById('emoji-picker');
+      if (picker) {
+        picker.style.display = 'none';
+      }
     }
 
     function setCanvasColor(color) {
