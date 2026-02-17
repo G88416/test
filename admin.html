@@ -12955,6 +12955,212 @@
         }
       }, { once: true });
     }
+
+    // ──────────────────────────────────────────────
+    // Friend Request Functions
+    // ──────────────────────────────────────────────
+
+    // Send friend request
+    window.sendFriendRequest = async (recipientId) => {
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          showNotification('Please sign in to send friend requests', 'error');
+          return;
+        }
+
+        // Check if request already exists
+        const existingQuery = query(
+          collection(db, 'friendRequests'),
+          where('senderId', '==', currentUser.uid),
+          where('recipientId', '==', recipientId),
+          where('status', '==', 'pending')
+        );
+        const existingRequests = await getDocs(existingQuery);
+        
+        if (!existingRequests.empty) {
+          showNotification('Friend request already sent', 'warning');
+          return;
+        }
+
+        // Create friend request
+        await addDoc(collection(db, 'friendRequests'), {
+          senderId: currentUser.uid,
+          recipientId: recipientId,
+          status: 'pending',
+          createdAt: serverTimestamp()
+        });
+
+        showNotification('Friend request sent!', 'success');
+      } catch (err) {
+        console.error('Error sending friend request:', err);
+        showNotification('Failed to send friend request', 'error');
+      }
+    };
+
+    // Accept friend request
+    window.acceptFriendRequest = async (requestId, senderId) => {
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          showNotification('Please sign in', 'error');
+          return;
+        }
+
+        // 1. Add bidirectional friendship
+        await setDoc(doc(db, 'users', currentUser.uid, 'friends', senderId), {
+          addedAt: serverTimestamp()
+        });
+        await setDoc(doc(db, 'users', senderId, 'friends', currentUser.uid), {
+          addedAt: serverTimestamp()
+        });
+
+        // 2. Mark request as accepted
+        await updateDoc(doc(db, 'friendRequests', requestId), {
+          status: 'accepted',
+          acceptedAt: serverTimestamp()
+        });
+
+        // 3. Get sender data to create chat
+        const senderDoc = await getDoc(doc(db, 'users', senderId));
+        const senderData = senderDoc.data();
+
+        // 4. Show success
+        showNotification('Friend added! You can now chat.', 'success');
+
+        // Refresh lists if functions exist
+        if (typeof loadFriendRequests === 'function') loadFriendRequests();
+        if (typeof loadFriends === 'function') loadFriends();
+        if (typeof loadRecentChats === 'function') loadRecentChats();
+      } catch (err) {
+        console.error('Error accepting friend request:', err);
+        showNotification('Failed to accept friend request', 'error');
+      }
+    };
+
+    // Reject friend request
+    window.rejectFriendRequest = async (requestId) => {
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          showNotification('Please sign in', 'error');
+          return;
+        }
+
+        await updateDoc(doc(db, 'friendRequests', requestId), {
+          status: 'rejected',
+          rejectedAt: serverTimestamp()
+        });
+
+        showNotification('Friend request rejected', 'info');
+
+        // Refresh lists if function exists
+        if (typeof loadFriendRequests === 'function') loadFriendRequests();
+      } catch (err) {
+        console.error('Error rejecting friend request:', err);
+        showNotification('Failed to reject friend request', 'error');
+      }
+    };
+
+    // Load friend requests
+    window.loadFriendRequests = async () => {
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
+
+        // Get pending requests where current user is recipient
+        const requestsQuery = query(
+          collection(db, 'friendRequests'),
+          where('recipientId', '==', currentUser.uid),
+          where('status', '==', 'pending')
+        );
+
+        const snapshot = await getDocs(requestsQuery);
+        const requests = [];
+
+        for (const docSnap of snapshot.docs) {
+          const request = { id: docSnap.id, ...docSnap.data() };
+          
+          // Get sender info
+          const senderDoc = await getDoc(doc(db, 'users', request.senderId));
+          if (senderDoc.exists()) {
+            request.senderData = senderDoc.data();
+          }
+          
+          requests.push(request);
+        }
+
+        return requests;
+      } catch (err) {
+        console.error('Error loading friend requests:', err);
+        return [];
+      }
+    };
+
+    // Load friends list
+    window.loadFriends = async () => {
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) return [];
+
+        const friendsRef = collection(db, 'users', currentUser.uid, 'friends');
+        const snapshot = await getDocs(friendsRef);
+        const friends = [];
+
+        for (const docSnap of snapshot.docs) {
+          const friendId = docSnap.id;
+          const friendDoc = await getDoc(doc(db, 'users', friendId));
+          
+          if (friendDoc.exists()) {
+            friends.push({
+              id: friendId,
+              ...friendDoc.data(),
+              addedAt: docSnap.data().addedAt
+            });
+          }
+        }
+
+        return friends;
+      } catch (err) {
+        console.error('Error loading friends:', err);
+        return [];
+      }
+    };
+
+    // Check if users are friends
+    window.areFriends = async (userId1, userId2) => {
+      try {
+        const friendDoc = await getDoc(doc(db, 'users', userId1, 'friends', userId2));
+        return friendDoc.exists();
+      } catch (err) {
+        console.error('Error checking friendship:', err);
+        return false;
+      }
+    };
+
+    // Remove friend
+    window.removeFriend = async (friendId) => {
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          showNotification('Please sign in', 'error');
+          return;
+        }
+
+        // Remove bidirectional friendship
+        await deleteDoc(doc(db, 'users', currentUser.uid, 'friends', friendId));
+        await deleteDoc(doc(db, 'users', friendId, 'friends', currentUser.uid));
+
+        showNotification('Friend removed', 'info');
+
+        // Refresh friends list if function exists
+        if (typeof loadFriends === 'function') loadFriends();
+      } catch (err) {
+        console.error('Error removing friend:', err);
+        showNotification('Failed to remove friend', 'error');
+      }
+    };
+
   </script>
 
   <!-- Dark Mode Styles -->
