@@ -2162,11 +2162,7 @@ window.acceptFriendRequest = async (requestId, senderId) => {
       acceptedAt: serverTimestamp()
     });
 
-    // 3. Get sender data to create chat
-    const senderDoc = await getDoc(doc(db, 'users', senderId));
-    const senderData = senderDoc.data();
-
-    // 4. Show success
+    // 3. Show success
     showNotification('Friend added! You can now chat.', 'success');
 
     // Refresh lists if functions exist
@@ -2219,17 +2215,18 @@ window.loadFriendRequests = async () => {
     const snapshot = await getDocs(requestsQuery);
     const requests = [];
 
-    for (const docSnap of snapshot.docs) {
+    // Batch fetch sender data in parallel
+    const senderPromises = snapshot.docs.map(async (docSnap) => {
       const request = { id: docSnap.id, ...docSnap.data() };
-      
-      // Get sender info
       const senderDoc = await getDoc(doc(db, 'users', request.senderId));
       if (senderDoc.exists()) {
         request.senderData = senderDoc.data();
       }
-      
-      requests.push(request);
-    }
+      return request;
+    });
+
+    const fetchedRequests = await Promise.all(senderPromises);
+    requests.push(...fetchedRequests);
 
     return requests;
   } catch (err) {
@@ -2246,21 +2243,23 @@ window.loadFriends = async () => {
 
     const friendsRef = collection(db, 'users', currentUser.uid, 'friends');
     const snapshot = await getDocs(friendsRef);
-    const friends = [];
 
-    for (const docSnap of snapshot.docs) {
+    // Batch fetch friend data in parallel
+    const friendPromises = snapshot.docs.map(async (docSnap) => {
       const friendId = docSnap.id;
       const friendDoc = await getDoc(doc(db, 'users', friendId));
       
       if (friendDoc.exists()) {
-        friends.push({
+        return {
           id: friendId,
           ...friendDoc.data(),
           addedAt: docSnap.data().addedAt
-        });
+        };
       }
-    }
+      return null;
+    });
 
+    const friends = (await Promise.all(friendPromises)).filter(f => f !== null);
     return friends;
   } catch (err) {
     console.error('Error loading friends:', err);
