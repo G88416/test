@@ -13062,7 +13062,7 @@
     window.loadFriendRequests = async () => {
       try {
         const currentUser = auth.currentUser;
-        if (!currentUser) return;
+        if (!currentUser) return [];
 
         // Get pending requests where current user is recipient
         const requestsQuery = query(
