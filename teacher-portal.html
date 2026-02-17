@@ -11,7 +11,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, orderBy, limit, addDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, orderBy, limit, addDoc, updateDoc, deleteDoc, serverTimestamp, onSnapshot, Timestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js";
     
     // Your web app's Firebase configuration
@@ -147,6 +147,12 @@
     window.uploadBytes = uploadBytes;
     window.getDownloadURL = getDownloadURL;
     window.ref = ref;
+    window.firebaseQuery = query;
+    window.firebaseCollection = collection;
+    window.firebaseWhere = where;
+    window.firebaseOrderBy = orderBy;
+    window.firebaseOnSnapshot = onSnapshot;
+    window.firebaseTimestamp = Timestamp;
   </script>
   
   <!-- Bootstrap 5 CSS -->
@@ -361,6 +367,40 @@
     .status-away { background-color: #ffc107; }
     .status-busy { background-color: #dc3545; }
     .status-offline { background-color: #6c757d; }
+    
+    /* Status Auto-Play Viewer Styles */
+    .status-progress-bar {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 0 2px;
+      flex: 1;
+    }
+    
+    .status-progress-fill {
+      height: 100%;
+      background: white;
+      width: 0%;
+      transition: none;
+    }
+    
+    #statusProgressBars {
+      display: flex;
+      gap: 2px;
+    }
+    
+    #statusViewerContent {
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    #statusViewerContent img,
+    #statusViewerContent video {
+      max-width: 90vw;
+      max-height: 85vh;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body>
@@ -890,6 +930,52 @@
           </div>
           <button type="submit" class="btn btn-primary">Create Assignment</button>
         </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Status Viewer Modal -->
+<div class="modal fade" id="statusViewerModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title"><i class="fas fa-eye"></i> View Statuses</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
+        <div id="statuses-container" class="row">
+          <!-- Statuses will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Status Auto-Play Viewer Modal -->
+<div class="modal fade" id="statusAutoPlayModal" tabindex="-1">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content bg-dark text-white">
+      <div class="modal-header border-0 position-absolute w-100" style="z-index: 1000;">
+        <div class="d-flex align-items-center flex-grow-1">
+          <div id="statusUserInfo" class="d-flex align-items-center">
+            <i class="fas fa-user-circle fa-2x me-2"></i>
+            <div>
+              <div id="statusUserName">User</div>
+              <small id="statusTime" class="text-muted">Just now</small>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <!-- Progress bars for multiple statuses -->
+      <div id="statusProgressBars" class="position-absolute w-100 px-3 pt-2" style="top: 60px; z-index: 1000;">
+        <!-- Progress bars will be added dynamically -->
+      </div>
+      <div class="modal-body d-flex align-items-center justify-content-center p-0" style="height: 100vh;">
+        <div id="statusViewerContent" style="max-width: 100%; max-height: 100%; display: flex; align-items: center; justify-content: center;">
+          <!-- Status content will be loaded here -->
+        </div>
       </div>
     </div>
   </div>
@@ -1458,6 +1544,387 @@ function refreshTeacherChat() {
   if (teacherCurrentConversation) {
     loadTeacherMessages(teacherCurrentConversation);
   }
+}
+
+// =============================================
+// Enhanced Real-time message listener with diffing
+// More efficient approach using docChanges()
+// =============================================
+
+let unsubTeacherMessages = null;
+
+function setupRealtimeMessages(conversationId) {
+  if (unsubTeacherMessages) {
+    unsubTeacherMessages(); // clean up previous listener
+  }
+
+  const messagesContainer = document.getElementById('teacher-choptso-messages');
+  
+  // Keep track of rendered message IDs to avoid duplicates
+  const renderedMessageIds = new Set();
+
+  try {
+    const currentUser = window.firebaseAuth.currentUser;
+    if (!currentUser) {
+      messagesContainer.innerHTML = '<div class="text-center text-danger py-3">Please log in to view messages</div>';
+      return;
+    }
+    
+    // Query messages
+    let messagesQuery;
+    if (conversationId === 'all-students' || conversationId === 'all-parents') {
+      messagesQuery = window.firebaseQuery(
+        window.firebaseCollection(window.firebaseDb, 'choptsoMessages'),
+        window.firebaseWhere('broadcast', '==', true),
+        window.firebaseOrderBy('timestamp', 'asc')
+      );
+    } else {
+      messagesQuery = window.firebaseQuery(
+        window.firebaseCollection(window.firebaseDb, 'choptsoMessages'),
+        window.firebaseWhere('conversationId', '==', conversationId),
+        window.firebaseOrderBy('timestamp', 'asc')
+      );
+    }
+
+    unsubTeacherMessages = window.firebaseOnSnapshot(
+      messagesQuery,
+      (snapshot) => {
+        const wasAtBottom = isUserAtBottom(messagesContainer);
+
+        snapshot.docChanges().forEach((change) => {
+          const msgId = change.doc.id;
+          const msgData = { id: msgId, ...change.doc.data() };
+
+          if (change.type === 'added') {
+            if (!renderedMessageIds.has(msgId)) {
+              const isSent = msgData.senderId === currentUser.uid;
+              renderTeacherMessage(msgData, msgId, messagesContainer, isSent);
+              renderedMessageIds.add(msgId);
+            }
+          } 
+          else if (change.type === 'modified') {
+            // Support message editing - update existing message
+            const existingEl = document.getElementById(`msg-${msgId}`);
+            if (existingEl) {
+              // Re-render the message to reflect changes
+              const isSent = msgData.senderId === currentUser.uid;
+              const newEl = document.createElement('div');
+              renderTeacherMessage(msgData, msgId, newEl, isSent);
+              existingEl.replaceWith(newEl.firstChild);
+            }
+          } 
+          else if (change.type === 'removed') {
+            const msgEl = document.getElementById(`msg-${msgId}`);
+            if (msgEl) {
+              msgEl.remove();
+              renderedMessageIds.delete(msgId);
+            }
+          }
+        });
+
+        // Auto-scroll only if user was already near bottom
+        if (wasAtBottom) {
+          scrollToBottom(messagesContainer);
+        }
+
+        // Hide loading spinner after first snapshot
+        const spinner = messagesContainer.querySelector('.loading-spinner');
+        if (spinner) {
+          spinner.remove();
+        }
+      },
+      (error) => {
+        console.error("Messages listener error:", error);
+        showErrorInChat("Failed to load messages. Check your connection.");
+      }
+    );
+  } catch (error) {
+    console.error("Error setting up messages listener:", error);
+    showErrorInChat("Failed to load messages. Check your connection.");
+  }
+}
+
+// Helper: check if user is near bottom (decides auto-scroll)
+function isUserAtBottom(container) {
+  const threshold = 100; // px
+  return (container.scrollHeight - container.scrollTop - container.clientHeight) < threshold;
+}
+
+// Helper: scroll to bottom smoothly
+function scrollToBottom(container) {
+  if (container) {
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: 'smooth'
+    });
+  }
+}
+
+// Helper: render a single message (expandable for images, voice, etc.)
+function renderTeacherMessage(data, id, container, isSent) {
+  const msgDiv = document.createElement('div');
+  msgDiv.id = `msg-${id}`;
+  msgDiv.className = `choptso-message ${isSent ? 'sent' : 'received'}`;
+
+  const avatar = document.createElement('div');
+  avatar.className = 'choptso-avatar';
+  avatar.textContent = data.senderName ? data.senderName.charAt(0).toUpperCase() : '?';
+
+  const content = document.createElement('div');
+  content.className = 'choptso-message-content';
+
+  // Content based on message type
+  if (data.type === 'text' || !data.type) {
+    const textDiv = document.createElement('div');
+    textDiv.className = 'choptso-message-text';
+    textDiv.textContent = data.text || '';
+    content.appendChild(textDiv);
+  } else if (data.type === 'voice') {
+    const audio = document.createElement('audio');
+    audio.controls = true;
+    audio.src = data.url;
+    audio.style.maxWidth = '100%';
+    content.appendChild(audio);
+  } else if (data.type === 'file') {
+    // image / video / document handling...
+    if (data.mime?.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.src = data.url;
+      img.className = 'rounded';
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '300px';
+      img.style.objectFit = 'cover';
+      content.appendChild(img);
+    } else if (data.mime?.startsWith('video/')) {
+      const video = document.createElement('video');
+      video.src = data.url;
+      video.controls = true;
+      video.className = 'rounded';
+      video.style.maxWidth = '100%';
+      video.style.maxHeight = '300px';
+      content.appendChild(video);
+    } else {
+      const link = document.createElement('a');
+      link.href = data.url;
+      link.download = data.name || 'file';
+      link.className = 'text-decoration-none';
+      link.innerHTML = `<i class="fas fa-paperclip"></i> ${sanitizeHTML(data.name || 'File')}`;
+      content.appendChild(link);
+    }
+  }
+
+  // Timestamp
+  if (data.timestamp) {
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'choptso-message-meta';
+    const date = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+    timeSpan.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    content.appendChild(timeSpan);
+  }
+
+  if (isSent) {
+    msgDiv.appendChild(content);
+    msgDiv.appendChild(avatar);
+  } else {
+    msgDiv.appendChild(avatar);
+    msgDiv.appendChild(content);
+  }
+
+  container.appendChild(msgDiv);
+}
+
+// Error display helper
+function showErrorInChat(message) {
+  const messagesContainer = document.getElementById('teacher-choptso-messages');
+  if (messagesContainer) {
+    const div = document.createElement('div');
+    div.style.color = '#d9534f';
+    div.style.textAlign = 'center';
+    div.style.padding = '15px';
+    div.textContent = message;
+    messagesContainer.appendChild(div);
+  }
+}
+
+// Update loadTeacherMessages to use the new real-time listener
+function loadTeacherMessages(conversationId) {
+  setupRealtimeMessages(conversationId);
+}
+
+// =============================================
+// Status Auto-Play Feature
+// =============================================
+
+function startStatusAutoPlay(statuses, startIndex = 0) {
+  if (!statuses || statuses.length === 0) return;
+  
+  let currentIdx = startIndex;
+  const modal = new bootstrap.Modal(document.getElementById('statusAutoPlayModal'));
+  modal.show();
+  
+  const viewerContent = document.getElementById('statusViewerContent');
+  const progressContainer = document.getElementById('statusProgressBars');
+  const userNameEl = document.getElementById('statusUserName');
+  const userTimeEl = document.getElementById('statusTime');
+  
+  // Create progress bars for all statuses
+  progressContainer.innerHTML = '';
+  statuses.forEach((_, idx) => {
+    const barContainer = document.createElement('div');
+    barContainer.className = 'status-progress-bar';
+    const barFill = document.createElement('div');
+    barFill.className = 'status-progress-fill';
+    barFill.setAttribute('data-index', idx);
+    barContainer.appendChild(barFill);
+    progressContainer.appendChild(barContainer);
+  });
+  
+  const progressBars = document.querySelectorAll('.status-progress-fill');
+  
+  // Clean up any previous interval
+  if (window.statusAutoPlayInterval) {
+    clearInterval(window.statusAutoPlayInterval);
+    clearTimeout(window.statusAutoPlayTimeout);
+  }
+
+  function showCurrentStatus() {
+    if (currentIdx >= statuses.length) {
+      closeStatusViewer();
+      return;
+    }
+
+    const status = statuses[currentIdx];
+    
+    // Update user info
+    userNameEl.textContent = status.userEmail || status.userName || 'User';
+    userTimeEl.textContent = getTimeAgo(status.timestamp?.toDate ? status.timestamp.toDate() : new Date(status.timestamp));
+    
+    // Update progress bars
+    progressBars.forEach((bar, i) => {
+      if (i < currentIdx) {
+        bar.style.width = '100%';
+        bar.style.transition = 'none';
+      } else {
+        bar.style.width = '0%';
+        bar.style.transition = 'none';
+      }
+    });
+
+    // Show content
+    viewerContent.innerHTML = ''; // clear previous
+
+    if (status.type === 'image' || status.type === 'canvas') {
+      const img = document.createElement('img');
+      img.src = status.imageUrl;
+      img.style.maxWidth = '90vw';
+      img.style.maxHeight = '85vh';
+      img.style.borderRadius = '8px';
+      img.style.objectFit = 'contain';
+      viewerContent.appendChild(img);
+
+      // Start progress animation
+      const currentBar = progressBars[currentIdx];
+      setTimeout(() => {
+        currentBar.style.transition = 'width 5s linear';
+        currentBar.style.width = '100%';
+      }, 50);
+
+      // Auto advance after 5 seconds
+      window.statusAutoPlayTimeout = setTimeout(() => {
+        currentIdx++;
+        showCurrentStatus();
+      }, 5000);
+    }
+    else if (status.type === 'video' && status.videoUrl) {
+      const video = document.createElement('video');
+      video.src = status.videoUrl;
+      video.autoplay = true;
+      video.controls = true;
+      video.style.maxWidth = '90vw';
+      video.style.maxHeight = '85vh';
+      video.style.borderRadius = '8px';
+      viewerContent.appendChild(video);
+
+      video.addEventListener('loadedmetadata', () => {
+        const duration = video.duration * 1000;
+        const currentBar = progressBars[currentIdx];
+        currentBar.style.transition = `width ${duration}ms linear`;
+        currentBar.style.width = '100%';
+      });
+
+      video.onended = () => {
+        currentIdx++;
+        showCurrentStatus();
+      };
+    }
+    else if (status.type === 'text') {
+      const textDiv = document.createElement('div');
+      textDiv.className = 'p-5 rounded text-white text-center';
+      textDiv.style.background = status.bgColor || '#0088cc';
+      textDiv.style.minHeight = '200px';
+      textDiv.style.display = 'flex';
+      textDiv.style.alignItems = 'center';
+      textDiv.style.justifyContent = 'center';
+      textDiv.style.fontSize = '1.5rem';
+      textDiv.textContent = status.text || '';
+      viewerContent.appendChild(textDiv);
+
+      const currentBar = progressBars[currentIdx];
+      setTimeout(() => {
+        currentBar.style.transition = 'width 5s linear';
+        currentBar.style.width = '100%';
+      }, 50);
+
+      window.statusAutoPlayTimeout = setTimeout(() => {
+        currentIdx++;
+        showCurrentStatus();
+      }, 5000);
+    }
+    else {
+      currentIdx++;
+      showCurrentStatus();
+    }
+  }
+
+  function closeStatusViewer() {
+    if (window.statusAutoPlayInterval) {
+      clearInterval(window.statusAutoPlayInterval);
+    }
+    if (window.statusAutoPlayTimeout) {
+      clearTimeout(window.statusAutoPlayTimeout);
+    }
+    modal.hide();
+  }
+
+  showCurrentStatus();
+
+  viewerContent.onclick = (e) => {
+    if (e.target.tagName === 'VIDEO') return;
+    clearTimeout(window.statusAutoPlayTimeout);
+    currentIdx++;
+    showCurrentStatus();
+  };
+  
+  document.getElementById('statusAutoPlayModal').addEventListener('hidden.bs.modal', () => {
+    if (window.statusAutoPlayInterval) {
+      clearInterval(window.statusAutoPlayInterval);
+    }
+    if (window.statusAutoPlayTimeout) {
+      clearTimeout(window.statusAutoPlayTimeout);
+    }
+  }, { once: true });
+}
+
+function getTimeAgo(date) {
+  const seconds = Math.floor((new Date() - date) / 1000);
+  
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 function teacherUploadProfilePic() {
