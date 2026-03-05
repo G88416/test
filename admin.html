@@ -647,10 +647,10 @@
               <h5 class="mb-1">Command Center</h5>
               <p class="text-muted">Quick-launch the most powerful workflows.</p>
               <div class="d-grid gap-2">
-                <button class="btn btn-outline-primary" onclick="navigateTo('attendance')"><i class="fas fa-calendar-check me-2"></i>Open Attendance Analytics</button>
-                <button class="btn btn-outline-success" onclick="navigateTo('grades')"><i class="fas fa-chart-line me-2"></i>Review Grade Performance</button>
-                <button class="btn btn-outline-info" onclick="navigateTo('reports')"><i class="fas fa-file-alt me-2"></i>Generate Executive Reports</button>
-                <button class="btn btn-outline-warning" onclick="navigateTo('messages')"><i class="fas fa-bullhorn me-2"></i>Send Broadcast Message</button>
+                <button class="btn btn-outline-primary" data-command-target="attendance"><i class="fas fa-calendar-check me-2"></i>Open Attendance Analytics</button>
+                <button class="btn btn-outline-success" data-command-target="grades"><i class="fas fa-chart-line me-2"></i>Review Grade Performance</button>
+                <button class="btn btn-outline-info" data-command-target="reports"><i class="fas fa-file-alt me-2"></i>Generate Executive Reports</button>
+                <button class="btn btn-outline-warning" data-command-target="messages"><i class="fas fa-bullhorn me-2"></i>Send Broadcast Message</button>
               </div>
             </div>
           </div>
@@ -3488,6 +3488,10 @@
 
     window.navigateTo = navigateTo;
 
+    document.querySelectorAll('[data-command-target]').forEach(button => {
+      button.addEventListener('click', () => navigateTo(button.dataset.commandTarget));
+    });
+
     navLinks.forEach(link => {
       link.addEventListener('click', () => navigateTo(link.dataset.section));
     });
@@ -3802,10 +3806,21 @@
     }
 
     // Percentage thresholds used to flag students needing intervention.
-    const ATTENDANCE_AT_RISK_THRESHOLD = 75; // Attendance rate below 75% is considered at-risk.
-    const GRADE_AT_RISK_THRESHOLD = 50; // Grade averages below 50% are considered at-risk.
-    const HIGH_ENGAGEMENT_THRESHOLD = 80;
-    const MODERATE_ENGAGEMENT_THRESHOLD = 65;
+    const DASHBOARD_THRESHOLD_DEFAULTS = {
+      attendanceAtRisk: 75, // Attendance rate below 75% is considered at-risk.
+      gradeAtRisk: 50, // Grade averages below 50% are considered at-risk.
+      highEngagement: 80,
+      moderateEngagement: 65
+    };
+    let dashboardThresholds = { ...DASHBOARD_THRESHOLD_DEFAULTS };
+    try {
+      const storedThresholds = JSON.parse(localStorage.getItem('dashboardThresholds'));
+      if (storedThresholds && typeof storedThresholds === 'object') {
+        dashboardThresholds = { ...dashboardThresholds, ...storedThresholds };
+      }
+    } catch (error) {
+      console.warn('Invalid dashboardThresholds in localStorage:', error);
+    }
     const PERCENTAGE_DIVISOR = 100;
     const GRADE_COMMENT_KEY = 'comment';
 
@@ -3845,7 +3860,7 @@
           ? (studentPresent[studentId] || 0) / studentTotals[studentId] * 100
           : 0;
         studentRates[studentId] = rate;
-        if (rate > 0 && rate < ATTENDANCE_AT_RISK_THRESHOLD) {
+        if (rate > 0 && rate < dashboardThresholds.attendanceAtRisk) {
           atRiskStudentIds.push(studentId);
         }
       });
@@ -3912,7 +3927,7 @@
         studentAverages[studentId] = avg;
         totalAverage += avg;
         studentCount += 1;
-        if (avg < GRADE_AT_RISK_THRESHOLD) {
+        if (avg < dashboardThresholds.gradeAtRisk) {
           atRiskStudentIds.push(studentId);
         }
       });
@@ -3959,13 +3974,13 @@
 
       if (debtors.length > 0) {
         const topDebtors = debtors.slice(0, 3)
-          .map(item => `${item.student.name} (R${item.balance.toLocaleString()})`)
+          .map(item => `${item.student.name} (ZAR ${item.balance.toLocaleString()})`)
           .join(', ');
         alerts.push({
           variant: 'info',
           icon: 'fa-money-bill-wave',
           label: 'Finance',
-          message: `Outstanding fees: R${totalBalance.toLocaleString()} • Top debtors: ${topDebtors}.`
+          message: `Outstanding fees: ZAR ${totalBalance.toLocaleString()} • Top debtors: ${topDebtors}.`
         });
       }
 
@@ -4040,9 +4055,9 @@
 
       const engagementSummary = engagementIndex === null
         ? 'Awaiting data'
-        : engagementIndex >= HIGH_ENGAGEMENT_THRESHOLD
+        : engagementIndex >= dashboardThresholds.highEngagement
           ? 'High engagement'
-          : engagementIndex >= MODERATE_ENGAGEMENT_THRESHOLD
+          : engagementIndex >= dashboardThresholds.moderateEngagement
             ? 'Moderate engagement'
             : 'Low engagement';
 
