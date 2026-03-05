@@ -3801,8 +3801,9 @@
       }
     }
 
-    const ATTENDANCE_AT_RISK_THRESHOLD = 75;
-    const GRADE_AT_RISK_THRESHOLD = 50;
+    // Percentage thresholds used to flag students needing intervention.
+    const ATTENDANCE_AT_RISK_THRESHOLD = 75; // Attendance rate below 75% is considered at-risk.
+    const GRADE_AT_RISK_THRESHOLD = 50; // Grade averages below 50% are considered at-risk.
 
     function calculateAttendanceMetrics() {
       const studentTotals = {};
@@ -3845,6 +3846,10 @@
       return { overallRate, totalRecords, studentRates, atRiskStudentIds };
     }
 
+    /**
+     * Calculate a student's grade average.
+     * Uses weighted subjects when provided; otherwise falls back to a simple numeric average.
+     */
     function calculateStudentGradeAverage(studentGrades, classSubjects = []) {
       if (!studentGrades) return null;
 
@@ -3908,6 +3913,9 @@
       return { overallAverage, studentCount, studentAverages, atRiskStudentIds };
     }
 
+    /**
+     * Render the dashboard smart alert list from the latest metrics.
+     */
     function renderSmartAlerts(attendanceMetrics, gradeMetrics, totalBalance) {
       const alertList = document.getElementById('smart-alerts');
       if (!alertList) return;
@@ -3967,13 +3975,13 @@
         item.className = 'list-group-item d-flex align-items-start';
 
         const icon = document.createElement('i');
-        const iconColor = alert.variant === 'warning'
-          ? 'warning'
-          : alert.variant === 'danger'
-            ? 'danger'
-            : alert.variant === 'info'
-              ? 'info'
-              : 'success';
+        const iconColorMap = {
+          warning: 'warning',
+          danger: 'danger',
+          info: 'info',
+          success: 'success'
+        };
+        const iconColor = iconColorMap[alert.variant] || 'success';
         icon.className = `fas ${alert.icon} me-3 text-${iconColor}`;
         icon.style.marginTop = '4px';
 
@@ -3993,6 +4001,9 @@
       });
     }
 
+    /**
+     * Orchestrate dashboard insights by calculating metrics and updating the DOM.
+     */
     function updateDashboardInsights(totalBalance) {
       const attendanceMetrics = calculateAttendanceMetrics();
       const gradeMetrics = calculateGradeMetrics();
