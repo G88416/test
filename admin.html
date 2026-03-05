@@ -3486,6 +3486,8 @@
       if (sectionId === 'reports') generateAdvancedReports();
     }
 
+    window.navigateTo = navigateTo;
+
     navLinks.forEach(link => {
       link.addEventListener('click', () => navigateTo(link.dataset.section));
     });
@@ -3799,6 +3801,9 @@
       }
     }
 
+    const ATTENDANCE_AT_RISK_THRESHOLD = 75;
+    const GRADE_AT_RISK_THRESHOLD = 50;
+
     function calculateAttendanceMetrics() {
       const studentTotals = {};
       const studentPresent = {};
@@ -3831,7 +3836,7 @@
           ? (studentPresent[studentId] || 0) / studentTotals[studentId] * 100
           : 0;
         studentRates[studentId] = rate;
-        if (rate > 0 && rate < 75) {
+        if (rate > 0 && rate < ATTENDANCE_AT_RISK_THRESHOLD) {
           atRiskStudentIds.push(studentId);
         }
       });
@@ -3848,7 +3853,7 @@
         let totalWeight = 0;
         classSubjects.forEach(subject => {
           const score = parseFloat(studentGrades[subject.name]);
-          if (Number.isNaN(score)) return;
+          if (!Number.isFinite(score)) return;
           totalWeighted += score * (subject.weight / 100);
           totalWeight += subject.weight;
         });
@@ -3856,7 +3861,7 @@
       }
 
       const scores = Object.entries(studentGrades)
-        .filter(([key, value]) => key !== 'comment' && !Number.isNaN(parseFloat(value)))
+        .filter(([key, value]) => key !== 'comment' && Number.isFinite(parseFloat(value)))
         .map(([, value]) => parseFloat(value));
 
       if (scores.length === 0) return null;
@@ -3894,7 +3899,7 @@
         studentAverages[studentId] = avg;
         totalAverage += avg;
         studentCount += 1;
-        if (avg < 50) {
+        if (avg < GRADE_AT_RISK_THRESHOLD) {
           atRiskStudentIds.push(studentId);
         }
       });
