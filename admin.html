@@ -3804,6 +3804,14 @@
     // Percentage thresholds used to flag students needing intervention.
     const ATTENDANCE_AT_RISK_THRESHOLD = 75; // Attendance rate below 75% is considered at-risk.
     const GRADE_AT_RISK_THRESHOLD = 50; // Grade averages below 50% are considered at-risk.
+    const HIGH_ENGAGEMENT_THRESHOLD = 80;
+    const MODERATE_ENGAGEMENT_THRESHOLD = 65;
+    const PERCENTAGE_DIVISOR = 100;
+    const GRADE_COMMENT_KEY = 'comment';
+
+    function isAttendancePresentStatus(status) {
+      return status === 'Present' || status === 'Late';
+    }
 
     function calculateAttendanceMetrics() {
       const studentTotals = {};
@@ -3817,13 +3825,13 @@
             if (!record) return;
             const status = record.status || 'Absent';
             totalRecords += 1;
-            if (status === 'Present' || status === 'Late') {
+            if (isAttendancePresentStatus(status)) {
               totalPresent += 1;
             }
 
             const key = studentId.toString();
             studentTotals[key] = (studentTotals[key] || 0) + 1;
-            if (status === 'Present' || status === 'Late') {
+            if (isAttendancePresentStatus(status)) {
               studentPresent[key] = (studentPresent[key] || 0) + 1;
             }
           });
@@ -3859,14 +3867,14 @@
         classSubjects.forEach(subject => {
           const score = parseFloat(studentGrades[subject.name]);
           if (!Number.isFinite(score)) return;
-          totalWeighted += score * (subject.weight / 100);
+          totalWeighted += score * (subject.weight / PERCENTAGE_DIVISOR);
           totalWeight += subject.weight;
         });
-        return totalWeight > 0 ? (totalWeighted / (totalWeight / 100)) : null;
+        return totalWeight > 0 ? (totalWeighted / (totalWeight / PERCENTAGE_DIVISOR)) : null;
       }
 
       const scores = Object.entries(studentGrades)
-        .filter(([key, value]) => key !== 'comment' && Number.isFinite(parseFloat(value)))
+        .filter(([key, value]) => key !== GRADE_COMMENT_KEY && Number.isFinite(parseFloat(value)))
         .map(([, value]) => parseFloat(value));
 
       if (scores.length === 0) return null;
@@ -4007,6 +4015,7 @@
     function updateDashboardInsights(totalBalance) {
       const attendanceMetrics = calculateAttendanceMetrics();
       const gradeMetrics = calculateGradeMetrics();
+      // Engagement index blends attendance and grades equally for a quick operational signal.
       const engagementIndex = (attendanceMetrics.overallRate !== null && gradeMetrics.overallAverage !== null)
         ? (attendanceMetrics.overallRate + gradeMetrics.overallAverage) / 2
         : null;
@@ -4031,9 +4040,9 @@
 
       const engagementSummary = engagementIndex === null
         ? 'Awaiting data'
-        : engagementIndex >= 80
+        : engagementIndex >= HIGH_ENGAGEMENT_THRESHOLD
           ? 'High engagement'
-          : engagementIndex >= 65
+          : engagementIndex >= MODERATE_ENGAGEMENT_THRESHOLD
             ? 'Moderate engagement'
             : 'Low engagement';
 
