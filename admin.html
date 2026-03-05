@@ -574,6 +574,88 @@
           </div>
         </div>
       </div>
+
+      <div class="row g-4 mt-1">
+        <div class="col-md-6 col-lg-3">
+          <div class="card h-100">
+            <div class="card-body d-flex align-items-center">
+              <div class="me-3 text-info"><i class="fas fa-user-check stat-icon"></i></div>
+              <div>
+                <h6>Attendance Health</h6>
+                <h3 id="avg-attendance-rate">N/A</h3>
+                <small class="text-muted" id="attendance-capture">No attendance data yet</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="card h-100">
+            <div class="card-body d-flex align-items-center">
+              <div class="me-3 text-primary"><i class="fas fa-graduation-cap stat-icon"></i></div>
+              <div>
+                <h6>Academic Performance</h6>
+                <h3 id="avg-grade">N/A</h3>
+                <small class="text-muted" id="grade-coverage">No grades captured yet</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="card h-100">
+            <div class="card-body d-flex align-items-center">
+              <div class="me-3 text-danger"><i class="fas fa-triangle-exclamation stat-icon"></i></div>
+              <div>
+                <h6>At-Risk Students</h6>
+                <h3 id="at-risk-students">0</h3>
+                <small class="text-muted" id="at-risk-summary">All students on track</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="card h-100">
+            <div class="card-body d-flex align-items-center">
+              <div class="me-3 text-warning"><i class="fas fa-bolt stat-icon"></i></div>
+              <div>
+                <h6>Engagement Index</h6>
+                <h3 id="engagement-index">N/A</h3>
+                <small class="text-muted" id="engagement-summary">Awaiting data</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4 mt-4">
+        <div class="col-lg-7">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <h5 class="mb-1">Smart Alerts</h5>
+                  <p class="text-muted mb-0">Proactive insights to keep the school running smoothly.</p>
+                </div>
+                <span class="badge bg-dark">Live</span>
+              </div>
+              <ul class="list-group list-group-flush" id="smart-alerts"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="card h-100">
+            <div class="card-body">
+              <h5 class="mb-1">Command Center</h5>
+              <p class="text-muted">Quick-launch the most powerful workflows.</p>
+              <div class="d-grid gap-2">
+                <button class="btn btn-outline-primary" onclick="navigateTo('attendance')"><i class="fas fa-calendar-check me-2"></i>Open Attendance Analytics</button>
+                <button class="btn btn-outline-success" onclick="navigateTo('grades')"><i class="fas fa-chart-line me-2"></i>Review Grade Performance</button>
+                <button class="btn btn-outline-info" onclick="navigateTo('reports')"><i class="fas fa-file-alt me-2"></i>Generate Executive Reports</button>
+                <button class="btn btn-outline-warning" onclick="navigateTo('messages')"><i class="fas fa-bullhorn me-2"></i>Send Broadcast Message</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Advanced Finance Section - Powerful Enhancements -->
@@ -3710,6 +3792,241 @@
       document.getElementById('printable-invoice').style.display = 'block';
     }
 
+    function setDashboardText(id, value) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = value;
+      }
+    }
+
+    function calculateAttendanceMetrics() {
+      const studentTotals = {};
+      const studentPresent = {};
+      let totalRecords = 0;
+      let totalPresent = 0;
+
+      Object.values(attendance || {}).forEach(classAttendance => {
+        Object.values(classAttendance || {}).forEach(dayRecords => {
+          Object.entries(dayRecords || {}).forEach(([studentId, record]) => {
+            if (!record) return;
+            const status = record.status || 'Absent';
+            totalRecords += 1;
+            if (status === 'Present' || status === 'Late') {
+              totalPresent += 1;
+            }
+
+            const key = studentId.toString();
+            studentTotals[key] = (studentTotals[key] || 0) + 1;
+            if (status === 'Present' || status === 'Late') {
+              studentPresent[key] = (studentPresent[key] || 0) + 1;
+            }
+          });
+        });
+      });
+
+      const studentRates = {};
+      const atRiskStudentIds = [];
+      Object.keys(studentTotals).forEach(studentId => {
+        const rate = studentTotals[studentId] > 0
+          ? (studentPresent[studentId] || 0) / studentTotals[studentId] * 100
+          : 0;
+        studentRates[studentId] = rate;
+        if (rate > 0 && rate < 75) {
+          atRiskStudentIds.push(studentId);
+        }
+      });
+
+      const overallRate = totalRecords > 0 ? (totalPresent / totalRecords) * 100 : null;
+      return { overallRate, totalRecords, studentRates, atRiskStudentIds };
+    }
+
+    function calculateStudentGradeAverage(studentGrades, classSubjects = []) {
+      if (!studentGrades) return null;
+
+      if (classSubjects.length > 0) {
+        let totalWeighted = 0;
+        let totalWeight = 0;
+        classSubjects.forEach(subject => {
+          const score = parseFloat(studentGrades[subject.name]);
+          if (Number.isNaN(score)) return;
+          totalWeighted += score * (subject.weight / 100);
+          totalWeight += subject.weight;
+        });
+        return totalWeight > 0 ? (totalWeighted / (totalWeight / 100)) : null;
+      }
+
+      const scores = Object.entries(studentGrades)
+        .filter(([key, value]) => key !== 'comment' && !Number.isNaN(parseFloat(value)))
+        .map(([, value]) => parseFloat(value));
+
+      if (scores.length === 0) return null;
+      const sum = scores.reduce((total, score) => total + score, 0);
+      return sum / scores.length;
+    }
+
+    function calculateGradeMetrics() {
+      const studentScores = {};
+
+      Object.entries(gradesData || {}).forEach(([classId, termData]) => {
+        if (!termData) return;
+        const classSubjects = subjects[classId] || [];
+        Object.values(termData).forEach(studentsData => {
+          Object.entries(studentsData || {}).forEach(([studentId, studentGrades]) => {
+            const avg = calculateStudentGradeAverage(studentGrades, classSubjects);
+            if (avg === null) return;
+            const key = studentId.toString();
+            if (!studentScores[key]) {
+              studentScores[key] = [];
+            }
+            studentScores[key].push(avg);
+          });
+        });
+      });
+
+      const studentAverages = {};
+      const atRiskStudentIds = [];
+      let totalAverage = 0;
+      let studentCount = 0;
+
+      Object.entries(studentScores).forEach(([studentId, averages]) => {
+        if (!averages.length) return;
+        const avg = averages.reduce((sum, value) => sum + value, 0) / averages.length;
+        studentAverages[studentId] = avg;
+        totalAverage += avg;
+        studentCount += 1;
+        if (avg < 50) {
+          atRiskStudentIds.push(studentId);
+        }
+      });
+
+      const overallAverage = studentCount > 0 ? totalAverage / studentCount : null;
+      return { overallAverage, studentCount, studentAverages, atRiskStudentIds };
+    }
+
+    function renderSmartAlerts(attendanceMetrics, gradeMetrics, totalBalance) {
+      const alertList = document.getElementById('smart-alerts');
+      if (!alertList) return;
+
+      alertList.innerHTML = '';
+      const alerts = [];
+
+      if (attendanceMetrics.atRiskStudentIds.length > 0) {
+        alerts.push({
+          variant: 'warning',
+          icon: 'fa-user-clock',
+          label: 'Attendance',
+          message: `${attendanceMetrics.atRiskStudentIds.length} student(s) below 75% attendance.`
+        });
+      }
+
+      if (gradeMetrics.atRiskStudentIds.length > 0) {
+        alerts.push({
+          variant: 'danger',
+          icon: 'fa-triangle-exclamation',
+          label: 'Grades',
+          message: `${gradeMetrics.atRiskStudentIds.length} student(s) below 50% average.`
+        });
+      }
+
+      const debtors = students
+        .map(student => {
+          const calc = calculateStudentFee(student.id);
+          return { student, balance: calc.balance };
+        })
+        .filter(item => item.balance > 0)
+        .sort((a, b) => b.balance - a.balance);
+
+      if (debtors.length > 0) {
+        const topDebtors = debtors.slice(0, 3)
+          .map(item => `${item.student.name} (R${item.balance.toLocaleString()})`)
+          .join(', ');
+        alerts.push({
+          variant: 'info',
+          icon: 'fa-money-bill-wave',
+          label: 'Finance',
+          message: `Outstanding fees: R${totalBalance.toLocaleString()} • Top debtors: ${topDebtors}.`
+        });
+      }
+
+      if (alerts.length === 0) {
+        alerts.push({
+          variant: 'success',
+          icon: 'fa-circle-check',
+          label: 'Status',
+          message: 'All systems stable. No urgent alerts right now.'
+        });
+      }
+
+      alerts.forEach(alert => {
+        const item = document.createElement('li');
+        item.className = 'list-group-item d-flex align-items-start';
+
+        const icon = document.createElement('i');
+        const iconColor = alert.variant === 'warning'
+          ? 'warning'
+          : alert.variant === 'danger'
+            ? 'danger'
+            : alert.variant === 'info'
+              ? 'info'
+              : 'success';
+        icon.className = `fas ${alert.icon} me-3 text-${iconColor}`;
+        icon.style.marginTop = '4px';
+
+        const content = document.createElement('div');
+        const label = document.createElement('span');
+        label.className = `badge bg-${alert.variant} me-2`;
+        label.textContent = alert.label;
+
+        const message = document.createElement('span');
+        message.textContent = alert.message;
+
+        content.appendChild(label);
+        content.appendChild(message);
+        item.appendChild(icon);
+        item.appendChild(content);
+        alertList.appendChild(item);
+      });
+    }
+
+    function updateDashboardInsights(totalBalance) {
+      const attendanceMetrics = calculateAttendanceMetrics();
+      const gradeMetrics = calculateGradeMetrics();
+      const engagementIndex = (attendanceMetrics.overallRate !== null && gradeMetrics.overallAverage !== null)
+        ? (attendanceMetrics.overallRate + gradeMetrics.overallAverage) / 2
+        : null;
+
+      const atRiskCount = new Set([
+        ...attendanceMetrics.atRiskStudentIds,
+        ...gradeMetrics.atRiskStudentIds
+      ]).size;
+
+      setDashboardText('avg-attendance-rate', attendanceMetrics.overallRate !== null ? `${attendanceMetrics.overallRate.toFixed(1)}%` : 'N/A');
+      setDashboardText('attendance-capture', attendanceMetrics.totalRecords > 0
+        ? `${attendanceMetrics.totalRecords} attendance record(s) logged`
+        : 'No attendance data yet');
+
+      setDashboardText('avg-grade', gradeMetrics.overallAverage !== null ? `${gradeMetrics.overallAverage.toFixed(1)}%` : 'N/A');
+      setDashboardText('grade-coverage', gradeMetrics.studentCount > 0
+        ? `${gradeMetrics.studentCount} student(s) graded`
+        : 'No grades captured yet');
+
+      setDashboardText('at-risk-students', atRiskCount.toString());
+      setDashboardText('at-risk-summary', atRiskCount > 0 ? 'Needs targeted support' : 'All students on track');
+
+      const engagementSummary = engagementIndex === null
+        ? 'Awaiting data'
+        : engagementIndex >= 80
+          ? 'High engagement'
+          : engagementIndex >= 65
+            ? 'Moderate engagement'
+            : 'Low engagement';
+
+      setDashboardText('engagement-index', engagementIndex !== null ? `${engagementIndex.toFixed(1)}%` : 'N/A');
+      setDashboardText('engagement-summary', engagementSummary);
+
+      renderSmartAlerts(attendanceMetrics, gradeMetrics, totalBalance);
+    }
+
     // Dashboard Stats
     function updateDashboardStats() {
       document.getElementById('total-students').textContent = students.length;
@@ -3728,6 +4045,7 @@
       document.getElementById('outstanding-fees').textContent = 'R' + totalBalance.toLocaleString();
       document.getElementById('collection-rate').textContent = totalDue > 0 ? Math.round((totalPaid / totalDue) * 100) + '%' : '0%';
       document.getElementById('net-surplus').textContent = 'R' + (totalPaid - totalExp).toLocaleString();
+      updateDashboardInsights(totalBalance);
     }
 
     // Advanced Reports
