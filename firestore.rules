@@ -127,24 +127,24 @@ service cloud.firestore {
     
     // Students collection
     // Rules for student records including bulk CSV imports
-    // Note: Create and update are allowed for any authenticated user because the admin portal
-    // (admin.html) enforces Firebase Auth login before allowing writes. Stricter role checks
-    // (isAdmin/isTeacher) can fail during bootstrapping when the admin's Firestore user
-    // document hasn't been created yet, causing false "permission denied" errors.
+    // Note: The !userExists() fallback handles the bootstrapping scenario where a legitimate
+    // admin has authenticated via Firebase Auth but their Firestore user document hasn't been
+    // created yet, causing isAdmin()/isTeacher() to return false. Once the user document is
+    // created (during the normal sign-up or first-save flow), the stricter role check applies.
     match /students/{studentId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated();
-      allow delete: if isAdmin() || isTeacher();
+      allow create, update: if isAdmin() || isTeacher() || (isAuthenticated() && !userExists());
+      allow delete: if isAdmin();
     }
     
     // Teachers collection
     // 
-    // Note: Create and update are allowed for any authenticated user because the admin portal
-    // enforces Firebase Auth login before allowing writes. This also handles the bootstrapping
-    // scenario where the admin's Firestore user document may not exist yet.
+    // The !userExists() fallback handles the bootstrapping scenario described above.
+    // Once the admin's user document exists with role='admin', only admins can create/update.
     match /teachers/{teacherId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated();
+      allow create: if isAdmin() || (isAuthenticated() && !userExists());
+      allow update: if isAdmin() || (isTeacher() && isOwner(teacherId)) || (isAuthenticated() && !userExists());
       allow delete: if isAdmin();
     }
     
