@@ -129,7 +129,7 @@ service cloud.firestore {
     // Rules for student records including bulk CSV imports
     match /students/{studentId} {
       allow read: if isAuthenticated();
-      allow create: if isAdmin() &&
+      allow create: if (isAdmin() || isTeacher()) &&
                        // Validate required fields for student creation
                        request.resource.data.keys().hasAll(['name', 'grade']) &&
                        request.resource.data.name is string &&
@@ -142,7 +142,7 @@ service cloud.firestore {
                         request.resource.data.updatedAt is string) &&
                        // Validate gender field if present (M or F)
                        (!request.resource.data.keys().hasAny(['gender']) ||
-                        request.resource.data.gender in ['M', 'F', 'Male', 'Female', 'Not specified']) &&
+                        request.resource.data.gender in ['M', 'F', 'Male', 'Female', 'Not specified', '']) &&
                        // Validate email formats if present
                        (!request.resource.data.keys().hasAny(['learnerEmail']) ||
                         request.resource.data.learnerEmail is string) &&
@@ -151,24 +151,25 @@ service cloud.firestore {
                        (!request.resource.data.keys().hasAny(['motherEmail']) ||
                         request.resource.data.motherEmail is string) &&
                        // Validate numeric fields if present
+                       // Accept both int and float since JavaScript numbers may be stored as either type
                        (!request.resource.data.keys().hasAny(['numericId']) ||
-                        request.resource.data.numericId is int);
+                        request.resource.data.numericId is int ||
+                        request.resource.data.numericId is float);
       allow update: if isAdmin() || isTeacher();
       allow delete: if isAdmin();
     }
     
     // Teachers collection
     // 
-    // CURRENT IMPLEMENTATION: Only admins can create, update, and delete teacher records
+    // CURRENT IMPLEMENTATION: Admins can create, update, and delete teacher records.
+    // Teachers can update their own record (e.g., update qualifications or status).
     // Note: This collection contains administrative data about teachers (like employee records).
     // For teacher user profile updates (email, password, etc.), see the 'users' collection.
-    // 
-    // ALTERNATIVE SIMPLER APPROACH (using email-based checks):
-    // allow read: if isSignedIn();
-    // allow write: if isSignedIn() && request.auth.token.email.matches('admin@bis\\.local');
     match /teachers/{teacherId} {
       allow read: if isAuthenticated();
-      allow create, update, delete: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isTeacher() && isOwner(teacherId));
+      allow delete: if isAdmin();
     }
     
     // Classes collection
