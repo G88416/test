@@ -45,6 +45,7 @@ node check-firebase-deployment.js
 - **Advanced Grades System**: Multi-subject grading with weighted assessments and report cards
 - **Finance Management**: Track fees, payments, expenses, and generate financial reports
 - **Reporting & Analytics**: Comprehensive reports with charts and visualizations
+- **Smart Admin Command Center**: Dashboard insights with attendance health, academic performance, at-risk alerts, and quick actions
 
 ## Getting Started
 
